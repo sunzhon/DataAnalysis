@@ -1,0 +1,30 @@
+#! /bin/zsh
+# sim start
+
+if [ $# -gt 0 ]; then
+   runs=$1
+else
+   runs=1
+fi
+echo "run ${runs} times"
+
+
+for i in $(seq 1 ${runs}); do
+rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+#rosparam set /CPGType 4
+sleep 15
+echo "turn direction"
+rosparam set /VRN_hip_L1 0.05
+rosparam set /VRN_hip_L2 0.05
+
+rosparam set /VRN_hip_L3 0.02
+rosparam set /VRN_hip_L4 0.02
+
+sleep 35
+
+rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+done
+
+echo "Experiments Done!"
+
+

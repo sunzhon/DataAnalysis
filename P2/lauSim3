@@ -1,0 +1,27 @@
+#! /bin/zsh
+# sim start
+
+if [ $# -gt 0 ]; then
+   runs=$1
+else
+   runs=1
+fi
+echo "run ${runs} times"
+
+
+
+for i in $(seq 1 $runs); do
+rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+sleep 30
+
+echo "set MI equal to 0.0"
+rosparam set /MI 0.0
+sleep 8
+echo "reset MI equal to 0.15"
+rosparam set /MI 0.15
+sleep 20
+
+rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+done
+
+echo "Experiments Done!"

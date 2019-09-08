@@ -1,0 +1,28 @@
+#! /bin/zsh
+# sim start
+
+if [ $# -gt 0 ]; then
+    runs=$1
+else
+    runs=1
+fi
+echo "run ${runs} times"
+
+
+
+for i in $(seq 1 $runs); do
+    (${lilibot}) &
+    sleep 20
+
+    echo "set MI equal to 0.0"
+    rosparam set /MI 0.0
+    sleep 5
+    echo "reset MI equal to 0.1"
+    rosparam set /MI 0.1
+    sleep 15
+
+    rosnode kill /control_node
+    sleep 3
+done
+
+echo "Experiments Done!"
