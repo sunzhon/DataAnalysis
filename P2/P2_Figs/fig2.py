@@ -158,15 +158,5 @@ if __name__=="__main__":
     #axs[idx].set_title("Sensory feedback term of the right front leg")
 
 
-    #plt.savefig('fig2.eps')
+    plt.savefig('/media/suntao/DATA/Figs/P2Figs/fig2.eps')
     plt.show()
-
-    '''
-    ret=os.fork()
-    if ret>0:
-        print('-------father process--%d-'%os.getpid())
-        pass
-    else:#紫禁城
-        print("---子进程---%d-%d-"%(os.getpid(),os.getppid()))
-        #plt.show()
-    '''
