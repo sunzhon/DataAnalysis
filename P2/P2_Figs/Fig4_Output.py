@@ -4,10 +4,10 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-loaddatapath=os.getcwd()+'/../'
+loaddatapath=os.getenv("HOME")+'/PythonProjects/PyPro3/DataAnalysis/P2'
 sys.path.append(loaddatapath)
 import loaddata as LD
-#plt.rc('font',family='Times New Roman')
+plt.rc('font',family='Arial')
 
 if __name__=="__main__":
     columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',
@@ -38,23 +38,23 @@ if __name__=="__main__":
     end_point=320#read_rows
     time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
     #3) plot---------------------------------
-    font_legend = {'family' : 'Times New Roman',
+    font_legend = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 10,
     'style'  :'italic'
     }
-    font_tick = {'family' : 'Times New Roman',
+    font_tick = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 10,
     #'style'  :'normal'
     }
-    font_label = {'family' : 'Times New Roman',
+    font_label = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 12,
     'style'  :'normal'
     }
 
-    font_title = {'family' : 'Times New Roman',
+    font_title = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 12,
     'style'  :'normal'
@@ -72,7 +72,7 @@ if __name__=="__main__":
     idx=0
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,0],'r')
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,1],'b')
-    axs[idx].legend(['N1', 'N2'], loc='upper left',prop=font_legend)
+    axs[idx].legend([r'$O_1$', r'$O_2$'], loc='upper left',prop=font_legend)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-1.0,1.0],'tight')
     axs[idx].set_xticks(xticks)
@@ -86,7 +86,7 @@ if __name__=="__main__":
     idx=idx+1
     axs[idx].plot(time,joint_data[run_id].iloc[start_point:end_point,2],'b')
     axs[idx].plot(time,joint_data[run_id].iloc[start_point:end_point,1],'r')
-    axs[idx].legend(['M1', 'M2'], loc='upper left',prop=font_legend)
+    axs[idx].legend([r'$\theta_1$', r'$\theta_2$'], loc='upper left',prop=font_legend)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-0.6,0.3])
     axs[idx].set_yticks([-0.5,-0.1,0.2])
@@ -105,8 +105,8 @@ if __name__=="__main__":
     axs[idx].axis([time[0],time[-1],-0.2,1.2])
     axs[idx].set_xticks(xticks)
     axs[idx].set_xticklabels(labels=[])
-    axs[idx].set_yticks([-0.0,0.5,1.0])
-    axs[idx].set_yticklabels(labels=['-0.0','0.5','1.0'],fontweight='light')
+    axs[idx].set_yticks([0.0,0.5,1.0])
+    axs[idx].set_yticklabels(labels=['0.0','0.5','1.0'],fontweight='light')
     axs[idx].set_ylabel('FM',fontdict=font_label)
     #axs[idx].set_title("The joint commands for the right front leg")
 
@@ -134,10 +134,10 @@ if __name__=="__main__":
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,8])
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-0.01,0.12])
-    axs[idx].legend(['Adaptive feedback gain'], loc='upper left',prop=font_legend)
+    axs[idx].legend([r'$\gamma$'], loc='upper left',prop=font_legend)
     axs[idx].set_ylabel('DL',font_label)
-    axs[idx].set_yticks([-0.01,0.05,0.10])
-    axs[idx].set_yticklabels(labels=['-0.01','0.05','0.10'],fontweight='light')
+    axs[idx].set_yticks([0.0,0.05,0.10])
+    axs[idx].set_yticklabels(labels=['0.0','0.05','0.10'],fontweight='light')
     axs[idx].set_xticks(xticks)
     axs[idx].set_xticklabels(labels=[])
     #axs[idx].set_title("Adaptive sensory feedback gain of the right front leg")
@@ -146,7 +146,7 @@ if __name__=="__main__":
     idx=idx+1
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,20],'r')
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,21],'b')
-    axs[idx].legend(['f1', 'f2'], loc='upper left',prop=font_legend)
+    axs[idx].legend([r'$f_1$', r'$f_2$'], loc='upper left',prop=font_legend)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].set_xticks(xticks)
     axs[idx].set_xticklabels(labels= [ temp for temp in map(str,xticks)],fontweight='light')
@@ -154,9 +154,12 @@ if __name__=="__main__":
     axs[idx].set_ylabel('SFM',fontdict=font_label)
     axs[idx].set_yticks([-0.1,0.0,0.10])
     axs[idx].set_yticklabels(labels=['-0.1','0.0','0.10'],fontweight='light',fontstyle='normal')
-    axs[idx].set_xlabel('Time[s]',fontdict=font_label)
+    axs[idx].set_xlabel('Time [s]',font_label)
     #axs[idx].set_title("Sensory feedback term of the right front leg")
+    
+    # add color block at sepcific aera
+    for i in range(idx+1):
+        axs[i].axvspan(3.75, 4.29, facecolor='#2ca02c', alpha=0.2)
 
-
-    plt.savefig('/media/suntao/DATA/Figs/P2Figs/fig2.eps')
+    plt.savefig('/media/suntao/DATA/P2 workspace/Experimental Figs/P2Figs/fig4.eps')
     plt.show()

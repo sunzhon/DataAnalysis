@@ -11,8 +11,8 @@ import sys
 import time
 
 #1) load data
-fileName="sensorfile_ORI"
-culumnsName=["roll","pitch","yaw"]
+fileName="sensorfile_POSE"
+culumnsName=["roll","pitch","yaw","x","y","z"]
 fine_data=LD.loadData(fileName,culumnsName)
 freq=40.0 # 40Hz,
 

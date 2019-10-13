@@ -4,11 +4,11 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-loaddatapath=os.getcwd()+'/../'
+loaddatapath=os.getenv("HOME")+'/PythonProjects/PyPro3/DataAnalysis/P2'
 sys.path.append(loaddatapath)
 import loaddata as LD
 import pdb 
-plt.rc('font',family='Times New Roman')
+plt.rc('font',family='Arial')
 
 if __name__=="__main__":
     columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',
@@ -24,7 +24,7 @@ if __name__=="__main__":
                         'j7','j8','j9','j10','j11','j12','s'
                       ]*2
     fileName_ANC='controlfile_ANC'
-    columnsName_ANC=['\u03A6'+'12','\u03A6'+'13','\u03A6'+'14','variance']
+    columnsName_ANC=['\u03A6'+'$_{12}$','\u03A6'+'$_{13}$','\u03A6'+'$_{14}$','variance']
     freq=40.0 # 40Hz,
     cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)
     grf_data=LD.loadData(fileName_GRF,columnsName_GRF)
@@ -38,22 +38,22 @@ if __name__=="__main__":
         run_id = 0
 
     read_rows=min([4000,cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0],ANC_data[run_id].shape[0]])
-    start_point=180
-    end_point=480#read_rows
+    start_point=240
+    end_point=560#read_rows
     time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
     #3) plot
-    font_legend = {'family' : 'Times New Roman',
+    font_legend = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 10,
     'style'  :'italic'
     }
-    font_label = {'family' : 'Times New Roman',
+    font_label = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 12,
     'style'  :'normal'
     }
 
-    font_title = {'family' : 'Times New Roman',
+    font_title = {'family' : 'Arial',
     'weight' : 'light',
     'size'   : 12,
     'style'  :'normal'
@@ -72,7 +72,7 @@ if __name__=="__main__":
     idx=0
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,0],'r')
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,1],'b')
-    axs[idx].legend(['N1', 'N2'], loc='upper left',prop=font_legend)
+    axs[idx].legend([r'$O_1$', r'$O_2$'], loc='upper left',prop=font_legend)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-1.0,1.0],'tight')
     axs[idx].set_xticks(xticks)
@@ -90,8 +90,8 @@ if __name__=="__main__":
     axs[idx].legend(columnsName_ANC[0:3], loc='upper left',prop=font_legend,ncol=2)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-.5,3.5])
-    axs[idx].set_yticks([-0.5,1.57,3.14])
-    axs[idx].set_yticklabels(labels=['-0.5','1.57','3.14'],fontweight='light')
+    axs[idx].set_yticks([0.0,1.57,3.14])
+    axs[idx].set_yticklabels(labels=['0.0','1.57','3.14'],fontweight='light')
     axs[idx].set_xticks(xticks)
     axs[idx].set_xticklabels(labels=[])
     axs[idx].set_ylabel('CPD',font_label)
@@ -100,14 +100,14 @@ if __name__=="__main__":
 
     idx=idx+1
     axs[idx].plot(time,ANC_data[run_id].iloc[start_point:end_point,3],'k')
-    temp_data=ANC_data[run_id].iloc[start_point:end_point,3];threshold=0.3
+    temp_data=ANC_data[run_id].iloc[start_point:end_point,3];threshold=0.4
     temp_data2=[ int(temp)  for temp in temp_data < threshold]
     temp_data3=[temp_data2[i-1] for i, temp in enumerate(temp_data2)];
     temp_data4=np.array(temp_data2)-np.array(temp_data3)
     axs[idx].plot(time,[ ([0.0,1.0][idx >= list(temp_data4).index(1)]) for idx,temp in enumerate(temp_data4)],'y',linestyle='-')
     axs[idx].plot(time,threshold*np.ones(len(time),dtype='float32'),'r',linestyle=':')
     axs[idx].scatter(time[list(temp_data4).index(1)], threshold, color='', marker='o', edgecolors='g', s=60)
-    axs[idx].legend(['s','e','threshold value','activation point'],loc='upper right',prop=font_legend,ncol=2)
+    axs[idx].legend(['d',r'$\kappa$','threshold value','activation point'],loc='upper right',prop=font_legend,ncol=2)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].axis([time[0],time[-1],-0.2,3.5])
     axs[idx].set_xticks(xticks)
@@ -120,7 +120,7 @@ if __name__=="__main__":
     idx=idx+1
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,12],'r')
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,13],'b')
-    axs[idx].legend(['g1', 'g2'], loc='upper left',prop=font_legend,ncol=2)
+    axs[idx].legend([r'$g_1$', r'$g_2$'], loc='upper left',prop=font_legend,ncol=2)
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].set_xticks(xticks)
     axs[idx].set_xticklabels(labels= [ temp for temp in map(str,xticks)],fontweight='light')
@@ -128,10 +128,14 @@ if __name__=="__main__":
     axs[idx].set_ylabel('ACI',font_label)
     axs[idx].set_yticks([-0.1,0.0,0.10])
     axs[idx].set_yticklabels(labels=['-0.1','0.0','0.10'],fontweight='light')
-    axs[idx].set_xlabel('Time[s]',font_label)
+    axs[idx].set_xlabel('Time [s]',font_label)
     #axs[idx].set_title("Adaptive control input term of the right front leg")
 
+    '''add color block '''
+    for i in range(idx+1):
+        axs[i].axvspan(9.48, 9.65, facecolor='#eee1d3ff', alpha=0.7)
+        axs[i].axvspan(10.40, 10.7, facecolor='#b3e5e2ff', alpha=0.7)
 
-    plt.savefig('/media/suntao/DATA/Figs/P2Figs/fig3.eps')
+    plt.savefig('/media/suntao/DATA/P2 workspace/Experimental Figs/P2Figs/fig5.eps')
     plt.show()
 
