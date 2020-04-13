@@ -5,10 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pdb 
-from cycler import cycler
-import matplotlib as mpl
-from matplotlib import gridspec
 
+        
 def create_connection(db_file):
     """ create a database connection to the SQLite database
         specified by the db_file
@@ -56,8 +54,7 @@ def select_data_by_priority(conn, step):
 def read_force_data(filename):
     freq=200# Hz sample
     #folderpath=r"F:\P2 workspace\Experiment data\Force plate test (2-07-19)\\"
-    folderpath=r"/media/suntao/DATA/Experiment data/Force plate test (2-07-19)//"
-    folderpath=r"/media/suntao/DATA/Research/Experiment data/Force test for self-organized locomotion//"
+    folderpath=r"/media/suntao/DATA/Experiment data/Force test for self-organized locomotion//"
 
     filepath=folderpath + filename + r".db"
     conn=create_connection(filepath)
@@ -76,79 +73,32 @@ def read_force_data(filename):
         Fy_sum+=Fy[idx]
         Fz_sum+=Fz[idx]
     sample_time=np.linspace(0,len(Fx_sum),len(Fx_sum))/freq
-    print(len(sample_time))
-    print(len(Fx_sum))
-    return [sample_time,Fx_sum,Fy_sum,-1.0*Fz_sum, Fz]
+    return [sample_time,Fx_sum,Fy_sum,Fz_sum]
     
     
 if __name__=='__main__':
-    filename="self-organized locomotion generation"
+    #filename="self-organized locomotion low fre MI 0.06"# 61-80
+    #filename="self-organized locomotion high fre MI 0.32"# 
+    filename="self-organized locomotion generation"# 
 
-    [Time,Fx,Fy,Fz,Fzz]=read_force_data(filename)
+    [Time,Fx,Fy,Fz]=read_force_data(filename)
     figsize=(16,8)
     fig=plt.figure(figsize=figsize)
     
+    start_seconds=19*200;end_seconds=26*200
+
     plt.subplot(3,1,1)
-    plt.plot(Time,Fx)
+    plt.plot(Time[start_seconds:end_seconds],Fx[start_seconds:end_seconds],'r')
+    plt.ylabel('Fx [N]')
+    plt.title("Ground reaction force")
     plt.subplot(3,1,2)
-    plt.plot(Time,Fy)
+    plt.plot(Time[start_seconds:end_seconds],Fy[start_seconds:end_seconds],'g')
+    plt.ylabel('Fy [N]')
     plt.subplot(3,1,3)
-    plt.plot(Time,Fz)
+    plt.plot(Time[start_seconds:end_seconds],Fz[start_seconds:end_seconds],'b')
+    plt.ylabel('Fz [N]')
 
     plt.xlabel('Time [s]')
-    plt.ylabel('Fz [N]')
-    '''
-    figsize=(10,4.5)#8.6614
-    fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(4,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.095,left=0.08,right=0.98)
-    axs=[]
-    axs.append(fig.add_subplot(gs1[0:2,0]))
-    axs.append(fig.add_subplot(gs1[2:4,0]))
-    '''
-
-
-
-    colors = ['#1f77b4',
-          '#ff7f0e',
-          '#2ca02c',
-          '#d62728',
-          '#9467bd',
-          '#8c564b',
-          '#e377c2',
-          '#7f7f7f',
-          '#bcbd22',
-          '#17becf',
-          '#1a55FF',
-          '#1a55eF',
-          '#1a55dF',
-          '#1a55cF',
-          '#1a55bF',
-          '#1a55aF',
-          '#d6272B',
-          '#d6272C',
-          '#d6272F',
-          '#1a550F'
-             ]
-
-    # Set the plot curve with markers and a title
-    figsize=(10,4.5)#8.6614
-    fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(4,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.095,left=0.08,right=0.98)
-    axs=[]
-    axs.append(fig.add_subplot(gs1[0:2,0]))
-    axs.append(fig.add_subplot(gs1[2:4,0]))
-
-
-    axs[0].plot(Time, -1.0*Fzz[12], color=colors[1]) #, marker='o', label=str(cases[i]))
-    axs[1].plot(Time, -1.0*Fzz[14], color=colors[2]) #, marker='o', label=str(cases[i]))
-
-    plt.savefig('/media/suntao/DATA/Research/P1_workspace/Figures/Current_VGRF_GRF.svg')
-
+    
+    plt.savefig("/media/suntao/DATA/P2 workspace/Experimental Figs/P2Figs/Fig100.eps")
     plt.show()
-
-
-
-
-

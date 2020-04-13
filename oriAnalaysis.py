@@ -11,8 +11,13 @@ import scipy
 import os
 loaddatapath=os.getenv("PWD")+'/../'
 sys.path.append(loaddatapath)
+
+loaddatapath=os.getenv("PWD")+'/P2/'
+sys.path.append(loaddatapath)
 import loaddata as LD
 import pdb 
+import DataProcess as dp
+
 plt.rc('font',family='Arial')
 
 
@@ -28,7 +33,7 @@ def stsubplot(fig,position,number):
     return ax
 
 
-def Exp4():
+def imuplot(folder):
     columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',
                      'RFSA','RHSA','LFSA','LHSA',
                      'RFACITerm0','RFACITerm1','RHACITerm0','RHACITerm1','LFACITerm0','LFACITerm1','LHACITerm0','LHACITerm1',
@@ -50,14 +55,8 @@ def Exp4():
     fileName_pose='sensorfile_POSE'
     columnsName_pose=["roll","pitch","yaw","x","y","z"]
 
-    freq=40.0 # 40Hz,
-    cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)
-    grf_data=LD.loadData(fileName_GRF,columnsName_GRF)
-    joint_data=LD.loadData(fileName_joint,columnsName_joint)
-    ANC_data=LD.loadData(fileName_ANC,columnsName_ANC)
-    DL_data=LD.loadData(fileName_CPG,columnsName_CPG)
-    grffmi_data=LD.loadData(fileName_GRFFMI,columnsName_GRFFMI)
-    pose_data=LD.loadData(fileName_pose,columnsName_pose)
+    freq=50.0 # 50Hz,
+    pose_data=LD.loadData(fileName_pose,columnsName_pose,folder)
 
     #2) postprecessing 
     if len(sys.argv)>=2:
@@ -65,10 +64,11 @@ def Exp4():
     else:
         run_id = 0
 
-    read_rows=min([cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0],ANC_data[run_id].shape[0],pose_data[run_id].shape[0],grffmi_data[run_id].shape[0]])
-    start_point=1360
-    end_point=3060#read_rows
+    start_point=500
+    end_point=7500#read_rows
     time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
+
+    lowPassFliter = dp.DataProcess()
     #3) plot
     font_legend = {'family' : 'Arial',
     'weight' : 'light',
@@ -89,55 +89,52 @@ def Exp4():
 
 
     
-    figsize=(6,4)#8.6614
+    figsize=(10,4.5)#8.6614
     fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(2,1)#13
-    gs1.update(hspace=0.35,top=0.95,bottom=0.13,left=0.11,right=0.92)
+    gs1=gridspec.GridSpec(4,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.095,left=0.08,right=0.98)
     axs=[]
-    axs.append(fig.add_subplot(gs1[0:1,0]))
-    axs.append(fig.add_subplot(gs1[1:2,0]))
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+    axs.append(fig.add_subplot(gs1[2:4,0]))
 
     
-    xticks=list(range(int(time[0]),int(time[-1])+1,2))
-    LegName=["RF","RH","LF","LH"]
+    xticks=list(range(int(time[0]),int(time[-1])+1,10))
     text_x=-1.
-    
-    #---------------------MI----------------------------------#
+
+    #---------------------ROLL----------------------------------#
     plot_idx=0
-    yticks=[0.0,0.15,0.3,0.4,0.45]
-    axs[plot_idx].plot(time,grffmi_data[run_id].iloc[start_point:end_point,4],'k',linestyle='-')
+    yticks=[-0.15,0.0,0.3]
+    axs[plot_idx].plot(time,pose_data[run_id].iloc[start_point:end_point,0],'b',linestyle='-')
+    axs[plot_idx].plot(time,lowPassFliter.ydpprocess(pose_data[run_id].iloc[start_point:end_point,0]),'y',linestyle=':')
     axs[plot_idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[plot_idx].axis([time[0],time[-1],yticks[0],yticks[-1]])
+    axs[plot_idx].legend([r'$\alpha$'], loc='upper left',prop=font_legend, ncol=1)
     axs[plot_idx].set_yticks(yticks)
     axs[plot_idx].set_yticklabels(labels=[str(yt) for yt in yticks],fontweight='light')
     axs[plot_idx].set_xticks(xticks)
-    axs[plot_idx].set_ylabel("Value")
-    axs[plot_idx].set_title("MI",pad=3)
-    #---------------------Speed------------------------#
-    plot_idx=plot_idx+1
-    pose=pose_data[run_id].iloc[start_point:end_point,3]
-    speed=(pose[1:].values-pose[0:-1].values)*freq
+    axs[plot_idx].set_xticklabels(labels=[],fontweight='light')
+    axs[plot_idx].set_ylabel("Roll [rad]")
 
-    smooth_speed = np.convolve(speed, np.ones(20)/20, mode='same')
-    yticks=[0.0,0.15,0.3]
-    axs[plot_idx].plot(time[0:-1],speed,'k',linestyle='--')
-    axs[plot_idx].plot(time[0:-1],smooth_speed,'r',linestyle='-')
+    #---------------------PITCH----------------------------------#
+    plot_idx=plot_idx+1
+    yticks=[-0.8,0.0,0.8]
+    axs[plot_idx].plot(time,pose_data[run_id].iloc[start_point:end_point,1],'r',linestyle='-')
+    axs[plot_idx].plot(time,lowPassFliter.ydpprocess(pose_data[run_id].iloc[start_point:end_point,1]),'y',linestyle=':')
     axs[plot_idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[plot_idx].axis([time[0],time[-1],yticks[0],yticks[-1]])
+    axs[plot_idx].legend([r'$\beta$'], loc='upper left',prop=font_legend, ncol=1)
     axs[plot_idx].set_yticks(yticks)
-    axs[plot_idx].set_yticklabels(labels=[str(yt) for yt in yticks],fontweight='light',color='r')
+    axs[plot_idx].set_yticklabels(labels=[str(yt) for yt in yticks],fontweight='light')
     axs[plot_idx].set_xticks(xticks)
-    axs[plot_idx].set_ylabel("v [m/s]",color='r')
-    axs[plot_idx].set_title("Speed & Displacement",pad=3)
-
+    axs[plot_idx].set_xticklabels(labels=[str(xt) for xt in xticks],fontweight='light')
+    axs[plot_idx].set_ylabel("Pitch [rad]")
     axs[plot_idx].set_xlabel('Time [s]',font_label)
-    
-    axs_twinx=axs[plot_idx].twinx();dispcolor='b'
-    axs_twinx.set_ylabel("x[m]",color=dispcolor)
-    axs_twinx.plot(time[0:-1],pose[0:-1],color=dispcolor,linestyle='-.')
-    axs_twinx.tick_params(axis='y',labelcolor=dispcolor)
+    axs[0].set_title('Body attitude angle')
 
 if __name__=="__main__":
-    Exp4()
-    plt.savefig('/media/suntao/DATA/P2 workspace/Experimental Figs/P2Figs/Fig11.eps')
+    imuplot('12323125')
+    plt.savefig('/media/suntao/DATA/Research/P1_workspace/Figures/BodyAttitudeAnglesSlope.svg')
+    imuplot('123204016')
+    plt.savefig('/media/suntao/DATA/Research/P1_workspace/Figures/BodyAttitudeAnglesFlat.svg')
     plt.show()
+

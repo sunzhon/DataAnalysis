@@ -4,11 +4,10 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-loaddatapath=os.getenv("HOME")+'/PythonProjects/PyPro3/DataAnalysis/P2'
+loaddatapath=os.getenv("PWD")+'/../'
 sys.path.append(loaddatapath)
 import loaddata as LD
 plt.rc('font',family='Arial')
-
 if __name__=="__main__":
     columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',
                      'RFSA','RHSA','LFSA','LHSA',
@@ -22,7 +21,7 @@ if __name__=="__main__":
     columnsName_joint=['j1','j2','j3','j4','j5,''j6',
                         'j7','j8','j9','j10','j11','j12','s'
                       ]*2
-    freq=40.0 # 40Hz,
+    freq=50.0 # 40Hz,
     cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)
     grf_data=LD.loadData(fileName_GRF,columnsName_GRF)
     joint_data=LD.loadData(fileName_joint,columnsName_joint)
@@ -35,7 +34,7 @@ if __name__=="__main__":
         run_id = 0
     read_rows=min([cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0]])
     start_point=0
-    end_point=320#read_rows
+    end_point=350#read_rows
     time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
     #3) plot---------------------------------
     font_legend = {'family' : 'Arial',
@@ -142,7 +141,6 @@ if __name__=="__main__":
     axs[idx].set_xticklabels(labels=[])
     #axs[idx].set_title("Adaptive sensory feedback gain of the right front leg")
 
-
     idx=idx+1
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,20],'r')
     axs[idx].plot(time,cpg_data[run_id].iloc[start_point:end_point,21],'b')
@@ -159,7 +157,11 @@ if __name__=="__main__":
     
     # add color block at sepcific aera
     for i in range(idx+1):
-        axs[i].axvspan(3.75, 4.29, facecolor='#2ca02c', alpha=0.2)
+        axs[i].axvspan(2.10, 2.51, facecolor='#bf00ff', alpha=0.2)
+        axs[i].axvspan(3.0, 3.4, facecolor='#2ca02c', alpha=0.2)
+        axs[i].axvspan(3.98, 4.35, facecolor='#2ca02c', alpha=0.2)
+        axs[i].axvspan(4.92, 5.3, facecolor='#2ca02c', alpha=0.2)
+        axs[i].axvspan(6.05, 6.28, facecolor='#2ca02c', alpha=0.2)
 
-    plt.savefig('/media/suntao/DATA/P2 workspace/Experimental Figs/P2Figs/fig4.eps')
+    plt.savefig('/media/suntao/DATA/Research/P2_workspace/Experimental Figs/P2Figs/fig4.eps')
     plt.show()

@@ -6,10 +6,9 @@ from matplotlib import gridspec
 import matplotlib.path as mpath
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
-
 import numpy as np
 import os
-loaddatapath=os.getenv("HOME")+'/PythonProjects/PyPro3/DataAnalysis/P2'
+loaddatapath=os.getenv("PWD")+'/../'
 sys.path.append(loaddatapath)
 import loaddata as LD
 import pdb 

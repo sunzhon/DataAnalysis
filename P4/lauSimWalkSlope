@@ -1,0 +1,37 @@
+#! /bin/zsh
+# sim start
+
+if [ $# -gt 0 ]; then
+   runs=$1
+else
+   runs=5
+fi
+
+echo "run ${runs} times"
+
+echo "" > slopeWalking.log
+
+
+rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
+
+#for inclination in -0.61 -0.52 -0.349 -0.174 0.0 0.174 0.349 0.52 0.61
+#for inclination in 0.0 0.174 0.349 0.52 0.61
+for inclination in 0.349
+do
+
+slope_value="\"data: $inclination\""
+cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${slope_value}"
+
+for i in $(seq 1 $runs); do
+rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+d1=`date +%m%d%H%M%S`
+eval $cmd
+sleep 55
+rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+echo "$d1\t$inclination" >> slopeWalking.log
+done
+
+sleep 4
+done
+
+echo "Experiments Done!"

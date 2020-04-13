@@ -1,0 +1,157 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+
+
+\begin{document}
+
+
+\begin{equation}
+    a_{i}^k(n+1)=\sum_{j=1}^{2} w_{ij}^{k}o_{j}^{k}(n)+b_{i}^{k}-f_{i}^{k}(n), i=1,2; k=1,2,3,4
+    \label{equ:1}
+\end{equation}
+
+
+
+\begin{equation}
+    f_{i}^{k}(n)=\left\{
+        \begin{array}{rcl}
+            \gamma F^{k}(n) \cos(o_{i}^{k}(n)), i=1,\\
+            \gamma F^{k}(n) \sin(o_{i}^{k}(n)), i=2,
+        \end{array}
+    \right.
+    \label{equ:2}
+\end{equation}
+
+
+
+\begin{equation}
+    o_{i}^{k}(n) = \tanh(a_{i}^{k}(n))
+    \label{equ:3}
+\end{equation}
+
+\begin{equation}
+    \sum_{k=1}^{4} F^{k}(n)=Mg
+    \label{equ:4}
+\end{equation}
+
+
+
+\begin{equation}
+    \vec{P}_{k}=(o_{1}^{k}(n),o_{2}^{k}(n))
+    \label{<+label+>}
+\end{equation}
+
+
+
+%\begin{equation}
+%   \vec{\vec{\phi}}= (acos(\frac{\vec{P}_{1} \vec{P}_{2}}{||\vec{P}_{1}|| ||\vec{P}_{2}||}), acos(\frac{\vec{P}_{1} \vec{P}_{3}}{||\vec{P}_{1}|| ||\vec{P}_{3}||}), acos(\frac{\vec{P}_{1} \vec{P}_{4}}{||\vec{P}_{1}|| ||\vec{P}_{4}||}))
+%    \label{<+label+>}
+%\end{equation}
+
+
+\begin{equation}
+    \vec{\vec{\phi}}= (\frac{\vec{P}_{1} \vec{P}_{2}}{||\vec{P}_{1}|| ||\vec{P}_{2}||}, \frac{\vec{P}_{1} \vec{P}_{3}}{||\vec{P}_{1}|| ||\vec{P}_{3}||}, \frac{\vec{P}_{1} \vec{P}_{4}}{||\vec{P}_{1}|| ||\vec{P}_{4}||})
+    \label{<+label+>}
+\end{equation}
+
+%\begin{equation}
+%    \dot{\vec{\phi}} = f(\vec{\phi})
+%    \label{<+label+>}
+%\end{equation}
+
+
+From the initial condition:
+
+$b_{i}^{k}=0.001$,
+
+$o_{i}^{k}(0)=0.0$
+
+The system will converge to the following result:
+
+\begin{equation}
+    \vec{\phi}=(0,0,1)
+    \label{<+label+>}
+\end{equation}
+
+
+
+
+
+-----------------------------
+
+
+\begin{equation}
+    a_{ik}(n+1)=\sum_{j=1}^{2} w_{ij}o_{jk}(n)+b_{ik}-f_{ik}(n), i=1,2; k=1,2,3,4 
+    \label{<+label+>}
+\end{equation}
+
+\begin{equation}
+    f_{ik}(n)=\left\{
+        \begin{array}{rcl}
+            \gamma F_{k3}(n) \cos(o_{ik}(n)), i=1,\\
+            \gamma F_{k3}(n) \sin(o_{ik}(n)), i=2,
+        \end{array}
+    \right.
+    \label{equ:2}
+\end{equation}
+
+
+\begin{equation}
+    o_{ik}=\tanh(a_{ik})
+    \label{<+label+>}
+\end{equation}
+\begin{equation}
+\vec{o} = 
+    \begin{pmatrix}
+        o_{11} & o_{12} & o_{13} & o_{14} \\
+        o_{21} & o_{22} & o_{23} & o_{24}
+    \end{pmatrix}
+    \label{<+label+>}
+\end{equation}
+
+\begin{equation}
+    \mathbf{\vec{\theta}}=\Theta \vec{o} + \mathbf{\beta}
+\end{equation}
+
+\begin{equation}
+    \vec{A}\vec{F}=\vec{b}
+    \label{<+label+>}
+\end{equation}
+
+\begin{equation}
+        \vec{A}=
+        \begin{pmatrix}
+            I_{3 \times 3} \dots I_{3 \times 3} \\
+            \vec{P}_{1} \dots \vec{P}_{k}
+        \end{pmatrix}
+    \label{<+label+>}
+\end{equation}
+
+
+\begin{equation}
+    \vec{F}=
+    \begin{pmatrix}
+        \vec{F}_{1} \dots \vec{F}_{k}
+    \end{pmatrix}
+    ^\top
+    \label{<+label+>}
+\end{equation}
+
+
+\begin{equation}
+    \vec{b}= 
+    \begin{pmatrix}
+        m(\ddot{\vec{P}_c} + \vec{g}) & \vec{I}_G \dot{\vec{\omega}}
+    \end{pmatrix}
+    ^\top
+    \label{<+label+>}
+\end{equation}
+
+
+
+\end{document}
