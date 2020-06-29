@@ -1,37 +1,39 @@
 #! /bin/zsh
 # sim start
 
+#d1=`date +%m%d%H%M%S`
+# running times
 if [ $# -gt 0 ]; then
-   runs=$1
+    runs=$1
 else
-   runs=5
+    runs=1
 fi
 
 echo "run ${runs} times"
+# files
+data_log_file_path=$HOME/workspace/experiment_data/datapath.log
+data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.log
+echo "" > $data_log_file #create a experiment data log file 
+#rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
 
-echo "" > slopeWalking.log
-
-
-rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
-
-#for inclination in -0.61 -0.52 -0.349 -0.174 0.0 0.174 0.349 0.52 0.61
-#for inclination in 0.0 0.174 0.349 0.52 0.61
-for inclination in 0.349
+#for inclination in -0.61 -0.52 -0.349 -0.174 0.0 0.174 0.349 0.52
+#for inclination in -0.52 -0.349 -0.174  0.0 0.174 0.349 0.52 0.61
+for inclination in 0.174
 do
+    slope_value="\"data: $inclination\""
+    cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${slope_value}"
 
-slope_value="\"data: $inclination\""
-cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${slope_value}"
-
-for i in $(seq 1 $runs); do
-rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
-d1=`date +%m%d%H%M%S`
-eval $cmd
-sleep 55
-rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
-echo "$d1\t$inclination" >> slopeWalking.log
-done
-
-sleep 4
+    for i in $(seq 1 $runs); do
+        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+        #rosparam set /MI 0.08
+        eval $cmd
+        sleep 45
+        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+        data_path_temp=$(cat $data_log_file_path)
+        echo "$data_path_temp\t$inclination">> $data_log_file
+    done
+    sleep 4
 done
 
 echo "Experiments Done!"
+
