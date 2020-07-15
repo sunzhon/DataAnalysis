@@ -18,6 +18,8 @@ from mpl_toolkits import mplot3d
 from matplotlib import animation
 import seaborn as sns
 
+import matplotlib as mpl
+
 '''
 ###############################
 Data loading and preprocessing functions
@@ -715,29 +717,30 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
         axs.append(fig.add_subplot(gs1[4:5,idx]))
     
     #3.1) plot 
+
     for idx, inclination in enumerate(experiment_classes):
-        axs[3*idx].plot(time,cpg[inclination][trail_id][:,1], 'r')
-        axs[3*idx].plot(time,cpg[inclination][trail_id][:,3],'g')
-        axs[3*idx].plot(time,cpg[inclination][trail_id][:,5],'b')
-        axs[3*idx].plot(time,cpg[inclination][trail_id][:,7],'y')
+        axs[3*idx].plot(time,cpg[inclination][trail_id][:,1], color=(46/255.0, 77/255.0, 129/255.0))
+        axs[3*idx].plot(time,cpg[inclination][trail_id][:,3], color=(0/255.0, 198/255.0, 156/255.0))
+        axs[3*idx].plot(time,cpg[inclination][trail_id][:,5], color=(255/255.0, 1/255.0, 118/255.0))
+        axs[3*idx].plot(time,cpg[inclination][trail_id][:,7], color=(225/255.0, 213/255.0, 98/255.0))
         axs[3*idx].grid(which='both',axis='x',color='k',linestyle=':')
         axs[3*idx].grid(which='both',axis='y',color='k',linestyle=':')
         axs[0].set_ylabel(u'CPGs')
-        axs[3*idx].set_yticks([-0.4,-0.2,0.0])
+        axs[3*idx].set_yticks([-1.0,0.0,1.0])
         axs[3*idx].legend(['RF','RH','LF', 'LH'],ncol=4)
         axs[3*idx].set_xticklabels([])
         axs[3*idx].set_title('Inclination of the slope:' + str(round(180*float(inclination)/3.1415))+ u'\u00b0')
         axs[3*idx].set(xlim=[min(time),max(time)])
 
 
-        axs[1].set_ylabel(u'Atti [deg]')
-        axs[3*idx+1].plot(time,pose[inclination][trail_id][:,0]*-57.3,'r')
-        axs[3*idx+1].plot(time,pose[inclination][trail_id][:,1]*-57.3,'g')
-        axs[3*idx+1].plot(time,pose[inclination][trail_id][:,2]*57.3,'b')
+        axs[1].set_ylabel(u'Atti. [deg]')
+        axs[3*idx+1].plot(time,pose[inclination][trail_id][:,0]*-57.3,color=(129/255.0,184/255.0,223/255.0))
+        axs[3*idx+1].plot(time,pose[inclination][trail_id][:,1]*-57.3,color=(254/255.0,129/255.0,125/255.0))
+        #axs[3*idx+1].plot(time,pose[inclination][trail_id][:,2]*57.3,'b')
         axs[3*idx+1].grid(which='both',axis='x',color='k',linestyle=':')
         axs[3*idx+1].grid(which='both',axis='y',color='k',linestyle=':')
-        #axs[3*idx+1].set_yticks([-40,-20,0.0])
-        axs[3*idx+1].legend(['Roll','Pitch','Yaw'])
+        axs[3*idx+1].set_yticks([-5.0,0.0,5.0])
+        axs[3*idx+1].legend(['Roll','Pitch'],loc='upper left')
         axs[3*idx+1].set_xticklabels([])
         axs[3*idx+1].set(xlim=[min(time),max(time)])
 
@@ -751,19 +754,19 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
         axs[3*idx+2].set(xlim=[min(time),max(time)])
 
 
-#        axs[3].set_ylabel(u'Phase Diff. [rad]')
-#        phi=calculate_phase_diff(cpg[inclination][trail_id],time)
-#        axs[3*idx+3].plot(phi['time'],phi['phi_12'],'r')
-#        axs[3*idx+3].plot(phi['time'],phi['phi_13'],'g')
-#        axs[3*idx+3].plot(phi['time'],phi['phi_14'],'b')
-#        axs[3*idx+3].legend(['phi_12','phi_13','phi_14'])
-#        axs[3*idx+3].grid(which='both',axis='x',color='k',linestyle=':')
-#        axs[3*idx+3].grid(which='both',axis='y',color='k',linestyle=':')
-#        axs[3*idx+3].set_yticks([0.0,1.5,3.0])
-#        axs[3*idx+3].set_xticklabels([])
-#        axs[3*idx+3].set(xlim=[min(time),max(time)])
-#
+        axs[3].set_ylabel(u'Phase diff. [rad]')
+        phi=calculate_phase_diff(cpg[inclination][trail_id],time)
+        axs[3*idx+3].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
+        axs[3*idx+3].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
+        axs[3*idx+3].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
+        axs[3*idx+3].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$'])
+        axs[3*idx+3].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[3*idx+3].grid(which='both',axis='y',color='k',linestyle=':')
+        axs[3*idx+3].set_yticks([0.0,1.5,3.0])
+        axs[3*idx+3].set_xticklabels([])
+        axs[3*idx+3].set(xlim=[min(time),max(time)])
 
+        '''
         axs[3].set_ylabel(u'Noise [rad]')
         axs[3*idx+3].plot(time,noise[inclination][trail_id][:,0], 'r')
         axs[3*idx+3].plot(time,noise[inclination][trail_id][:,1], 'g')
@@ -775,7 +778,7 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
         axs[3*idx+3].set_yticks([0.0,0.3])
         axs[3*idx+3].set_xticklabels([])
         axs[3*idx+3].set(xlim=[min(time),max(time)])
-
+        '''
 
         axs[4].set_ylabel(r'Gait')
         gait_diagram(fig,axs[3*idx+4],gs1,gait_diagram_data[inclination][trail_id])
@@ -783,7 +786,7 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
         xticks=np.arange(int(min(time)),int(max(time))+1,2)
         axs[3*idx+4].set_xticklabels([str(xtick) for xtick in xticks])
         axs[3*idx+4].set_xticks(xticks)
-        axs[4].yaxis.set_label_coords(-0.1,.5)
+        axs[4].yaxis.set_label_coords(-0.09,.5)
         axs[3*idx+4].set(xlim=[min(time),max(time)])
 
     # save figure
@@ -794,6 +797,213 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
     plt.savefig(figPath)
 
     plt.show()
+
+
+
+
+def Phase_Gait(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_classes=['0.0'],trail_id=0):
+    ''' 
+    This is for experiment two, for the first figure with one trail on inclination
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+    '''
+    # 1) read data
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+
+    gamma={}
+    beta={}
+    gait_diagram_data={}
+    pitch={}
+    pose={}
+    jmc={}
+    cpg={}
+    noise={}
+
+    for class_name, files_name in datas_of_experiment_classes: #class_name is a files_name class_names
+        gamma[class_name]=[]  #files_name is the table of the files_name class_name
+        gait_diagram_data[class_name]=[]
+        beta[class_name]=[]
+        pose[class_name]=[]
+        jmc[class_name]=[]
+        cpg[class_name]=[]
+        noise[class_name]=[]
+        print(class_name)
+        for idx in files_name.index:
+            folder_class_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_class_name)
+            # 2)  data process
+            print(folder_class_name)
+            gamma[class_name].append(COG_distribution(grf_data))
+
+            gait_diagram_data_temp, beta_temp=gait(grf_data)
+            gait_diagram_data[class_name].append(gait_diagram_data_temp); beta[class_name].append(beta_temp)
+
+            pose[class_name].append(pose_data)
+            jmc[class_name].append(command_data)
+            cpg[class_name].append(cpg_data)
+            noise[class_name].append(module_data)
+            
+            temp_1=min([len(bb) for bb in beta_temp]) #minimum steps of all legs
+            beta_temp2=np.array([beta_temp[0][:temp_1],beta_temp[1][:temp_1],beta_temp[2][:temp_1],beta_temp[3][0:temp_1]]) # transfer to np array
+            if(beta_temp2 !=[]):
+                print("Coordination:",1.0/max(np.std(beta_temp2, axis=0)))
+            else:
+                print("Coordination:",0.0)
+
+            print("Stability:",1.0/np.std(pose_data[:,0],axis=0))
+            print("Displacemment:",np.sqrt(pow(pose_data[-1,3]-pose_data[0,3],2)+pow(pose_data[-1,5]-pose_data[0,5],2))) #Displacement on slopes 
+    #3) plot
+    figsize=(6.2,3.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(2,len(experiment_classes))#13
+    gs1.update(hspace=0.12,top=0.95,bottom=0.2,left=0.12,right=0.98)
+    axs=[]
+    for idx in range(len(experiment_classes)):# how many columns, depends on the experiment_classes
+        axs.append(fig.add_subplot(gs1[0:1,idx]))
+        axs.append(fig.add_subplot(gs1[1:2,idx]))
+    
+    #3.1) plot 
+
+    for idx, inclination in enumerate(experiment_classes):
+
+
+        axs[0].set_ylabel(u'Phase diff. [rad]')
+        phi=calculate_phase_diff(cpg[inclination][trail_id],time)
+        axs[3*idx+0].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
+        axs[3*idx+0].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
+        axs[3*idx+0].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
+        axs[3*idx+0].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$'])
+        axs[3*idx+0].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[3*idx+0].grid(which='both',axis='y',color='k',linestyle=':')
+        axs[3*idx+0].set_yticks([0.0,1.5,3.0])
+        axs[3*idx+0].set_xticklabels([])
+        axs[3*idx+0].set(xlim=[min(time),max(time)])
+
+        axs[1].set_ylabel(r'Gait')
+        gait_diagram(fig,axs[3*idx+1],gs1,gait_diagram_data[inclination][trail_id])
+        axs[3*idx+1].set_xlabel(u'Time [s]')
+        xticks=np.arange(int(min(time)),int(max(time))+1,2)
+        axs[3*idx+1].set_xticks(xticks)
+        axs[3*idx+1].set_xticklabels([str(xtick) for xtick in xticks])
+        axs[1].yaxis.set_label_coords(-0.07,.5)
+        axs[3*idx+1].set(xlim=[min(time),max(time)])
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'experiment2_1.svg'
+    plt.savefig(figPath)
+
+    plt.show()
+
+
+def Phase_Gait_ForNoiseFeedback(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_classes=['0.0'],trail_id=0):
+    ''' 
+    This is for experiment two, for the first figure with one trail on inclination
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+    '''
+    # 1) read data
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+
+    gamma={}
+    beta={}
+    gait_diagram_data={}
+    pitch={}
+    pose={}
+    jmc={}
+    cpg={}
+    noise={}
+
+    for class_name, files_name in datas_of_experiment_classes: #class_name is a files_name class_names
+        gamma[class_name]=[]  #files_name is the table of the files_name class_name
+        gait_diagram_data[class_name]=[]
+        beta[class_name]=[]
+        pose[class_name]=[]
+        jmc[class_name]=[]
+        cpg[class_name]=[]
+        noise[class_name]=[]
+        print(class_name)
+        for idx in files_name.index:
+            folder_class_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_class_name)
+            # 2)  data process
+            print(folder_class_name)
+            gamma[class_name].append(COG_distribution(grf_data-module_data[:,1:]))
+
+            gait_diagram_data_temp, beta_temp=gait(grf_data-module_data[:,1:])
+            gait_diagram_data[class_name].append(gait_diagram_data_temp); beta[class_name].append(beta_temp)
+
+            pose[class_name].append(pose_data)
+            jmc[class_name].append(command_data)
+            cpg[class_name].append(cpg_data)
+            noise[class_name].append(module_data)
+            
+            temp_1=min([len(bb) for bb in beta_temp]) #minimum steps of all legs
+            beta_temp2=np.array([beta_temp[0][:temp_1],beta_temp[1][:temp_1],beta_temp[2][:temp_1],beta_temp[3][0:temp_1]]) # transfer to np array
+            if(beta_temp2 !=[]):
+                print("Coordination:",1.0/max(np.std(beta_temp2, axis=0)))
+            else:
+                print("Coordination:",0.0)
+
+            print("Stability:",1.0/np.std(pose_data[:,0],axis=0))
+            print("Displacemment:",np.sqrt(pow(pose_data[-1,3]-pose_data[0,3],2)+pow(pose_data[-1,5]-pose_data[0,5],2))) #Displacement on slopes 
+    #3) plot
+    figsize=(6.2,3.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(2,len(experiment_classes))#13
+    gs1.update(hspace=0.12,top=0.95,bottom=0.2,left=0.12,right=0.98)
+    axs=[]
+    for idx in range(len(experiment_classes)):# how many columns, depends on the experiment_classes
+        axs.append(fig.add_subplot(gs1[0:1,idx]))
+        axs.append(fig.add_subplot(gs1[1:2,idx]))
+    
+    #3.1) plot 
+
+    for idx, inclination in enumerate(experiment_classes):
+
+
+        axs[0].set_ylabel(u'Phase diff. [rad]')
+        phi=calculate_phase_diff(cpg[inclination][trail_id],time)
+        axs[3*idx+0].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
+        axs[3*idx+0].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
+        axs[3*idx+0].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
+        axs[3*idx+0].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$'])
+        axs[3*idx+0].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[3*idx+0].grid(which='both',axis='y',color='k',linestyle=':')
+        axs[3*idx+0].set_yticks([0.0,1.5,3.0])
+        axs[3*idx+0].set_xticklabels([])
+        axs[3*idx+0].set(xlim=[min(time),max(time)])
+
+        axs[1].set_ylabel(r'Gait')
+        gait_diagram(fig,axs[3*idx+1],gs1,gait_diagram_data[inclination][trail_id])
+        axs[3*idx+1].set_xlabel(u'Time [s]')
+        xticks=np.arange(int(min(time)),int(max(time))+1,2)
+        axs[3*idx+1].set_xticks(xticks)
+        axs[3*idx+1].set_xticklabels([str(xtick) for xtick in xticks])
+        axs[1].yaxis.set_label_coords(-0.07,.5)
+        axs[3*idx+1].set(xlim=[min(time),max(time)])
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'experiment2_1.svg'
+    plt.savefig(figPath)
+
+    plt.show()
+
 
 
 def calculate_phase_diff(CPGs_output,time):
@@ -902,11 +1112,23 @@ if __name__=="__main__":
     #plot_phase_transition(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_classes=['-0.2'],trail_id=0)
 
 
-    data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseTransition/"
-    data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/Normal/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/Normal/SingleExperiment/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/Normal/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/AbnormalLeg/"
+    data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/Payload/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseReset/NoiseFeedback/"
+
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseTransition/Normal/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseTransition/AbnormalLeg/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseTransition/Payload/"
+    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/PhaseTransition/NoiseFeedback/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #plot_phase_diff(data_file_dic,start_point=240,end_point=1200,freq=60.0,experiment_classes=['-0.2'],trail_id=0)
 
-    GeneralDisplay(data_file_dic,start_point=180,end_point=1200,freq=60.0,experiment_classes=['-0.2'],trail_id=0)
+    ''' The experiment one '''
+    #GeneralDisplay(data_file_dic,start_point=240,end_point=721+240,freq=60.0,experiment_classes=['-0.2'],trail_id=1)
+
+    ''' The experiment two'''
+    Phase_Gait(data_file_dic,start_point=240+60,end_point=721+360+60,freq=60.0,experiment_classes=['-0.2'],trail_id=0)
 
 
