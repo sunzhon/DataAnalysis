@@ -1,0 +1,50 @@
+#! /bin/zsh
+# sim start
+
+# running times
+if [ $# -gt 0 ]; then
+    runs=$1
+else
+    runs=1
+fi
+
+echo "run ${runs} times"
+# files
+data_log_file_path=$HOME/workspace/experiment_data/datapath.log
+data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.log
+echo "" > $data_log_file #create a experiment data log file 
+rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: -0.785"
+
+#for offset_value in -0.3 -0.2 -0.1  0.0 0.1 0.2 0.3
+for offset_value in 0.4
+do
+    for i in $(seq 1 $runs); do
+        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+
+       # eval "rosparam set /VRN_hip_L1 0.03"
+       # eval "rosparam set /VRN_knee_L1 0.015"
+       # eval "rosparam set /VRN_hip_L2 0.03"
+       # eval "rosparam set /VRN_knee_L2 0.015"
+       # eval "rosparam set /VRN_hip_L3 0.03"
+       # eval "rosparam set /VRN_knee_L3 0.015"
+       # eval "rosparam set /VRN_hip_L4 0.03"
+       # eval "rosparam set /VRN_knee_L4 0.015"
+
+        eval "rosparam set /MNB2_L1 1.0"
+        eval "rosparam set /MNB3_L1 -0.6"
+        eval "rosparam set /MNB2_L2 1.0"
+        eval "rosparam set /MNB3_L2 -0.6"
+        eval "rosparam set /MNB2_L3 1.0"
+        eval "rosparam set /MNB3_L3 -0.6"
+        eval "rosparam set /MNB2_L4 1.0"
+        eval "rosparam set /MNB3_L4 -0.6"
+        sleep 40 #300 #22 #32 #55 
+        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+        data_path_temp=$(cat $data_log_file_path)
+        echo "$data_path_temp\t$offset_value">> $data_log_file
+    done
+    sleep 4
+done
+
+echo "Experiments Done!"
+

@@ -33,7 +33,9 @@ class SO2Control:
 
         self.force=np.zeros((self.leg_num,1))
         self.previous_force=np.zeros((self.leg_num,1))
-        self.force_threshold=0.455;
+        #self.force=np.array([1.0,0.1,0.0,0.0]).reshape(4,-1)
+        self.force_threshold = 0.4594;
+        self.stepCount=0
 
     def updateWeights(self):
         self.weight=np.array([[1.4,0.18+self.MI],[-(0.18+self.MI),1.4]])
@@ -47,16 +49,19 @@ class SO2Control:
     def setGRFs(self,force):
         assert(force.shape==self.force.shape)
         self.previous_force=self.force
-        self.force=force
+        self.force= self.previous_force*0.5+force*0.5
 
     def updateFeedback_phaseTran(self):
         self.feedback= -self.gamma* np.dot(np.vstack((np.cos(self.output[0,:]),np.sin(self.output[1,:]))),np.diag(self.force[:,0]))
 
     def updateFeedback_phaseReset(self):
+        self.updateWeights()
+        self.updateActivities()
         for i in range(self.leg_num):
             if((self.previous_force[i,0]< self.force_threshold) and (self.force[i,0] >= self.force_threshold)):
                 a1= 1.0- self.activity[0,i]
                 a2= -self.activity[1,i]
+                print("stepCount:, leg_num:, previous_force:,current_force:", self.stepCount, i, self.previous_force[i,0], self.force[i,0])
             else:
                 a1=0.0
                 a2=0.0
@@ -64,13 +69,14 @@ class SO2Control:
             self.feedback[1,i]=a2
 
     def step(self):
-        #self.updateFeedback_phaseTran()
-        self.updateFeedback_phaseReset()
+        self.updateFeedback_phaseTran()
+        #self.updateFeedback_phaseReset()
         self.updateWeights()
         self.updateActivities()
         self.updateOutputs()
         self.theta=np.tanh(self.alpha*self.output + self.beta)
         self.theta[[0,1],:]=self.theta[[1,0],:] #O2 to hip, O1 to knee 
+        self.stepCount+=1
 
     def getOutput(self):
         return self.output
@@ -179,7 +185,7 @@ class robotModel:
         
         # decide the ai state, which legs are in swing phase
         theta_matrix = np.dot(self.theta_derivation[0,:].reshape(4,1), self.theta_derivation[0,:].reshape(1,4))
-        print(self.stepCount)
+        #print(self.stepCount)
         self.stepCount = self.stepCount + 1
         
         # whether existing theta are not same phase
@@ -247,7 +253,7 @@ class robotModel:
         A = matrix(A)#原型为cvxopt.matrix(array,dims)，等价于A = matrix([[1.0],[1.0]]）
         b = matrix(b)
 
-        result = solvers.qp(Q,p,G,h,A,b)
+        result = solvers.qp(Q,p,G,h,A,b, options={'show_progress':False})
         self.Fz = np.array(result['x']).reshape(4,-1)
         self.Fz[0,0] +=np.random.normal(0.1,0.1)
         self.Fz[1,0] +=np.random.normal(0.1,0.1)
@@ -301,7 +307,7 @@ if __name__=="__main__":
     GRFs2=[]
     GRFs3=[]
     GRFs4=[]
-    for idx in range(600):
+    for idx in range(2200):
         so2.step()
         temp_theta=so2.getTheta()
 
@@ -353,23 +359,35 @@ if __name__=="__main__":
     axs[1].plot(theta1)
     axs[1].plot(theta2)
     axs[1].set_ylabel('Joint commands')
-
+    '''
     axs[2].plot([math.fabs(pp[0]) for pp in P1])
     axs[2].plot([math.fabs(pp[0]) for pp in P2])
     axs[2].plot([math.fabs(pp[0]) for pp in P3])
     axs[2].plot([math.fabs(pp[0]) for pp in P4])
     axs[2].legend(['P1','P2','P3','P4'])
+    axs[2].set_ylabel('Feet X position')
+    '''
+
+
+    axs[2].plot(GRFs1)
+    axs[2].plot(GRFs2)
+    axs[2].plot(GRFs3)
+    axs[2].plot(GRFs4)
+    axs[2].legend(['RF','RH','LF','LH'])
+    axs[2].set_ylabel('GRFs')
 
     axs[3].plot(GRFs1)
-    axs[3].plot(GRFs2)
-    axs[3].plot(GRFs3)
-    axs[3].plot(GRFs4)
+    axs[3].plot(o11)
+    #axs[3].plot(GRFs2)
+    #axs[3].plot(GRFs3)
+    #axs[3].plot(GRFs4)
     axs[3].legend(['RF','RH','LF','LH'])
     axs[3].set_ylabel('GRFs')
-
+    '''
     plt.figure()
     plt.plot([pp[0] for pp in P1],[pp[2] for pp in P1])
     plt.plot([pp[0] for pp in P2],[pp[2] for pp in P2])
     plt.plot(0,0,'ro')
+    '''
     plt.show()
 
