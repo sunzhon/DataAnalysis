@@ -121,7 +121,12 @@ def load_data_log(data_file_dic):
     data_files = pd.read_csv(data_file_log, sep='\t',header=None, names=['file_name','experiment_classes'], skip_blank_lines=True,dtype=str)
 
     data_files_categories=data_files.groupby('experiment_classes')
-    categories = data_files_categories.groups.keys()
+    keys = data_files_categories.groups.keys()
+    categories=[]
+    for ll in keys:
+        if ll.isdigit():
+            categories.append(ll)
+
     categories =[str(ll) for ll in sorted([ float(ll) for ll in categories])]
     print(categories)
     return data_files_categories, categories
@@ -722,6 +727,7 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
     
     experiment_category=experiment_classes[0]
     idx=0
+    pdb.set_trace()
     axs[idx].plot(time,cpg[experiment_category][trail_id][:,1], color=(46/255.0, 77/255.0, 129/255.0))
     axs[idx].plot(time,cpg[experiment_category][trail_id][:,3], color=(0/255.0, 198/255.0, 156/255.0))
     axs[idx].plot(time,cpg[experiment_category][trail_id][:,5], color=(255/255.0, 1/255.0, 118/255.0))
@@ -1407,11 +1413,11 @@ if __name__=="__main__":
     data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/PhaseReset/"
     #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/ContinuousPhaseModulation/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #GeneralDisplay(data_file_dic,start_point=0,end_point=720+1320,freq=60.0,experiment_classes=['3'],trail_id=1)
+    GeneralDisplay(data_file_dic,start_point=0,end_point=720+1320,freq=60.0,experiment_classes=['0'],trail_id=0)
     ''' The experiment two'''
     #Phase_Gait(data_file_dic,start_point=240+60,end_point=721+360+60,freq=60.0,experiment_classes=['-0.2'],trail_id=0)
 
     data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/"
     #plot_displacement_statistic(data_file_dic,start_point=420+480,end_point=721+420+480,freq=60,experiment_classes=['-0.2'])
     #plot_coordination_statistic(data_file_dic,start_point=420+480,end_point=721+420+480,freq=60,experiment_classes=['-0.2'])
-    plot_stability_statistic(data_file_dic,start_point=420+480,end_point=721+420+480,freq=60,experiment_classes=['-0.2'])
+    #plot_stability_statistic(data_file_dic,start_point=420+480,end_point=721+420+480,freq=60,experiment_classes=['-0.2'])
