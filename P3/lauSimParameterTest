@@ -1,0 +1,55 @@
+#! /bin/zsh
+# sim start
+
+# running times
+if [ $# -gt 0 ]; then
+    runs=$1
+else
+    runs=1
+fi
+
+echo "run ${runs} times"
+# files
+data_log_file_path=$HOME/workspace/experiment_data/datapath.log
+data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.log
+echo "" > $data_log_file #create a experiment data log file 
+rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
+
+#for gain_value in 0.004 0.012 0.024 0.07 0.09
+for gain_value in 0.004
+do
+    threshold_value=100
+    for i in $(seq 1 $runs); do
+        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+        eval "rosparam set /CPGPGain ${gain_value}"
+        eval "rosparam set /CPGPThreshold ${threshold_value}"
+        sleep 40 #22 #32 #55 
+        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+        data_path_temp=$(cat $data_log_file_path)
+        echo "$data_path_temp\t$gain_value">> $data_log_file
+    done
+    sleep 4
+done
+
+#echo "\n\n">> $data_log_file
+
+##for threshold_value in 0.05 0.15 0.25 0.35 0.45
+#for threshold_value in 0.55
+#do
+#    gain_value=0
+#    for i in $(seq 1 $runs); do
+#        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+#        eval "rosparam set /CPGPThreshold ${threshold_value}"
+#        eval "rosparam set /CPGPGain ${gain_value}"
+#        sleep 40 #22 #32 #55 
+#        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+#        data_path_temp=$(cat $data_log_file_path)
+#        echo "$data_path_temp\t$threshold_value">> $data_log_file
+#    done
+#    sleep 4
+#done
+#
+echo "Experiments Done!"
+
+
+

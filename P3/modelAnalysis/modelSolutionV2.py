@@ -381,8 +381,8 @@ if __name__=="__main__":
     #axs[3].plot(GRFs2)
     #axs[3].plot(GRFs3)
     #axs[3].plot(GRFs4)
-    axs[3].legend(['RF','RH','LF','LH'])
-    axs[3].set_ylabel('GRFs')
+    axs[3].legend(['RF','o11',])
+    axs[3].set_ylabel('GRF and CPG')
     '''
     plt.figure()
     plt.plot([pp[0] for pp in P1],[pp[2] for pp in P1])

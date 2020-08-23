@@ -2430,6 +2430,7 @@ if __name__=="__main__":
     ''' all single parameters '''
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #plot_slopeWalking_gamma_beta_pitch_displacement(data_file_dic,start_point=500,end_point=1500,freq=60.0,experiment_classes=['0.0','0.174','0.349','0.52','0.61'])
+
     ''' expected and actuall grf comparison'''
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #plot_comparasion_expected_actual_grf_all_leg(data_file_dic,start_point=1,end_point=1000,freq=60.0,experiment_classes=['0.0'])
