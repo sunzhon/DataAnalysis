@@ -69,8 +69,8 @@ class SO2Control:
             self.feedback[1,i]=a2
 
     def step(self):
-        self.updateFeedback_phaseTran()
-        #self.updateFeedback_phaseReset()
+        #self.updateFeedback_phaseTran()
+        self.updateFeedback_phaseReset()
         self.updateWeights()
         self.updateActivities()
         self.updateOutputs()
@@ -295,8 +295,14 @@ if __name__=="__main__":
     o41=[]
     o42=[]
 
-    theta1=[]
-    theta2=[]
+    theta11=[]
+    theta12=[]
+    theta21=[]
+    theta22=[]
+    theta31=[]
+    theta32=[]
+    theta41=[]
+    theta42=[]
     
     P1=[]
     P2=[]
@@ -307,7 +313,8 @@ if __name__=="__main__":
     GRFs2=[]
     GRFs3=[]
     GRFs4=[]
-    for idx in range(2200):
+    count_length=1200;#
+    for idx in range(count_length):
         so2.step()
         temp_theta=so2.getTheta()
 
@@ -327,8 +334,17 @@ if __name__=="__main__":
         o42.append(so2.getOutput()[1,3])
 
 
-        theta1.append(so2.getTheta()[0,0])
-        theta2.append(so2.getTheta()[1,0])
+        theta11.append(so2.getTheta()[0,0])
+        theta12.append(so2.getTheta()[1,0])
+
+        theta21.append(so2.getTheta()[0,1])
+        theta22.append(so2.getTheta()[1,1])
+
+        theta31.append(so2.getTheta()[0,2])
+        theta32.append(so2.getTheta()[1,2])
+
+        theta41.append(so2.getTheta()[0,3])
+        theta42.append(so2.getTheta()[1,3])
 
         P1.append(robot.getFeetPosition()[0])
         P2.append(robot.getFeetPosition()[1])
@@ -341,24 +357,61 @@ if __name__=="__main__":
         GRFs4.append(robot.getGRFs()[3])
 
 
-    fig=plt.figure()
-    axs=[]
-    axs.append(fig.add_subplot(4,1,1))
-    axs.append(fig.add_subplot(4,1,2))
-    axs.append(fig.add_subplot(4,1,3))
-    axs.append(fig.add_subplot(4,1,4))
-    
-    #pdb.set_trace()
-    axs[0].plot(o11)
-    axs[0].plot(o21)
-    axs[0].plot(o31)
-    axs[0].plot(o41)
-    axs[0].legend(['o11','o21','o31','o41'])
-    axs[0].set_ylabel('CPGs')
+    # Plot
+    freq=60 # Hz
+    time=np.linspace(0,count_length/freq,count_length)
+   
+    # colors
+    c4_1color=(46/255.0, 77/255.0, 129/255.0)
+    c4_2color=(0/255.0, 198/255.0, 156/255.0)
+    c4_3color=(255/255.0, 1/255.0, 118/255.0)
+    c4_4color=(225/255.0, 213/255.0, 98/255.0)
+    colors=[c4_1color, c4_2color, c4_3color, c4_4color]
 
-    axs[1].plot(theta1)
-    axs[1].plot(theta2)
-    axs[1].set_ylabel('Joint commands')
+    figsize=(7.5,5)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    columns_axs=1
+    gs1=gridspec.GridSpec(6,columns_axs)
+    gs1.update(hspace=0.2,top=0.97,bottom=0.1,left=0.1,right=0.98)
+    axs=[]
+    for idx in range(columns_axs):# how many columns, depends on       the experiment_classes
+        axs.append(fig.add_subplot(gs1[0:2,idx]))
+        axs.append(fig.add_subplot(gs1[2:4,idx]))
+        axs.append(fig.add_subplot(gs1[4:6,idx]))
+
+
+    #pdb.set_trace()
+
+
+    idx=0
+    axs[idx].plot(time,o11, color=c4_1color)
+    axs[idx].plot(time,o21, color=c4_2color)
+    axs[idx].plot(time,o31, color=c4_3color)
+    axs[idx].plot(time,o41, color=c4_4color)
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set_ylabel(u'CPGs')
+    axs[idx].set_yticks([-1.0,0.0,1.0])
+    axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4,loc='center right')
+    axs[idx].set_xticklabels([])
+    axs[idx].set(xlim=[min(time),max(time)])
+
+
+
+    idx=1
+    axs[idx].plot(time,theta11, color=c4_1color)
+    axs[idx].plot(time,theta21, color=c4_2color)
+    axs[idx].plot(time,theta31, color=c4_3color)
+    axs[idx].plot(time,theta41, color=c4_4color)
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set_ylabel(u'MNs')
+    axs[idx].set_yticks([-0.5,-0.2,0.1])
+    axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4,loc='center right')
+    axs[idx].set_xticklabels([])
+    axs[idx].set(xlim=[min(time),max(time)])
+
+
     '''
     axs[2].plot([math.fabs(pp[0]) for pp in P1])
     axs[2].plot([math.fabs(pp[0]) for pp in P2])
@@ -368,21 +421,21 @@ if __name__=="__main__":
     axs[2].set_ylabel('Feet X position')
     '''
 
+    idx=2
+    axs[idx].plot(time,GRFs1, color=c4_1color)
+    axs[idx].plot(time,GRFs2, color=c4_2color)
+    axs[idx].plot(time,GRFs3, color=c4_3color)
+    axs[idx].plot(time,GRFs4, color=c4_4color)
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set_ylabel(u'GRFs [N]')
+    axs[idx].set_yticks([0,5.0,15.0])
+    axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4, loc='center right')
+    #axs[idx].set_xticklabels([])
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_xlabel('Time [s]')
 
-    axs[2].plot(GRFs1)
-    axs[2].plot(GRFs2)
-    axs[2].plot(GRFs3)
-    axs[2].plot(GRFs4)
-    axs[2].legend(['RF','RH','LF','LH'])
-    axs[2].set_ylabel('GRFs')
 
-    axs[3].plot(GRFs1)
-    axs[3].plot(o11)
-    #axs[3].plot(GRFs2)
-    #axs[3].plot(GRFs3)
-    #axs[3].plot(GRFs4)
-    axs[3].legend(['RF','o11',])
-    axs[3].set_ylabel('GRF and CPG')
     '''
     plt.figure()
     plt.plot([pp[0] for pp in P1],[pp[2] for pp in P1])
