@@ -194,10 +194,10 @@ class robotModel:
             for idx in aa_true[0]:
                 aa[idx] = 1.0
         
-            if len(aa_true[0]) > 2: # if having more than three legs in planed swing, the planed swing cannot realize, so all legs in stance phase
+            if len(aa_true[0]) > 2: # if having more than three legs are in planed swing at same time, the planed swing cannot realize due to without supporting, so all legs in stance phase
                 aa=[0.0,0.0,0.0,0.0]
 
-        if (aa[0]==1.0 and aa[1]==1.0) or (aa[0]==1.0 and aa[2]==1.0) or (aa[1]==1.0 and aa[3]==1.0) or (aa[2]==1.0 and aa[3]==1.0): # if adjacent legs in planed swing, the palned swing cannot realize, so all legs in stance phase
+        if (aa[0]==1.0 and aa[1]==1.0) or (aa[0]==1.0 and aa[2]==1.0) or (aa[1]==1.0 and aa[3]==1.0) or (aa[2]==1.0 and aa[3]==1.0): # if adjacent legs are in planed swing at same time, the palned swing cannot realize due to without leg supporting the robot body at their cornor, so all legs in stance phase
             aa=[0.0,0.0,0.0,0.0]
 
 

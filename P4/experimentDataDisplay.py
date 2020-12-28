@@ -70,12 +70,15 @@ def read_data(freq,start_point,end_point,folder_name):
     columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
     columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
     columnsName_modules=['anc','w1','w2','offset1','offset2']
-    columnsName_parameters=['MI','CPGBeta','CPGType', \
+    # CPGPGain---PM param,  CPGThreshold---PR Para
+    columnsName_parameters=['CPGType', 'CPGMI','CPGPGain','CPGPthreshold','PCPGBeta',\
                             'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
                             'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
                             'LF_PSN','LF_VRN_Hip','LF_VRN_Knee','LF_MN1','LF_MN2','LF_MN3',\
                             'LH_PSN','LH_VRN_Hip','LH_VRN_Knee','LH_MN1','LH_MN2','LH_MN3'
                            ]
+
+
     columnsName_commands=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
 
 
@@ -89,6 +92,7 @@ def read_data(freq,start_point,end_point,folder_name):
 
     module_data=loadData(fileName_modules,columnsName_modules,folder_name)    
     module_data=module_data.values
+    
 
     parameter_data=loadData(fileName_parameters,columnsName_parameters,folder_name)    
     parameter_data=parameter_data.values
@@ -1552,7 +1556,7 @@ def Experiment_metrics(data_file_dic,start_point=300,end_point=660,freq=60.0,exp
     # show 
     plt.show()
 
-def Experiment1(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
+def Experiment1_2_withoutDFRL(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
     '''
     @description: plot theta1, theta2;  gamma_d, gamma_a; posture, pitch
     This is for experiment two, for the first figure with one trail on inclination
@@ -1671,7 +1675,7 @@ def Experiment1(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment
     
 
 
-def Experiment1_VersionTwo(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
+def Experiment1_2_withDFRL(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
     '''
     @description: plot theta1, theta2;  gamma_d, gamma_a; posture, pitch
     This is for experiment two, for the first figure with one trail on inclination
@@ -2628,6 +2632,281 @@ def Experiment_Laikago(data_file_dic,start_point=90,end_point=1200,freq=60.0,exp
     plt.show()
 
 
+def Experiment_DMP_1(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0'],initial_offsets='0.3'):
+    '''
+    @Description: This is for experiment to test DMP, plot gait diagram, roll and pitch, walking displacement.
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+
+    '''
+
+    # 1) read data
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+    pose={}
+    grf={}
+    #1.2) read data one by one file
+    for class_name, files_name in datas_of_experiment_classes: #name is a inclination names
+        grf[class_name]=[]  #inclination is the table of the inclination name
+        pose[class_name]=[]
+        for idx in files_name.index:
+            folder_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            # 2)  data process
+            print(folder_name)
+            pose[class_name].append(pose_data)
+            grf[class_name].append(grf_data)
+
+    # plot
+    figsize=(6,4.2)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)
+    gs1.update(hspace=0.26,top=0.95,bottom=0.11,left=0.11,right=0.98)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+    axs.append(fig.add_subplot(gs1[2:4,0]))
+    axs.append(fig.add_subplot(gs1[4:6,0]))
+
+    idx=0
+    gait_diagram_data, duty_factor_data=gait(grf[initial_offsets][0])
+    gait_diagram(fig,axs[idx],gs1,gait_diagram_data)
+    axs[idx].text(-0.1,0.4,'Gait',rotation='vertical')
+
+
+    idx=1 # roll and pitch
+    axs[idx].plot(time,pose[initial_offsets][0][:,0]*57.0,color=st_r_color)
+    axs[idx].plot(time,pose[initial_offsets][0][:,1]*57.0,color=st_b_color)
+    axs[idx].legend(['roll','pitch'],loc='upper right',ncol=2)
+    axs[idx].set_xticklabels([])
+    axs[idx].set_yticks([-12,-6,0.0,6,12])
+    #axs[idx].set_yticklabels([-0.1,0.0,0.1])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[-12,12])
+    axs[idx].set_ylabel('Attitude [degree]')
+
+    idx=2 #displacemnet
+    displacement = np.sqrt(pow(pose[initial_offsets][0][:,3],2) + pow(pose[initial_offsets][0][:,4], 2)) #Displacement on slopes 
+    axs[idx].plot(time,displacement,'r')
+    #axs[idx].set_yticks([-0.5,0.0,0.4])
+    #axs[idx].set_yticklabels([-0.5,0.0,0.4])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[0.0,1.0])
+    axs[idx].set_xticklabels([str(idx) for idx in range(int(time[-1]-time[0]+1))])
+    axs[idx].set_xlabel('Time [s]')
+    axs[idx].set_ylabel('Displacement [m]')
+
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'experiment_dmp_1.svg'
+    plt.savefig(figPath)
+
+    plt.show()
+    
+
+def Experiment_DMP_2(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
+    '''
+    @description: plot theta1, theta2;  gamma_d, gamma_a; posture, pitch
+    This is for experiment two, for the first figure with one trail on inclination
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+
+    '''
+
+    # 1) read data
+
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+
+    pose={}
+    gamma={}
+    jmc={}
+    modules={}
+    #1.2) read data one by one file
+    for class_name, files_name in datas_of_experiment_classes: #class_name is a files_name class_names
+        gamma[class_name]=[]  #files_name is the table of the files_name class_name
+        jmc[class_name]=[]
+        pose[class_name]=[]
+        modules[class_name]=[]
+        for idx in files_name.index:
+            folder_class_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_class_name)
+            # 2)  data process
+            print(folder_class_name)
+            gamma[class_name].append(COG_distribution(grf_data))
+            pose[class_name].append(pose_data)
+
+            """
+            NOTE:
+            Due the DMP node not store commands to the control_commands file
+            using Position_data replace the command
+            """
+            
+            jmc[class_name].append(position_data)
+            modules[class_name].append(module_data)
+
+    # plot
+    figsize=(6.,8.2)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(16,1)#13
+    gs1.update(hspace=0.22,top=0.95,bottom=0.11,left=0.11,right=0.98)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+    axs.append(fig.add_subplot(gs1[2:4,0]))
+    axs.append(fig.add_subplot(gs1[4:6,0]))
+    axs.append(fig.add_subplot(gs1[6:8,0]))
+    axs.append(fig.add_subplot(gs1[8:10,0]))
+    axs.append(fig.add_subplot(gs1[10:12,0]))
+    axs.append(fig.add_subplot(gs1[12:14,0]))
+    axs.append(fig.add_subplot(gs1[14:16,0]))
+
+    legends=[r'$C_1$',r'$C_2$',r'$C_3$',r'$C_4$',r'$C_5$',r'$C_6$',r'$C_7$']
+    colorList=['r','g','b','k','y','c','m']
+    labels= datas_of_experiment_classes.groups.keys()
+    labels=[str(ll) for ll in sorted([ float(ll) for ll in labels])]
+
+    idx=0
+    for index, class_name in enumerate(labels): # name is a inclination names
+        axs[idx].plot(time,modules[class_name][0][:,1]*100,color=colorList[index], linestyle='solid')
+        #axs[idx].plot(time,modules[class_name][0][:,2],color=colorList[index], linestyle='dotted')
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    #axs[idx].set_yticks([-0.5,0.0,0.5])
+    #axs[idx].set_yticklabels([-0.5,0.0,0.5])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_ylabel(r'$w_1$')
+
+    idx=1
+    for index, class_name in enumerate(labels): # name is a inclination names
+        #axs[idx].plot(time,modules[class_name][0][:,1]*100,color=colorList[index], linestyle='solid')
+        axs[idx].plot(time,modules[class_name][0][:,2]*100,color=colorList[index], linestyle='solid')
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    #axs[idx].set_yticks([-0.5,0.0,0.5])
+    #axs[idx].set_yticklabels([-0.5,0.0,0.5])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_ylabel(r'$w_2$')
+
+    idx=2
+    for index, class_name in enumerate(labels): # name is a inclination names
+        axs[idx].plot(time,modules[class_name][0][:,3],color=colorList[index], linestyle='solid')
+        #axs[idx].plot(time,modules[class_name][0][:,4],color=colorList[index], linestyle='dotted')
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    #axs[idx].set_yticks([-0.5,0.0,0.5])
+    #axs[idx].set_yticklabels([-0.5,0.0,0.5])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_ylabel(r'$\beta_1$')
+
+    idx=3
+    for index, class_name in enumerate(labels): # name is a inclination names
+        #axs[idx].plot(time,modules[class_name][0][:,3],color=colorList[index], linestyle='solid')
+        axs[idx].plot(time,modules[class_name][0][:,4],color=colorList[index], linestyle='solid')
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    #axs[idx].set_yticks([-0.5,0.0,0.5])
+    #axs[idx].set_yticklabels([-0.5,0.0,0.5])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_ylabel(r'$\beta_2$')
+
+
+    idx=4
+    for index, class_name in enumerate(labels): # name is a inclination names
+        axs[idx].plot(time,jmc[class_name][0][:,1],color=colorList[index])
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    axs[idx].set_yticks([-0.5,0.0,0.5])
+    axs[idx].set_yticklabels([-0.5,0.0,0.5])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.55,0.51])
+    axs[idx].set_ylabel(r'$\theta_1$')
+
+    idx=5
+    for index, class_name in enumerate(labels): # name is a inclination names
+        axs[idx].plot(time,jmc[class_name][0][:,2],color=colorList[index])
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    axs[idx].set_yticks([-0.4,0.0,0.4])
+    axs[idx].set_yticklabels([-0.4,0.0,0.4])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.5,0.5])
+    axs[idx].set_ylabel(r'$\theta_2$')
+
+    idx=6
+    for index, class_name in enumerate(labels): # name is a inclination names
+        df=pd.DataFrame(gamma[class_name][0],columns=['gamma'])
+        average_gamma=df.rolling(50).mean().fillna(df.iloc[0])
+        average_average_gamma=average_gamma.rolling(50).mean().fillna(df.iloc[0])
+        axs[idx].plot(time,average_average_gamma,color=colorList[index])
+
+    axs[idx].plot(time,1.1*np.ones(average_average_gamma.shape),'-.')
+    #axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set_ylabel(r'$\bar{\gamma}$')
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.1,2.1])
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].set_xticklabels([])
+    axs[idx].set_yticks([0.0,1.5,3.0])
+    axs[idx].set_yticklabels([0.0,1.5,3.0])
+
+
+    idx=7
+    for index, class_name in enumerate(labels): # name is a inclination names
+        axs[idx].plot(time,pose[class_name][0][:,1],color=colorList[index])
+    axs[idx].set_xticks(np.linspace(time[0],time[-1],9))
+    axs[idx].legend(legends,loc='upper right',ncol=len(legends))
+    axs[idx].set_yticks([-0.1,0.0,0.1])
+    axs[idx].set_yticklabels([-0.1,0.0,0.1])
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.11,0.11])
+    axs[idx].set_ylabel('Pitch')
+
+    axs[idx].set_xticklabels([str(idx) for idx in range(int(time[-1]-time[0]+1))])
+    axs[idx].set(xlim=[min(time),max(time)])
+    axs[idx].set_xlabel('Time [s]')
+
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'experiment_dmp_2.svg'
+    plt.savefig(figPath)
+
+    plt.show()
+    
+
 
 if __name__=="__main__":
     ''' touch moment analysis '''
@@ -2669,15 +2948,14 @@ if __name__=="__main__":
     ''' This is for experiemnt 1-1 a particular case (C1 or C7)'''
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_2/DFFB_reflexes_V2/"
-    #data_file_dic= "/media/suntao/DATA5/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_2/Vesti_reflexes_V2/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_2/Vesti_reflexes_V2/"
     #Experiment1_1(data_file_dic,start_point=180,end_point=840,freq=60.0,experiment_classes=['0.0'],initial_offsets='0.3')
 
-    ''' This is for experiment 1  for all case  to plot joint commands on level ground'''
-    #Experiment1(data_file_dic,start_point=180,end_point=720,freq=60.0,experiment_classes=['0'])
+    ''' This is for experiment 1-2  for all case  to plot joint commands on level ground'''
+    #Experiment1_2_withoutDFRL(data_file_dic,start_point=180,end_point=720,freq=60.0,experiment_classes=['0'])
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/Vesti_reflexes_V2/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #Experiment1(data_file_dic,start_point=220,end_point=720,freq=60.0,experiment_classes=['0'])
-    #Experiment1_VersionTwo(data_file_dic,start_point=220+240,end_point=720+240+60,freq=60.0,experiment_classes=['0'])
+    #Experiment1_2_withDFRL(data_file_dic,start_point=220+240,end_point=720+240+60,freq=60.0,experiment_classes=['0'])
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_1/Vesti_reflexes_V2/"
     #Experiment1_VideoText(data_file_dic,start_point=220,end_point=720+60+180,freq=60.0,experiment_classes=['0'])
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_1/DFFB_reflexes_V2/VersionTwo/"
@@ -2688,11 +2966,11 @@ if __name__=="__main__":
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes/"
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/COG_reflexes/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
     #Experiment2_1(data_file_dic,start_point=460,end_point=1020, freq=60.0, experiment_classes=['-0.61'],trail_id=0)#1440-2160
     #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
-    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
-    Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
+    #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
 
     ''' This is for experiment 2_1 five trails for a inclination, it means the line with shapdow :)'''
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
@@ -2757,3 +3035,14 @@ if __name__=="__main__":
     ''' This is for Laikago '''
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/Laikago/50Slope/"
     #Experiment_Laikago(data_file_dic, start_point=120, end_point=3000, freq=60.0, experiment_classes=['-0.2']) #
+
+
+
+    '''************************************************************'''
+    '''-------The following codes is for DMP on Lilibot, which is for supplementary material -------------'''
+    '''************************************************************'''
+    ''' This is for Lilibot and DMP '''
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/DMP/"
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #Experiment_DMP_1(data_file_dic,start_point=180,end_point=840,freq=60.0,experiment_classes=['0.0'],initial_offsets='-0.3')
+    Experiment_DMP_2(data_file_dic,start_point=180,end_point=720+240+60,freq=60.0,experiment_classes=['0'])
