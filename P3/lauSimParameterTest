@@ -1,5 +1,9 @@
 #! /bin/zsh
-# sim start
+# Description:
+# This is for run the parameter simulation in P3 paper automatically.
+# It includes two simulations under two methods, PM and PR, whose parameters have many
+# values will be test, and each test will be repeated $run times
+#
 
 # running times
 if [ $# -gt 0 ]; then
@@ -17,9 +21,10 @@ data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
 echo "" > $data_log_file #create a experiment data log file 
 rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
 
-
-for gain_value in 0.008 0.01 0.012 0.014 0.016 0.018 0.02 0.024
-#for gain_value in 0.024
+if true;then # the switch of PM 
+#for gain_value in 0.008 0.01 0.012 0.014 0.016 0.018 0.02 0.024
+#for gain_value in 0.04 0.12 0.2 0.28 0.36 0.4 0.44 0.52 0.6
+for gain_value in 1.2
 do
     threshold_value=100
     controlMethod='PhaseModulation'
@@ -33,14 +38,17 @@ do
         echo "$controlMethod\t$data_path_temp\t$gain_value">> $data_log_file
         count=`expr $count + 1`
         echo "Run times: $count"
+        echo "Param: $gain_value"
         sleep 4
     done
 done
-
 echo "\n\n">> $data_log_file
+fi
 
-for threshold_value in 0.0 2.0 4.0 6.0 8.0 10.0 12.0 14.0 16.0 
-#for threshold_value in 10.0
+if false;then # the switch of PR
+#for threshold_value in 0.0 2.0 4.0 6.0 8.0 10.0 12.0 14.0 16.0 
+#for threshold_value in 0.0 0.09 0.27 0.45 0.64 0.82 0.91 1.0
+for threshold_value in 1.5
 do
     gain_value=0
     controlMethod='PhaseReset'
@@ -54,9 +62,11 @@ do
         echo "$controlMethod\t$data_path_temp\t$threshold_value">> $data_log_file
         count=`expr $count + 1`
         echo "Run times: $count"
+        echo "Param: $threshold_value"
         sleep 4
     done
 done
+fi
 
 echo "Experiments Done!"
 

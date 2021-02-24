@@ -17,8 +17,8 @@ echo "" > $data_log_file #create a experiment data log file or empty the log
 rostopic pub --once /sim_control/floorInclination std_msgs/Float32 "data: 0.0"
 
 
-for offset_value in -0.3 -0.2 -0.1  0.0 0.1 0.2 0.3
-#for offset_value in -0.3 0.3
+#for offset_value in -0.3 -0.2 -0.1  0.0 0.1 0.2 0.3
+for offset_value in 0.3
 do
     for i in $(seq 1 $runs); do
         rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"

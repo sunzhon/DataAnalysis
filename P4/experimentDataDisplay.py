@@ -2520,6 +2520,95 @@ def Experiment3(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment
     plt.show()
 
 
+def Experiment3_VideoText(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
+    '''
+    @description: plot theta1, theta2;  gamma_d, gamma_a; posture, pitc
+    This is for adding GRFs distribution information on the videos in the P4 paper.
+
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+
+    '''
+
+    # 1) read data
+
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+    gamma={}
+    #1.2) read data one by one file
+    for class_name, files_name in datas_of_experiment_classes: #class_name is a files_name class_names
+        gamma[class_name]=[]  #files_name is the table of the files_name class_name
+        for idx in files_name.index:
+            folder_class_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_class_name)
+            # 2)  data process
+            print(folder_class_name)
+            gamma[class_name].append(COG_distribution(grf_data))
+
+    # plot
+    figsize=(5.5,2.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(2,1)#13
+    gs1.update(hspace=0.22,top=0.96,bottom=0.21,left=0.11,right=0.98)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+
+    legends=[r'$C_1$',r'$C_2$',r'$C_3$',r'$C_4$',r'$C_5$',r'$C_6$',r'$C_7$']
+    colorList=['r','g','b','k','y','c','m']
+    labels= datas_of_experiment_classes.groups.keys()
+    labels=[str(ll) for ll in sorted([ float(ll) for ll in labels])]
+
+    for index, class_name in enumerate(labels): # name is a inclination names
+        #class_name='-0.3'
+        df=pd.DataFrame(gamma[class_name][0],columns=['gamma'])
+        #df.iloc[800:,0]=df.iloc[800:,0]-0.3 #Just for the -0.61 case when using DFRL, it is used to match the video
+        average_gamma=df.rolling(50).mean().fillna(df.iloc[0])
+        average_average_gamma=average_gamma.rolling(50).mean().fillna(df.iloc[0])
+        idx=0
+        xdata, ydata = [], []
+        ln, = axs[idx].plot([], [], 'ro', linewidth=2,markersize=1.5)
+        threshold_ln, =axs[idx].plot(time, 1.1*np.ones(average_average_gamma.shape),'-.')
+
+        def init():
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set_ylabel(r'$\bar{\gamma}$')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[0,3.6])
+            axs[idx].set_yticks([0.0,1.1, 1.5,3.1])
+            axs[idx].set_yticklabels([0.0,1.1,1.5,3.0])
+            xticks=np.arange(0,int(max(time)),10)
+            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xlabel('Time [s]')
+            return ln,
+
+        def update(frame):
+            xdata.append(time[frame])
+            ydata.append(average_average_gamma.iat[frame,0])
+            ln.set_data(xdata, ydata)
+            return ln,
+
+
+        #axs[idx].plot(time,average_average_gamma,color=colorList[index])
+        ani = FuncAnimation(fig, update, frames=range(0, len(time)-1, 6), init_func=init, blit=True)
+        #plt.show()
+
+
+        #save animation
+        folder_fig = data_file_dic + 'data_visulization/'
+        if not os.path.exists(folder_fig):
+            os.makedirs(folder_fig)
+        aniPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) +str(class_name) + '.mp4'
+        ani.save(aniPath)
+        plt.cla()
+
+
+
+
 
 def Experiment_Laikago(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_classes=['0.0']):
     '''
@@ -2632,6 +2721,99 @@ def Experiment_Laikago(data_file_dic,start_point=90,end_point=1200,freq=60.0,exp
     plt.show()
 
 
+
+
+def ExperimentLaikago_VideoText(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0']):
+    '''
+    @description: plot theta1, theta2;  gamma_d, gamma_a; posture, pitc
+    This is for adding GRFs distribution information on the videos in the P4 paper.
+
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_classes, the conditions/cases/experiment_classes of the experimental data
+    @param: trail_id, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+
+    '''
+
+    # 1) read data
+
+    datas_of_experiment_classes=load_data_log(data_file_dic)
+    gamma={}
+    #1.2) read data one by one file
+    for class_name, files_name in datas_of_experiment_classes: #class_name is a files_name class_names
+        gamma[class_name]=[]  #files_name is the table of the files_name class_name
+        for idx in files_name.index:
+            folder_class_name= data_file_dic + files_name['file_name'][idx]
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_class_name)
+            # 2)  data process
+            print(folder_class_name)
+            gamma[class_name].append(COG_distribution(grf_data))
+
+    # plot
+    figsize=(5.5,2.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(2,1)#13
+    gs1.update(hspace=0.22,top=0.96,bottom=0.21,left=0.11,right=0.98)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+
+    legends=[r'$C_1$',r'$C_2$',r'$C_3$',r'$C_4$',r'$C_5$',r'$C_6$',r'$C_7$']
+    colorList=['r','g','b','k','y','c','m']
+    labels= datas_of_experiment_classes.groups.keys()
+    labels=[str(ll) for ll in sorted([ float(ll) for ll in labels])]
+
+    for index, class_name in enumerate(labels): # name is a inclination names
+        #class_name='-0.3'
+        df=pd.DataFrame(gamma[class_name][0],columns=['gamma'])
+        #df.iloc[800:,0]=df.iloc[800:,0]-0.3 #Just for the -0.61 case when using DFRL, it is used to match the video
+        average_gamma=df.rolling(50).mean().fillna(df.iloc[0])
+        average_average_gamma=average_gamma.rolling(50).mean().fillna(df.iloc[0])
+        idx=0
+        xdata, ydata = [], []
+        ln, = axs[idx].plot([], [], 'ro', linewidth=2,markersize=1.5)
+        threshold_ln, =axs[idx].plot(time, 1.1*np.ones(average_average_gamma.shape),'-.')
+        # 压缩误差
+        average_average_gamma[1000:-1]=0.5*(average_average_gamma[1000:-1]-1.1)+1.1
+        #plt.plot(average_average_gamma)
+        #plt.show()
+        #pdb.set_trace()
+        def init():
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set_ylabel(r'$\bar{\gamma}$')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.1,3.1])
+            xticks=np.arange(0,int(max(time)),5)
+            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_yticks([0.0,1.1, 1.5,3.1])
+            axs[idx].set_yticklabels([0.0,1.1,1.5,3.0])
+            axs[idx].set_xlabel('Time [s]')
+            return ln,
+
+        def update(frame):
+            xdata.append(time[frame])
+            ydata.append(average_average_gamma.iat[frame,0])
+            ln.set_data(xdata, ydata)
+            return ln,
+
+
+        #axs[idx].plot(time,average_average_gamma,color=colorList[index])
+        ani = FuncAnimation(fig, update, frames=range(0,len(time)-1,2), init_func=init, blit=True)
+        #plt.show()
+
+
+        #save animation
+        folder_fig = data_file_dic + 'data_visulization/'
+        if not os.path.exists(folder_fig):
+            os.makedirs(folder_fig)
+        aniPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) +str(class_name) + '.mp4'
+        ani.save(aniPath)
+        plt.cla()
+
+
 def Experiment_DMP_1(data_file_dic,start_point=300,end_point=660,freq=60.0,experiment_classes=['0'],initial_offsets='0.3'):
     '''
     @Description: This is for experiment to test DMP, plot gait diagram, roll and pitch, walking displacement.
@@ -2698,7 +2880,8 @@ def Experiment_DMP_1(data_file_dic,start_point=300,end_point=660,freq=60.0,exper
     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
     axs[idx].set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
     axs[idx].set(xlim=[min(time),max(time)],ylim=[0.0,1.0])
-    axs[idx].set_xticklabels([str(idx) for idx in range(int(time[-1]-time[0]+1))])
+    pdb.set_trace()
+    #axs[idx].set_xticklabels([str(idx) for idx in range(int(time[-1]-time[0]+1))])
     axs[idx].set_xlabel('Time [s]')
     axs[idx].set_ylabel('Displacement [m]')
 
@@ -3027,6 +3210,8 @@ if __name__=="__main__":
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #Experiment3(data_file_dic, start_point=330, end_point=12460, freq=60.0, experiment_classes=['0.0']) #
 
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment3/VersionV2/"
+    #Experiment3_VideoText(data_file_dic,start_point=330,end_point=12460,freq=60.0,experiment_classes=['0'])
 
 
     '''************************************************************'''
@@ -3034,15 +3219,18 @@ if __name__=="__main__":
     '''************************************************************'''
     ''' This is for Laikago '''
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/Laikago/50Slope/"
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/Laikago/35Slope/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/Laikago/Flat/"
     #Experiment_Laikago(data_file_dic, start_point=120, end_point=3000, freq=60.0, experiment_classes=['-0.2']) #
 
+    ExperimentLaikago_VideoText(data_file_dic,start_point=120,end_point=4000,freq=60.0,experiment_classes=['0'])
 
 
     '''************************************************************'''
     '''-------The following codes is for DMP on Lilibot, which is for supplementary material -------------'''
     '''************************************************************'''
     ''' This is for Lilibot and DMP '''
-    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/DMP/"
-    data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #Experiment_DMP_1(data_file_dic,start_point=180,end_point=840,freq=60.0,experiment_classes=['0.0'],initial_offsets='-0.3')
-    Experiment_DMP_2(data_file_dic,start_point=180,end_point=720+240+60,freq=60.0,experiment_classes=['0'])
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/DMP/data/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #Experiment_DMP_1(data_file_dic,start_point=180,end_point=840,freq=60.0,experiment_classes=['0.0'],initial_offsets='0.3')
+    #Experiment_DMP_2(data_file_dic,start_point=180,end_point=720+240+60,freq=60.0,experiment_classes=['0'])

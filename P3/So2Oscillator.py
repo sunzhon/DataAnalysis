@@ -204,17 +204,18 @@ if __name__ == "__main__":
         else:
             grf.append(0.6 if os2.getOutput(1) < 0.6 else 0.0)
 
-        os1.setInput(grf[i])
+        #os1.setInput(grf[i])
         os1.step()
         os2.step()
         #os2.setInput(grf[i])
         if i==230:
             #os2.setOutput(1,0.9)
             #os2.setOutput(2,0.5)
-            os2.setActivity(1,1.0-1.0*os2.getActivity(1))
-            os2.setActivity(2,-1.0*os2.getActivity(2))
+            #os2.setActivity(1,1.0-1.0*os2.getActivity(1))
+            #os2.setActivity(2,-1.0*os2.getActivity(2))
             #os2.setOutput(1,np.tanh(os2.getActivity(1)))
-            os2.setOutput(2,np.tanh(os2.getActivity(2)))
+            #os2.setOutput(2,np.tanh(os2.getActivity(2)))
+            pass;
         list11.append(os1.getOutput(1))
         list12.append(os1.getOutput(2))
         list21.append(os2.getOutput(1))
@@ -228,11 +229,16 @@ if __name__ == "__main__":
         list32.append(pcpg.getOutput(1))
         list33.append(pcpg.getBeta())
 
+
+
+    # Plot#################
+
     plt.figure("first")
     plt.plot(list21,list22, 'r--')
     plt.plot(list21a,list22a, 'g--')
     plt.grid()
-    plt.legend(["outputs","activity"], loc='upper left')
+    plt.legend(["activities","activations"], loc='upper left')
+    plt.xtitle("$o_1$")
     print(max(list21a),max(list22a))
 
     plt.figure("second")
