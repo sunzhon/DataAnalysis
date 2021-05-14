@@ -18,7 +18,7 @@ echo "" > $data_log_file #create a experiment data log file
 
 #for inclination in -0.61 -0.52 -0.349 -0.174 0.0 0.174 0.349 0.52
 #for inclination in -0.52 -0.349 -0.174  0.0 0.174 0.349 0.52 0.61
-for inclination in 0.174
+for inclination in -0.0833
 do
     slope_value="\"data: $inclination\""
     cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${slope_value}"

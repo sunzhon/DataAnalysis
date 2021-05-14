@@ -984,10 +984,10 @@ def plot_runningSuccess_statistic(data_file_dic,start_point=10,end_point=400,fre
     datas_of_experiment_classes=load_data_log(data_file_dic_COG)
     
     #3) plot
-    figsize=(5.1,4.1244)
+    figsize=(3.5,1.8)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.12,right=0.98)
+    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.18,right=0.98)
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
@@ -999,8 +999,8 @@ def plot_runningSuccess_statistic(data_file_dic,start_point=10,end_point=400,fre
     #3.1) plot 
 
     idx=0
-    axs[idx].bar(ind-0.5*width,[5,5,5,5,5,5,5,5,5],width,label=r'DFFB reflexes')
-    axs[idx].bar(ind+0.5*width,[0,0,0,5,5,5,5,0,0], width,label=r'Vestibular reflexes')
+    axs[idx].bar(ind-0.5*width,[5,5,5,5,5,5,5,5,5],width,label=r'DFRL')
+    axs[idx].bar(ind+0.5*width,[0,0,0,5,5,5,5,0,0], width,label=r'Vestibular reflex')
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
     axs[idx].set_xticks(ind)
@@ -1058,23 +1058,21 @@ def plot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=60,
             cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             ''' this part is for the experiemnt 2'''
-            '''
             if (class_name=='0.174') or (class_name=='-0.174') or (class_name=='0.0') or (class_name=='0.349'):
                 pose_Vesti[class_name].append(1.0/np.std(pose_data[:,0],axis=0))
             else:
                 pose_Vesti[class_name].append(0.0)
-            '''
 
             ''' this part is for the experiemnt 1'''
-            pose_Vesti[class_name].append(1.0/np.std(pose_data[:,0],axis=0))
+            #pose_Vesti[class_name].append(1.0/np.std(pose_data[:,0],axis=0))
             print(folder_name)
             print(pose_Vesti[class_name][-1])
 
     #3) plot
-    figsize=(5.1,4.1244)
+    figsize=(3.5,1.8)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.12,right=0.98)
+    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.18,right=0.98)
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
@@ -1094,8 +1092,8 @@ def plot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=60,
         angular_Vesti_std.append(np.std(pose_Vesti[i]))
 
     idx=0
-    axs[idx].bar(ind-0.5*width,angular_COG_mean,width,yerr=angular_COG_std,label=r'DFFB reflexes')
-    axs[idx].bar(ind+0.5*width,angular_Vesti_mean, width, yerr=angular_Vesti_std,label=r'Vestibular reflexes')
+    axs[idx].bar(ind-0.5*width,angular_COG_mean,width,yerr=angular_COG_std,label=r'DFRL')
+    axs[idx].bar(ind+0.5*width,angular_Vesti_mean, width, yerr=angular_Vesti_std,label=r'Vestibular reflex')
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
     axs[idx].set_xticks(ind)
@@ -1180,10 +1178,10 @@ def plot_coordination_statistic(data_file_dic,start_point=60,end_point=900,freq=
 
     #3) plot
 
-    figsize=(5.1,4.1244)
+    figsize=(3.5,1.8)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.12,right=0.98)
+    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.18,right=0.98)
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
@@ -1202,8 +1200,8 @@ def plot_coordination_statistic(data_file_dic,start_point=60,end_point=900,freq=
         coordinationVesti_std.append(np.std(coordination_Vesti[i]))
 
     idx=0
-    axs[idx].bar(ind-0.5*width,coordinationCOG_mean,width,yerr=coordinationCOG_std,label=r'DFFB reflexes')
-    axs[idx].bar(ind+0.5*width,coordinationVesti_mean, width, yerr=coordinationVesti_std,label=r'Vestibular reflexes')
+    axs[idx].bar(ind-0.5*width,coordinationCOG_mean,width,yerr=coordinationCOG_std,label=r'DFRL')
+    axs[idx].bar(ind+0.5*width,coordinationVesti_mean, width, yerr=coordinationVesti_std,label=r'Vestibular reflex')
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
     axs[idx].set_xticks(ind)
@@ -1261,10 +1259,10 @@ def plot_displacement_statistic(data_file_dic,start_point=10,end_point=400,freq=
             print(folder_name)
 
     #3) plot
-    figsize=(5.1,4.1244)
+    figsize=(3.5,1.8)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.12,right=0.98)
+    gs1.update(hspace=0.18,top=0.95,bottom=0.12,left=0.18,right=0.98)
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
@@ -1284,8 +1282,8 @@ def plot_displacement_statistic(data_file_dic,start_point=10,end_point=400,freq=
         disp_Vesti_std.append(np.std(pose_Vesti[i]))
 
     idx=0
-    axs[idx].bar(ind-0.5*width,disp_COG_mean,width,yerr=disp_COG_std,label=r'DFFB reflexes')
-    axs[idx].bar(ind+0.5*width,disp_Vesti_mean, width, yerr=disp_Vesti_std,label=r'Vestibular reflexes')
+    axs[idx].bar(ind-0.5*width,disp_COG_mean,width,yerr=disp_COG_std,label=r'DFRL')
+    axs[idx].bar(ind+0.5*width,disp_Vesti_mean, width, yerr=disp_Vesti_std,label=r'Vestibular reflex')
     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
     axs[idx].set_xticks(ind)
@@ -3144,43 +3142,7 @@ if __name__=="__main__":
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_1/DFFB_reflexes_V2/VersionTwo/"
     #Experiment1_VideoText(data_file_dic,start_point=220+240+60,end_point=720+240+60+120+120,freq=60.0,experiment_classes=['0'])
 
-    ''' This is for experiment 2_1 one trail for a inclination'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/No_reflexes/"
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes/"
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/COG_reflexes/"
-    #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
-    #Experiment2_1(data_file_dic,start_point=460,end_point=1020, freq=60.0, experiment_classes=['-0.61'],trail_id=0)#1440-2160
-    #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
-    #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
 
-    ''' This is for experiment 2_1 five trails for a inclination, it means the line with shapdow :)'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
-    #Experiment2_1_repeat(data_file_dic,start_point=180,end_point=2100,freq=60.0,experiment_classes=['-0.61'])
-
-    ''' This is for experiment 2_2   '''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes/"
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/COG_reflexes/"
-    #slopeWalking_gamma_beta_pitch_displacement_statistic(data_file_dic,start_point=1000,end_point=2800,freq=60.0,experiment_classes=['0.0'])
-
-    ''' This is comapre the successful counts of two reflexes  in Experiment two'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
-    #plot_runningSuccess_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
-
-    ''' This is comapre the coordination of two reflexes  in Experiment two'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
-    #plot_coordination_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60.0,experiment_classes=['0.0'])
-
-    ''' This is comapre the stability of two reflexes  in Experiment two'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
-    #plot_stability_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
-
-    ''' This is comapre the displacement of two reflexes  in Experiment two'''
-    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
-    #plot_displacement_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
-    
     '''************************************************************'''
     '''-------The following codes is for Experiment1_2-------------'''
     '''************************************************************'''
@@ -3197,9 +3159,51 @@ if __name__=="__main__":
 
 
     data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment1/experiment1_2/Vesti_reflexes_V2/"
-    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
     #Experiment2_1(data_file_dic, start_point=960, end_point=1560, freq=60.0, experiment_classes = ['0.3'], trail_id=3)#1440-2160
 
+
+
+
+    ''' This is for experiment 2_1 one trail for a inclination'''
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/No_reflexes/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/COG_reflexes/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
+    #Experiment2_1(data_file_dic,start_point=460,end_point=1020, freq=60.0, experiment_classes=['-0.61'],trail_id=0)#1440-2160
+    #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
+    #Experiment2_VideoText(data_file_dic,start_point=240,end_point=2100,freq=60.0,experiment_classes=['0'])
+
+    ''' This is for experiment 2_1 five trails for a inclination, it means the line with shapdow :)'''
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes_V2/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/DFFB_reflexes_V2/"
+    #Experiment2_1_repeat(data_file_dic,start_point=180,end_point=2100,freq=60.0,experiment_classes=['-0.61'])
+
+    '''************************************************************'''
+    '''-------The following codes is for Experiment 2_2-------------'''
+    '''************************************************************'''
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/Vesti_reflexes/"
+    #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/COG_reflexes/"
+    #slopeWalking_gamma_beta_pitch_displacement_statistic(data_file_dic,start_point=1000,end_point=2800,freq=60.0,experiment_classes=['0.0'])
+
+    ''' This is comapre the successful counts of two reflexes  in Experiment two'''
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
+    plot_runningSuccess_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
+
+    ''' This is comapre the coordination of two reflexes  in Experiment two'''
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
+    plot_coordination_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60.0,experiment_classes=['0.0'])
+
+    ''' This is comapre the stability of two reflexes  in Experiment two'''
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
+    plot_stability_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
+
+    ''' This is comapre the displacement of two reflexes  in Experiment two'''
+    data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/experiment2/experiment2_2/"
+    plot_displacement_statistic(data_file_dic,start_point=1440,end_point=2160,freq=60,experiment_classes=['0.0'])
+    
 
     '''************************************************************'''
     '''-------The following codes is for Experiment 3-------------'''
@@ -3223,7 +3227,7 @@ if __name__=="__main__":
     #data_file_dic= "/media/suntao/DATA/Research/P4_workspace/Figures/experiment_data/Laikago/Flat/"
     #Experiment_Laikago(data_file_dic, start_point=120, end_point=3000, freq=60.0, experiment_classes=['-0.2']) #
 
-    ExperimentLaikago_VideoText(data_file_dic,start_point=120,end_point=4000,freq=60.0,experiment_classes=['0'])
+    #ExperimentLaikago_VideoText(data_file_dic,start_point=120,end_point=4000,freq=60.0,experiment_classes=['0'])
 
 
     '''************************************************************'''

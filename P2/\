@@ -1,0 +1,127 @@
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+" python auto indent 
+Plugin 'vim-scripts/indentpython.vim'
+
+Plugin 'MarcWeber/vim-addon-mw-utils'
+Plugin 'tomtom/tlib_vim'
+Plugin 'garbas/vim-snipmate'
+
+Plugin 'vim-latex/vim-latex'
+
+" rafi colorschemes
+Plugin 'rafi/awesome-vim-colorschemes'
+
+
+Plugin 'scrooloose/syntastic'
+
+" 
+Plugin 'suan/vim-instant-markdown', {'rtp': 'after'}
+
+" python auto completetion, it could slow down python when edit code
+Plugin 'davidhalter/jedi-vim'
+
+" Optional:
+"Plugin 'honza/vim-snippets'
+
+" All of your Plugins must be added before the following line
+call vundle#end()            " required
+
+" call plug 
+" Plug 'lervag/vimtex'
+
+filetype plugin indent on    " required
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_auto_jump = 0
+
+filetype plugin on
+let g:pydiction_location = '~/.vim/bundle/pydiction/complete-dict'
+let g:pydiction_menu_height = 20
+
+let g:syntastic_python_checkers=['python']
+let Tlist_Show_One_File=1
+let Tlist_Exit_OnlyWindow=1
+set tabstop=4
+set shiftwidth=4
+set smartindent
+set linebreak
+set nu
+set ts=4
+set expandtab
+set tags+=/home/suntao/workspace/gorobots/controllers/stbot/tags
+set tags+=/home/suntao/workspace/gorobots/tags
+set hlsearch        "搜索高亮
+
+
+"自动补全命令时候使用菜单式匹配列表
+set wildmenu
+autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
+autocmd FileType python set omnifunc=pythoncomplete#Complete
+autocmd FileType javascript set omnifunc=javascriptcomplete#CompleteJS
+autocmd FileType html set omnifunc=htmlcomplete#CompleteTags
+autocmd FileType css set omnifunc=csscomplete#CompleteCSS
+
+"""""""""""""""
+"Quickly run
+"""""""""""""""
+map <F5> :call CompileRunGcc()<CR>
+
+func! CompileRunGcc()
+    exec "w"
+    if &filetype == 'c'
+        exec "!g++ % -o %<"
+        exec "!time ./%<"
+    elseif &filetype == 'cpp'
+        exec "!g++ % -o %<"
+        exec "!time ./%<"
+    elseif &filetype == 'java'
+        exec "!javac %"
+        exec "!time java %<"
+    elseif &filetype == 'sh'
+        exec "!time bash %"
+    elseif &filetype == 'zsh'
+        exec "!time zsh %"
+    elseif &filetype == 'python'
+        exec "!time python %"
+    elseif &filetype == 'html'
+        exec "!firefox % &"
+    elseif &filetype == 'go'
+        exec "!go build %<"
+        exec "!time go run %"
+    elseif &filetype == "mkd"
+        exec "! ~/.vim/markdown.pl % > %.html &"
+        exec "!firefox %.html &"
+    elseif &filetype == "tex"
+        exec "!time latex %"
+        exec "!bibtex %"
+        exec "!latex %"
+    endif
+endfunc
+
+
+
+let g:vimtex_compiler_latexmk = {
+    \ 'options' : [
+    \   '-xelatex',
+    \   '-verbose',
+    \   '-file-line-error',
+    \   '-synctex=1',
+    \   '-interaction=nonstopmode',
+    \ ],
+    \}
+
+set laststatus=2
+
+if &filetype == 'cpp'
+    set foldmethod=syntax
+endif
+

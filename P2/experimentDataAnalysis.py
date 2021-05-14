@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 import sys
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -20,6 +21,8 @@ import seaborn as sns
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import warnings
+from matplotlib.animation import FuncAnimation
+
 
 warnings.simplefilter('always', UserWarning)
 
@@ -45,7 +48,6 @@ Robot configurations and parameters of Lilibot
 
 Mass=2.5 # Kg
 Gravity=9.8 # On earth
-
 
 class neuralprocessing:
     '''
@@ -174,8 +176,8 @@ def read_data(freq,start_point,end_point,folder_name):
     columnsName_jointVelocities=['v1','v2','v3','v4','v5','v6', 'v7','v8','v9','v10','v11','v12']
     columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
     columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
-    columnsName_modules=['ss','Noise1','Noise2','Noise3','Noise4']
-    columnsName_parameters=['CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
+    columnsName_modules=['ss','f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8']
+    columnsName_rosparameters=['CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
                             'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
                             'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
                             'LF_PSN','LF_VRN_Hip','LF_VRN_Knee','LF_MN1','LF_MN2','LF_MN3',\
@@ -199,7 +201,7 @@ def read_data(freq,start_point,end_point,folder_name):
     module_data=module_data.values
 
     #parameter
-    parameter_data=loadData(fileName_parameters,columnsName_parameters,folder_name)    
+    parameter_data=loadData(fileName_parameters,columnsName_rosparameters,folder_name)    
     parameter_data=parameter_data.values
 
     #joint sensory data
@@ -269,10 +271,20 @@ def gait_diagram(fig,axs,gs,gait_data):
     axs.set_xticklabels(labels=[])
     #axs.set_title("Gait",loc="left",pad=2)
 
+
+
+    # colors
+    c4_1color=(46/255.0, 77/255.0, 129/255.0)
+    c4_2color=(0/255.0, 198/255.0, 156/255.0)
+    c4_3color=(255/255.0, 1/255.0, 118/255.0)
+    c4_4color=(225/255.0, 213/255.0, 98/255.0)
+    colors=[c4_1color, c4_2color, c4_3color, c4_4color]
+    cmap = (mpl.colors.ListedColormap(['white', 'cyan', 'yellow', 'royalblue']).with_extremes(over='red', under='blue'))
     ax=stsubplot(fig,position,4,gs)
     xx=[]
     LegName=['RF','RH', 'LF', 'LH']
-    barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest',vmin=0.0,vmax=1.0)
+    #barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest',vmin=0.0,vmax=1.0)
+    barprops = dict(aspect='auto', cmap=cmap, interpolation='nearest',vmin=0.0,vmax=1.0)
     for idx in range(4):
         ax[idx].set_yticks([0.1*(idx+1)])
         xx.append(np.where(gait_data[:,idx]>0.2*max(gait_data[:,idx]),1.0,0.0)) # > 0.2 times of max_GRF, then leg on stance phase
@@ -319,7 +331,10 @@ def calculate_energy_cost(U,I,Fre):
     return E
 
 def calculate_COT(U,I,Fre,D):
-    return calculate_energy_cost(U,I,Fre)/(Mass*Gravity*D)
+    if(D>0.0): # the robot should walking a distance
+        return calculate_energy_cost(U,I,Fre)/(Mass*Gravity*D)
+    else:
+        return 0.0;
 
 def calculate_phase_diff(CPGs_output,time):
     '''
@@ -429,7 +444,7 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
     There are two methods, the first one is based on phy standard deviation, the second is based on distance between PHI and (3.14, 3.14, 0)
     Claculate phase convergnece idx and touch idx
     '''
-    if method_option==1:
+    if method_option==1: # using the deviation of the phi sum 
         grf_stance = grf_data > Mass*Gravity/5.0# GRF is bigger than 7, we see the robot starts to interact weith the ground
         grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
         if(grf_stance_index[0].size!=0):#机器人落地了
@@ -438,7 +453,9 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
             phi_stability_threshold=0.7# empirically set 0.7
             for idx, value in enumerate(phi_stability): #serach the idx of the convergence moment/time
                 if idx>=len(phi_stability)-1: # Not converge happen
-                    convergen_idx=len(phi_stability)
+                    #convergen_idx=len(phi_stability) # 仿真时间
+                    convergen_idx=-1 #-1
+                    print("CPG phase do not converge", convergen_idx)
                     break
                     # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
                 if (value > phi_stability_threshold) and (phi_stability[idx+1] <= phi_stability_threshold) and (max(phi_stability) > 0.8):
@@ -449,16 +466,19 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
             warnings.warn('The robot may be not dropped on the ground!')
 
         return touch_moment_idx, convergen_idx
-    if method_option==2:
+
+    if method_option==2:# using the distance in 3D phase space
         grf_stance = grf_data > Mass*Gravity/5.0# GRF is bigger than 7, we see the robot starts to interact weith the ground
         grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
-        if(grf_stance_index[0].size!=0):#机器人落地了
-            touch_moment_idx= grf_stance_index[0][0]# 落地时刻
+        if(grf_stance_index[0].size!=0):#机器人落地了 robot on the ground
+            touch_moment_idx= grf_stance_index[0][0]# 落地时刻 the touch momnet $n_0$
             phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # 相位差的标准差
             phi_distances_threshold=1.4# empirically set 1.4
             for idx, value in enumerate(phi_distances): #serach the idx of the convergence moment/time
                 if idx>=len(phi_distances)-1: # Not converge happen
-                    convergen_idx=len(phi_distances)
+                    #convergen_idx=len(phi_distances)
+                    convergen_idx=-1
+                    print("CPG phase do not converge", convergen_idx)
                     break
                     # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
                 if (value > phi_distances_threshold) and (phi_distances[idx+1]<=phi_distances_threshold):# the state variable converge to the desired fixed point (3.14, 3.14, 0)
@@ -596,7 +616,7 @@ def gait(data):
     # calculate the duty factors of all legs
     for i in range(len(gait_info)): # each leg
         beta_singleleg=[]
-        for j in range(int(len(gait_info[i])/2)): # each step, ignore the first stance or swing
+        for j in range(len(gait_info[i])): # each step, ignore the first stance or swing
             if (gait_info[i].__contains__(str(j)+'stance') and  gait_info[i].__contains__(str(j)+'swing')):
                 beta_singleleg.append(gait_info[i][str(j)+"stance"]/(gait_info[i][str(j)+"stance"] + gait_info[i][str(j) + "swing"]))
             elif (gait_info[i].__contains__(str(j)+'stance') and  (not gait_info[i].__contains__(str(j)+'swing'))):
@@ -604,12 +624,11 @@ def gait(data):
             elif ((not gait_info[i].__contains__(str(j)+'stance')) and  gait_info[i].__contains__(str(j)+'swing')):
                 beta_singleleg.append(0.0)
         
-        # remove the max and min beta of each legs during the whole locomotion
-        if(beta_singleleg!=[]):
+        # if the step more than theree, then remove the max and min beta of each legs during the whole locomotion
+        if(len(beta_singleleg)>3):
             beta_singleleg.remove(max(beta_singleleg))
-        if(beta_singleleg!=[]):
+        if(len(beta_singleleg)>3):
             beta_singleleg.remove(min(beta_singleleg))
-
         beta.append(beta_singleleg)
 
     return state, beta
@@ -648,23 +667,23 @@ def Animate_phase_transition(cpg_data):
     line3, = ax.plot([], [], 'b-',lw=1)
     line4, = ax.plot([], [], 'y-',lw=1)
 
-    point1, = ax.plot([], [], 'r<-',lw=1,markersize=15)
-    point2, = ax.plot([], [], 'g>-',lw=1,markersize=15)
-    point3, = ax.plot([], [], 'b^-',lw=1,markersize=15)
-    point4, = ax.plot([], [], 'yv-',lw=1,markersize=15)
+    point1, = ax.plot([], [], 'ro-',lw=1,markersize=6)
+    point2, = ax.plot([], [], 'go-',lw=1,markersize=6)
+    point3, = ax.plot([], [], 'bo-',lw=1,markersize=6)
+    point4, = ax.plot([], [], 'yo-',lw=1,markersize=6)
     ax.grid(which='both',axis='x',color='k',linestyle=':')
     ax.grid(which='both',axis='y',color='k',linestyle=':')
-    ax.legend((point1,point2,point3,point4),[r'RF',r'RH',r'LF','LH'],ncol=4)
+    ax.legend((point1,point2,point3,point4),['RF','RH','LF','LH'],ncol=4)
     time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
     energy_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
     line_length=60
-    #ax.text(-0.45,0.2,r'$a_{i}(t)=\sum_{j=1}^2 w_{ij}*o_{i}(t-1)+b_{i}+f_{i},i=1,2$')
-    #ax.text(-0.45,0.0,r'$o_{i}(t)=\tanh(a_{1,2})$')
+    ax.text(-0.45,0.2,r'$a_{i}(t)=\sum_{j=1}^2 w_{ij}*o_{i}(t-1)+b_{i}+f_{i},i=1,2$')
+    ax.text(-0.45,0.0,r'$o_{i}(t)=\tanh(a_{1,2})$')
     #ax.text(-0.45,-0.2,r'$f_{1}=-\gamma*GRF*cos(o_{1}(t-1))$')
     #ax.text(-0.45,-0.3,r'$f_{2}=-\gamma*GRF*sin(o_{2}(t-1))$')
-    #ax.text(-0.45,-0.2,r'$f_{1}=(1-a_{1}(t))*Dirac$')
-    #ax.text(-0.45,-0.3,r'$f_{2}=(-a_{2}(t))*Dirac$')
-    #ax.text(-0.45,-0.45,r'$Dirac = 1, GRF > 0.2; 0, otherwise $')
+    ax.text(-0.45,-0.2,r'$f_{1}=(1-a_{1}(t))*Dirac$')
+    ax.text(-0.45,-0.3,r'$f_{2}=(-a_{2}(t))*Dirac$')
+    ax.text(-0.45,-0.45,r'$Dirac = 1, GRF > 0.2; 0, otherwise $')
 
     # initialization function: plot the background of each frame
     def init():
@@ -703,12 +722,12 @@ def Animate_phase_transition(cpg_data):
         angle1=math.atan2(cpg_data[a_end,1],cpg_data[a_end,0])-math.atan2(cpg_data[a_end,3],cpg_data[a_end,2])
         if angle1<0.0:
             angle1+=2*np.pi
-        energy_text.set_text(r'$\phi_{1,2}$ = %.2f' % (angle1))
+        energy_text.set_text(r'$\Theta_{1,2}$ = %.2f' % (angle1))
         return line1, point1 ,line2, point2, line3, point3, line4, point4, time_text, energy_text
 
     # call the animator.  blit=True means only re-draw the parts that have changed.
     anim = animation.FuncAnimation(fig, animate, init_func=init,
-                                   frames=(cpg_data.shape[0]-line_length), interval=2000, blit=True)
+                                   frames=(cpg_data.shape[0]-line_length), interval=50, blit=True)
 
     # save the animation as an mp4.  This requires ffmpeg or mencoder to be
     # installed.  The extra_args ensure that the x264 codec is used, so that
@@ -716,7 +735,7 @@ def Animate_phase_transition(cpg_data):
     # your system: for more information, see
     # http://matplotlib.sourceforge.net/api/animation_api.html
 
-    anim.save('non-continuous modulation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+    #anim.save('non-continuous modulation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
     plt.show()
 
 def plot_phase_transition_animation(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):
@@ -730,24 +749,23 @@ def plot_phase_transition_animation(data_file_dic,start_point=90,end_point=1200,
     @param: trial_id, it indicates which experiment among a inclination/situation/case experiments 
     @return: show and save a data figure.
     '''
-    
     # 1) read data
-    titles_files_categories=load_data_log(data_file_dic)
+    titles_files_categories, categories=load_data_log(data_file_dic)
+
     cpg={}
+
     for category, files_name in titles_files_categories: #category is a files_name categorys
+        cpg[category]=[]  #files_name is the table of the files_name category
         if category in experiment_categories:
-            cpg[category]=[]
-            control_method=files_name['titles'].iat[0]
             print(category)
             for idx in files_name.index:
-                if idx in np.array(files_name.index)[trial_ids]:# which one is to load
-                    folder_category= data_file_dic + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
-                    # 2)  data process
-                    print(folder_category)
-                    cpg[category].append(cpg_data)
+                folder_category= data_file_dic + files_name['data_files'][idx]
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                # 2)  data process
+                print(folder_category)
+                cpg[category].append(cpg_data)
 
-    #3)Plot
+    #3) plot
     Animate_phase_transition(cpg[experiment_categories[0]][trial_id])
     
 def PhaseAnalysis(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):
@@ -3555,7 +3573,7 @@ def boxplot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=
     plt.savefig(figPath)
     plt.show()
 
-def boxplot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0']):
+def boxplot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
     '''
     @description: this is for comparative investigation, plot cost of transport statistic
     @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
@@ -3563,6 +3581,7 @@ def boxplot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,e
     @param: end_point, the end point (time) of all the data
     @param: freq, the sample frequency of the data 
     @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, the trials that are included to computate
     @return: show and save a data figure.
 
     '''
@@ -3741,8 +3760,8 @@ def plot_single_details(data_file_dic,start_point=90,end_point=1200,freq=60.0,ex
 
 
     #2) Whether get right data
-    for exp_idx in range(len(experiment_categories)): # experiment_categories
-        for trial_id in range(len(trial_ids)): # Trial_ids
+    for exp_idx in range(len(experiment_categories)):
+        for trial_id in range(len(trial_ids)):
             experiment_category=experiment_categories[exp_idx]# The first category of the input parameters (arg)
             if not cpg[experiment_category]:
                 warnings.warn('Without proper data was read')
@@ -3856,7 +3875,7 @@ def plot_single_details(data_file_dic,start_point=90,end_point=1200,freq=60.0,ex
             axs[idx].set_ylabel(u'GRFs')
             if experiment_category == "1": #noisy situation
                 grf_feedback_lf = grf[experiment_category][trial_id][:,2] + noise[experiment_category][trial_id][:,3]
-                grf_feedback_lh = grf[experiment_category][trial_id][:,3] + noise[experiment_category][trial_d][:,4]
+                grf_feedback_lh = grf[experiment_category][trial_id][:,3] + noise[experiment_category][trial_id][:,4]
                 axs[idx].set(ylim=[-1,20.1])
             else:
                 grf_feedback_lf = grf[experiment_category][trial_id][:,2]
@@ -3891,8 +3910,8 @@ def plot_single_details(data_file_dic,start_point=90,end_point=1200,freq=60.0,ex
             gait_diagram(fig,axs[idx],gs1,gait_diagram_data[experiment_category][trial_id])
             axs[idx].set_xlabel(u'Time [s]')
             xticks=np.arange(int(min(time)),int(max(time))+1,1)
-            #axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
-            #axs[idx].set_xticks(xticks)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
             axs[idx].yaxis.set_label_coords(-0.065,.5)
             axs[idx].set(xlim=[min(time),max(time)])
 
@@ -3907,10 +3926,9 @@ def plot_single_details(data_file_dic,start_point=90,end_point=1200,freq=60.0,ex
             plt.close()
 
 
-
 def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
     ''' 
-    This is for plot CPG phase shift dynamics
+    @description: This is for plot CPG phase shift dynamics
     @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
     @param: start_point, the start point (time) of all the data
     @param: end_point, the end point (time) of all the data
@@ -3936,23 +3954,18 @@ def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=6
                     print(folder_category)
                     cpg[category].append(cpg_data)
 
-
-
-
     #2) plot
-    figsize=(8,2.1)
+    figsize=(8/3*len(experiment_categories),2.1)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
-    markers=['g*','g*','g*','k^','y<','k>','ks','kp']
+    markers=['g*','g*','g*','g*','g*','g*','ks','kp']
 
-    gs1=gridspec.GridSpec(1,6)#13
-    gs1.update(hspace=0.1,wspace=0.4,top=0.94,bottom=0.11,left=0.02,right=0.94)
+    gs1=gridspec.GridSpec(1,2*len(experiment_categories))#2 per column
+    gs1.update(hspace=0.1,wspace=0.4,top=0.9,bottom=0.11,left=0.02,right=0.94)
     axs=[]
-    axs.append(fig.add_subplot(gs1[0,0:2],projection="3d"))
-    axs.append(fig.add_subplot(gs1[0,2:4],projection="3d"))
-    axs.append(fig.add_subplot(gs1[0,4:6],projection="3d"))
+    for idx in range(len(experiment_categories)):
+        axs.append(fig.add_subplot(gs1[0,int(2*idx):int(2*(idx+1))],projection="3d"))
 
     titles=experiment_categories
-
 
 
     for exp_idx in range(len(experiment_categories)):
@@ -3971,17 +3984,30 @@ def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=6
             axs[plot_idx].view_init(12,-62)
             axs[plot_idx].set_xlabel(u'$\phi_{12}$[rad]')
             axs[plot_idx].set_ylabel(u'$\phi_{13}$[rad]')
-            axs[plot_idx].set_zlabel(u'$\phi_{14}$[rad]')
+            axs[plot_idx].set_zlabel(u'$\phi_{14}$[rad]')# specifying the distance betwwen the label and the axis
+            #axs[plot_idx].xaxis._axinfo['label']['space_factor'] = 1
+            #axs[plot_idx].yaxis._axinfo['label']['space_factor'] = 1
+            axs[plot_idx].dist=15
             axs[plot_idx].set_xlim([-0.1,3.2])
             axs[plot_idx].set_ylim([-0.1,3.2])
             axs[plot_idx].set_zlim([-0.1,2.2])
+            axs[plot_idx].set_xticks([0,1,2,3])
+            axs[plot_idx].set_yticks([0,1,2,3])
+            axs[plot_idx].set_zticks([0,1,2])
             axs[plot_idx].grid(which='both',axis='x',color='k',linestyle=':')
             axs[plot_idx].grid(which='both',axis='y',color='k',linestyle=':')
             axs[plot_idx].grid(which='both',axis='z',color='k',linestyle=':')
+            axs[plot_idx].tick_params(axis='x', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].tick_params(axis='y', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].tick_params(axis='z', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+
             if control_method=="PhaseReset":
                 axs[plot_idx].set_title(u"$F_t=$"+titles[plot_idx])
             if control_method=="PhaseModulation":
-                axs[plot_idx].set_title(u"$\gamma=$"+titles[plot_idx])
+                axs[plot_idx].set_title(u"R="+str(int(float(titles[plot_idx])*100))+r"%")
+                #axs[plot_idx].set_title(u"MI="+titles[plot_idx])
+
+
     
     #axs[plot_idx].legend(experiment_categories)
 
@@ -3990,7 +4016,7 @@ def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=6
     folder_fig = data_file_dic + 'data_visulization/'
     if not os.path.exists(folder_fig):
         os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'general_display.svg'
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_shift_dynamics.svg'
     plt.savefig(figPath)
     plt.show()
     '''
@@ -4022,10 +4048,6 @@ def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=6
     plt.ylim([-0.1,4])
     plt.show()
     '''
-
-
-
-
 
 def plot_cpg_phase_portrait(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
     ''' 
@@ -4113,6 +4135,609 @@ def plot_cpg_phase_portrait(data_file_dic,start_point=90,end_point=1200,freq=60.
     plt.show()
     
 
+''' Boxplot for paper 2  '''
+def boxplot_phase_convergenceTime_statistic(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot convergence time statistic, it can indicates the actual traverability of the locomotion
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    phi={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories:
+            phi[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# which one is to load
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    if calculate_phase_convergence_time(time,grf_data,cpg_data,freq)>0:
+                        phi[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
+                        print("Convergence time:{:.2f}".format(phi[category][-1]))
+
+    #3) plot
+    figsize=(5.1,4.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.88)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    roughness=[int(float(ll)*100) for ll in experiment_categories]
+    print(roughness)
+    ind= np.arange(len(experiment_categories))
+
+
+    #3.1) plot 
+    phi_values=[]
+    #pdb.set_trace()
+    for key in experiment_categories:
+        phi_values.append(phi[key])
+    
+    idx=0
+    boxwidth=0.2
+    box1=axs[idx].boxplot(phi_values,widths=boxwidth, positions=ind,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)
+
+       # fill with colors
+    colors = ['lightblue', 'lightgreen']
+    #for bplot, color in zip((box1, box2),colors):
+    #    for patch in bplot['boxes']:
+    #        patch.set_facecolor(color)
+
+    #axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    #axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    #axs[idx].set_yticks([0,0.1,0.2,0.3])
+    #axs[idx].set(ylim=[-0.01,0.3])
+    #axs[idx].legend([box1['boxes'][0], box2['boxes'][0]],['Phase modulation','Phase reset'])
+    axs[idx].set_xticks(ind)
+    axs[idx].set_xticklabels(roughness)
+    axs[idx].set_ylabel(r'Phase convergence time [s]')
+    axs[idx].set_xlabel(r'Roughness [%]')
+
+    # plot the success_rate with twinx 
+    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+    success_rate=[]
+    for idx in range(len(phi_values)):
+        success_count= np.array(phi_values[idx]) < 20.0
+        success_rate.append(len(phi_values[idx])/len(trial_ids)*100)
+    color = 'tab:red'
+    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+    ax2.plot(ind, success_rate,'-h', color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+    #ax2.set_ylim(-10,110)
+    ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+    #axs[idx].set_title('Phase reset')
+    
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_convergence_time.svg'
+    plt.savefig(figPath)
+    plt.show()
+
+
+def boxplot_phase_convergenceTime_sucessRateBar_statistic(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot convergence time statistic, it can indicates the actual traverability of the locomotion
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    phi={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories:
+            phi[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# which one is to load
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    if calculate_phase_convergence_time(time,grf_data,cpg_data,freq)>0:
+                        phi[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
+                        print("Convergence time:{:.2f}".format(phi[category][-1]))
+
+    #3) plot
+    figsize=(5.1,4.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.88)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    roughness=[int(float(ll)*100) for ll in experiment_categories]
+    print(roughness)
+    ind= np.arange(len(experiment_categories))
+
+
+    #3.1) plot 
+    phi_values=[]
+    #pdb.set_trace()
+    for key in experiment_categories:
+        phi_values.append(phi[key])
+    
+
+
+    success_rate=[]
+    for idx in range(len(phi_values)):
+        success_count= np.array(phi_values[idx]) < 20.0
+        success_rate.append(len(phi_values[idx])/len(trial_ids)*100)
+
+    idx=0
+    boxwidth=0.2
+    box1=axs[idx].boxplot(phi_values,widths=boxwidth, positions=ind-boxwidth/2,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)
+    # plot the success_rate with twinx 
+    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+    #box2=ax2.boxplot(success_rate,widths=boxwidth, positions=ind+boxwidth/2,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)
+    box2=ax2.bar(ind+boxwidth/2,success_rate)
+
+       # fill with colors
+    colors = ['lightblue', 'lightgreen']
+    # for bplot, color in zip((box1, box2),colors):
+    #     for patch in bplot['boxes']:
+    #         patch.set_facecolor(color)
+
+    #axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    #axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    #axs[idx].set_yticks([0,0.1,0.2,0.3])
+    #axs[idx].set(ylim=[-0.01,0.3])
+    #axs[idx].legend([box1['boxes'][0], box2['boxes'][0]],['Phase modulation','Phase reset'])
+    axs[idx].set_xticks(ind)
+    axs[idx].set_xticklabels(roughness)
+    axs[idx].set_ylabel(r'Phase convergence time [s]')
+    axs[idx].set_xlabel(r'Roughness [%]')
+
+
+    ax2.set_ylabel('Success rate [%]', color=colors[1])  # we already handled the x-label with ax1
+    ax2.tick_params(axis='y', labelcolor=colors[1])
+    #ax2.set_ylim(-10,110)
+    ax2.set_yticks([70, 80, 90, 100])
+
+    #axs[idx].set_title('Phase reset')
+    
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_convergence_time.svg'
+    plt.savefig(figPath)
+    plt.show()
+
+def scatter_dutyFactors_statistic(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot duty factors in statistic, it can indicates generated walking patterns
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    beta={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories:
+            beta[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# which one is to load
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    state_temp, beta_temp=gait(grf_data)
+                    number_beta=min([len(beta_temp[0]),len(beta_temp[1]),len(beta_temp[2]),len(beta_temp[3])])
+                    beta[category].append([beta_temp[0][:number_beta],beta_temp[1][:number_beta],beta_temp[2][:number_beta],beta_temp[3][:number_beta]])
+        
+    
+    #data processing
+    pd_beta='NO'
+    for category in experiment_categories:
+        for trial_id in trial_ids:
+            data_temp={'MI': [category]*len(beta[category][trial_id][0]),'trial_id':[trial_id]*len(beta[category][trial_id][0]),'beta1':beta[category][trial_id][0], 'beta2':beta[category][trial_id][1], 'beta3':beta[category][trial_id][2], 'beta4':beta[category][trial_id][3]}
+            pd_beta_temp=pd.DataFrame(data=data_temp,columns=['MI','trial_id','beta1','beta2','beta3','beta4'])
+            pd_beta_temp=pd_beta_temp.dropna()
+            if(isinstance(pd_beta,str)):
+                pd_beta=pd_beta_temp;
+            else:
+                pd_beta=pd_beta.append(pd_beta_temp,ignore_index=True)
+
+    #3) plot
+    #figsize=(5.1,4.0)
+    #fig = plt.figure(figsize=figsize,constrained_layout=False)
+    #gs1=gridspec.GridSpec(6,1)#13
+    #gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.88)
+    #axs=[]
+    #axs.append(fig.add_subplot(gs1[0:6,0]))
+    #fig, ax = plt.subplots(figsize=figsize)
+
+
+    #plotting 
+
+    #sns.catplot(data=pd_beta, kind="bar", x="MI", y="Beta", hue="legs", ci="sd", palette="dark", alpha=.6, height=6)
+    pd_beta['beta']=(pd_beta['beta1']+pd_beta['beta2']+pd_beta['beta3']+pd_beta['beta4'])/4
+    g=sns.catplot(data=pd_beta, kind="bar", x="MI", y="beta", ci="sd", palette="dark", alpha=.5, height=6)
+    g.set_axis_labels("MI", "Duty factor")
+    g.set(ylim=(0.5, None),yticks=[0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1.0])
+
+    plt.grid(axis='y',linestyle='--',color='black',linewidth='0.5')
+    plt.axes()
+    #axs[0].set_ylim(0.5,1.0)
+
+    #sns.displot(pd_beta, x="beta1", y="beta3", hue="MI")
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'dutyFactors.svg'
+    plt.savefig(figPath)
+    
+    plt.show()
+
+def scatter_phaseShift_statistic(data_file_dic,start_point=800,end_point=2400,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot duty factors in statistic, it can indicates generated walking patterns
+
+    '''
+
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    phi={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories: # 仅仅读取入口参数指定的实验类别数据
+            phi[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# 仅仅读取指定trial_id的数据
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    phi[category].append(calculate_phase_diff(cpg_data,time))
+        
+
+    # 3) Transfer the data into a pandas format
+    pd_phi='NO'
+    for category in experiment_categories:
+        for trial_id in trial_ids:
+            phi[category][trial_id]['MI']=category
+            phi[category][trial_id]['trial_id']=trial_id
+            phi[category][trial_id]=phi[category][trial_id].dropna()
+            if(isinstance(pd_phi,str)):
+                pd_phi=phi[category][trial_id];
+            else:
+                pd_phi=pd_phi.append(phi[category][trial_id],ignore_index=True)
+
+
+
+
+    
+    long_pd_phi=pd_phi.melt(id_vars=['time','MI','trial_id'])
+    group_long_pd_phi=long_pd_phi.groupby('MI')
+
+    #pdb.set_trace()
+    #sns.lineplot(data=group_long_pd_phi,x='time',y='value',hue='variable')
+    #sns.violinplot(data=long_pd_phi, x="MI", y="value", hue="variable", split=True, inner="quart", linewidth=1,palette={"Yes": "b", "No": ".85"})
+    #g=sns.displot(data=pd_phi, x="phi_12", y="phi_13", hue='MI',kind='kde')
+    g=sns.catplot(data=long_pd_phi, kind="bar", x="MI", y="value", ci="sd",hue='variable', alpha=.6, height=6)
+    #g.set_axis_labels("MI", "Phase shift")
+    #sns.displot(pd_beta, x="beta1", y="beta3", hue="MI")
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'MI_phaseShift.svg'
+    plt.savefig(figPath)
+    
+    plt.show()
+
+
+def scatter_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
+    '''
+    @description: this is for comparative investigation, plot cost of transport statistic
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, the trials that are included to computate
+    @return: show and save a data figure.
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    COT={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories: # 仅仅读取入口参数指定的实验类别数据
+            COT[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# 仅仅读取指定trial_id的数据
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    velocity_data=calculate_joint_velocity(position_data,freq)
+                    d=calculate_displacement(pose_data)
+                    COT_temp=calculate_COT(velocity_data,current_data,freq,d)
+                    COT[category].append(COT_temp)# 
+                    print(COT[category][-1])
+                    stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
+                    
+        
+    pd_COT=pd.DataFrame(COT)
+    pd_COT=pd_COT.melt()
+    g=sns.catplot(data=pd_COT, kind="bar", x="variable", y="value", ci="sd",alpha=.6, height=6)
+    #axs[idx].set_ylabel(r'$COT [J kg^{-1} m^{-1}$]')
+    #axs[idx].set_xlabel(r'Situations')
+
+    #axs[idx].set_title('Quadruped robot Walking on a slope using CPGs-based control with COG reflexes')
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'COTStatistic.svg'
+    plt.savefig(figPath)
+    plt.show()
+
+
+
+def boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot convergence time statistic, it can indicates the actual traverability of the locomotion
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    phi={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories:
+            phi[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# which one is to load
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    if calculate_phase_convergence_time(time,grf_data,cpg_data,freq)>0:
+                        phi[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
+                        print("Convergence time:{:.2f}".format(phi[category][-1]))
+
+    #3) plot
+    figsize=(6,4)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    MI=[float(ll) for ll in experiment_categories]
+    print(MI)
+    ind= np.arange(len(experiment_categories))
+
+
+    #3.1) plot 
+    phi_values=[]
+    #pdb.set_trace()
+    for key in experiment_categories:
+        phi_values.append(phi[key])
+    
+    idx=0
+    boxwidth=0.2
+    box1=axs[idx].boxplot(phi_values,widths=boxwidth, positions=ind,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)
+
+       # fill with colors
+    colors = ['lightblue', 'lightgreen']
+    #for bplot, color in zip((box1, box2),colors):
+    #    for patch in bplot['boxes']:
+    #        patch.set_facecolor(color)
+
+    #axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    #axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    #axs[idx].set_yticks([0,0.1,0.2,0.3])
+    #axs[idx].set(ylim=[-0.01,0.3])
+    #axs[idx].legend([box1['boxes'][0], box2['boxes'][0]],['Phase modulation','Phase reset'])
+    axs[idx].set_xticks(ind)
+    axs[idx].set_xticklabels(MI)
+    axs[idx].set_ylabel(r'Phase convergence time [s]')
+    axs[idx].set_xlabel(r'MI')
+
+    # plot the success_rate with twinx 
+    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+    success_rate=[]
+    for idx in range(len(phi_values)):
+        success_count= np.array(phi_values[idx]) < 20.0
+        success_rate.append(len(phi_values[idx])/len(trial_ids)*100)
+    color = 'tab:red'
+    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+    ax2.plot(ind, success_rate,'h', color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+    #ax2.set_ylim(-10,110)
+    ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+    #axs[idx].set_title('Phase reset')
+    
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_convergence_time.svg'
+    plt.savefig(figPath)
+    plt.show()
+
+
+
+def WalkingSpeed_GaitDiagram(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
+    '''
+    @description: this is for plot the gait diagram under the different walking speeds
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, the trials that are included to computate
+    @return: show and save a data figure.
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    pdb.set_trace()
+    speed={}
+    gait_diagram_data={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories: # 仅仅读取入口参数指定的实验类别数据
+            speed[category]=[]
+            gait_diagram_data[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# 仅仅读取指定trial_id的数据
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    displacement= calculate_displacement(pose_data)
+                    speed[category].append(displacement/(time[-1]-time[0]))
+                    gait_diagram_data_temp, beta_temp = gait(grf_data)
+                    gait_diagram_data[category].append(gait_diagram_data_temp);
+                    #beta[category].append(beta_temp)
+                    print(speed[category][-1])
+                    
+                
+
+    #3) plot
+    axs_column_num=2 # how many columns axis in the figure
+    figsize=(2.1*5,2.97*5+0*len(experiment_categories)/axs_column_num)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(int(len(experiment_categories)/axs_column_num),axs_column_num)#13
+    gs1.update(hspace=0.46,top=0.95,bottom=0.05,left=0.1,right=0.96)
+    axs=[]
+    for idx in range(int(len(experiment_categories)/axs_column_num)):
+        axs.append(fig.add_subplot(gs1[idx:idx+1,0]))
+        axs.append(fig.add_subplot(gs1[idx:idx+1,1]))
+
+    for idx in range(len(experiment_categories)):
+        experiment_category=experiment_categories[idx]
+        trial_id=trial_ids[0]
+        axs[idx].set_ylabel(r'Gait')
+        axs[idx].yaxis.set_label_coords(-0.08,.5)
+        gait_diagram(fig,axs[idx],gs1,gait_diagram_data[experiment_category][trial_id])
+        axs[idx].set_xlabel(u'Time [s]')
+        axs[idx].xaxis.set_label_coords(0.5,-0.11)
+        xticks=np.arange(int(min(time)),int(max(time))+1,1)
+        axs[idx].set_xticks(xticks)
+        axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+        axs[idx].set(xlim=[min(time),max(time)])
+        axs[idx].set_title('MI: '+experiment_category+'; Walking speed: '+str(round(speed[experiment_category][trial_id]*100,1))+" cm/s")
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'WalkingSpeed_GaitDiagram.svg'
+    plt.savefig(figPath)
+    plt.show()
+
+
+def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
+    '''
+    @description: this is for plot the g term of the neural couplings
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, the trials that are included to computate
+    @return: show and save a data figure.
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    g_data={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories: # 仅仅读取入口参数指定的实验类别数据
+            g_data[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# 仅仅读取指定trial_id的数据
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    g_data[category].append(module_data[:,1:])
+                    
+    # plot
+    figsize=(5.5,2.0)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(2,1)#13
+    gs1.update(hspace=0.22,top=0.96,bottom=0.21,left=0.11,right=0.98)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+
+    colorList=['r','g','b','k','y','c','m']
+    labels= titles_files_categories.groups.keys()
+    labels=[str(ll) for ll in sorted([ float(ll) for ll in labels])]
+
+    for index, class_name in enumerate(labels): # name is a inclination names
+        g_data_df=pd.DataFrame(g_data[class_name][0],columns=['f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8'])
+        idx=0
+        xdata, g1_ydata = [], []
+        g2_ydata=[]; 
+        g3_ydata=[];
+        g4_ydata=[];
+        ln1, = axs[idx].plot([], [], 'r', linewidth=1,markersize=0.5)
+        ln2, = axs[idx].plot([], [], 'g', linewidth=1,markersize=0.5)
+        ln3, = axs[idx].plot([], [], 'b', linewidth=1,markersize=0.5)
+        ln4, = axs[idx].plot([], [], 'y', linewidth=1,markersize=0.5)
+
+        def init():
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set_ylabel(r'$g_i$')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.1,0.1])
+            axs[idx].set_yticks([-0.1,0.0,0.1])
+            axs[idx].set_yticklabels([-0.1,0.0,0.1])
+            xticks=np.arange(0,int(max(time)),10)
+            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xlabel('Time [s]')
+            return ln1,ln2,ln3,ln4
+
+        def update(frame):
+            xdata.append(time[frame])
+            g1_ydata.append(g_data_df.iat[frame,8])
+            g2_ydata.append(g_data_df.iat[frame,9])
+            g3_ydata.append(g_data_df.iat[frame,10])
+            g4_ydata.append(g_data_df.iat[frame,11])
+            ln1.set_data(xdata, g1_ydata)
+            ln2.set_data(xdata, g2_ydata)
+            ln3.set_data(xdata, g3_ydata)
+            ln4.set_data(xdata, g4_ydata)
+            return ln1,ln2,ln3,ln4
+
+
+        #axs[idx].plot(time,average_average_gamma,color=colorList[index])
+        ani = FuncAnimation(fig, update, frames=range(0, len(time)-1, 1), init_func=init, interval=50,blit=True)
+        #plt.show()
+
+
+        #save animation
+        folder_fig = data_file_dic + 'data_visulization/'
+        if not os.path.exists(folder_fig):
+            os.makedirs(folder_fig)
+        aniPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) +str(class_name) + '.mp4'
+        ani.save(aniPath,dpi=360)
+        plt.cla()
 
 
 
@@ -4184,7 +4809,7 @@ if __name__=="__main__":
     #boxplot_COT_statistic(data_file_dic,start_point=1000,end_point=1200+700,freq=60,experiment_categories=['-0.2'])
 
 
-    '''EXPERIMENT I'''
+    '''EXPERIMENT IV'''
     #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/MiddleLoad_PM/"
     #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/PhaseReset/"
     #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/PhaseModulation/"
@@ -4255,14 +4880,59 @@ if __name__=="__main__":
     #plot_cpg_phase_portrait(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
+    '''   PLOT For P2 '''
 
+    ''' Various roughness '''
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    data_file_dic= "/home/suntao/roughness_data/"
+    data_file_dic= "/media/suntao/DATA/Research/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
+    trial_ids=[4]
+    experiment_categories=['1.0']
+    #plot_single_details(data_file_dic,start_point=60*10,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, experiment_name="parameter investigation")
+    trial_ids=[1]
+    experiment_categories=['0.1','0.2','0.3','0.4','0.5']
+    #experiment_categories=['0.6','0.7','0.8','0.9','1.0']
+    #plot_phase_shift_dynamics(data_file_dic,start_point=120,end_point=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0])
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    trial_ids=[0,1]
+    experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
+    #boxplot_phase_convergenceTime_sucessRateBar_statistic(data_file_dic,start_point=60*5,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
-    ''' Plot video for show PM and PR phase movie'''
+    ''' Various MI   '''
 
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    data_file_dic= "/media/suntao/DATA/Research/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data/"
     trial_ids=[0]
-    data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/ParameterInvestigation_V2/PhaseReset/"
-    #data_file_dic= "/media/suntao/DATA/Research/P3_workspace/Figures/experiment_data/StatisticData/ParameterInvestigation_V2/PhaseModulation/"
-    experiment_categories=['0.12']
-    experiment_categories=['0.64']
-    plot_phase_transition_animation(data_file_dic,start_point=60*1,end_point=60*20,freq=60.0,experiment_categories=experiment_categories,trial_id=0)
-    #plot_single_details(data_file_dic, start_point=120, end_point=60*30, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, experiment_name="paramater investigation")
+    experiment_categories=['0.0','0.04','0.08','0.12','0.16','0.2']
+    experiment_categories=['0.18']
+    #plot_single_details(data_file_dic,start_point=60*10,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, experiment_name="parameter investigation")
+    #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
+    experiment_categories=['0.0','0.02','0.04','0.06','0.08']
+    experiment_categories=['0.1','0.12','0.14','0.16','0.18']
+    experiment_categories=['0.2','0.22','0.24','0.26','0.28']
+    trial_ids=[0]
+    #plot_phase_shift_dynamics(data_file_dic,start_point=60*15,end_point=60*30,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0])
+    #boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_point=60*5,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+
+    #scatter_dutyFactors_statistic(data_file_dic,start_point=60*14,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    #scatter_phaseShift_statistic(data_file_dic,start_point=60*35,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    #scatter_COT_statistic(data_file_dic,start_point=60*30,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+
+    #experiment_categories=['0.0', '0.04','0.08','0.12','0.16','0.2','0.24','0.28']
+    #experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28','0.30']
+    #trial_ids=[0]
+    #WalkingSpeed_GaitDiagram(data_file_dic,start_point=60*30,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+
+
+    '''   Laikago test in real world  '''
+    #data_file_dic="/media/suntao/DATA/Research/P2_workspace/Experiments/laikago_real_robot_experiments/laikago_experiment_data/"
+    #experiment_categories=['1']
+    #trial_ids=[0]
+    #plot_single_details(data_file_dic,start_point=60*0,end_point=60*200,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, experiment_name="parameter investigation")
+
+
+    '''   Animate of g (neural coupings and phsyical communication)  '''
+    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/g_curves/"
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    g_VideoText(data_file_dic,start_point=60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
