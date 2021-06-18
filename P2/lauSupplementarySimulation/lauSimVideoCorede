@@ -23,7 +23,7 @@ do
     for i in $(seq 1 $runs); do
         rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
         eval "rosparam set /CPGMi ${cpg_mi}"
-        sleep 45 #22 #32 #55 
+        sleep 65 #22 #32 #55 
         rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
         data_path_temp=$(cat $data_log_file_path)
         echo "$controlMethod\t$data_path_temp\t$experiment_class">> $data_log_file

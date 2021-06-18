@@ -176,7 +176,7 @@ def read_data(freq,start_point,end_point,folder_name):
     columnsName_jointVelocities=['v1','v2','v3','v4','v5','v6', 'v7','v8','v9','v10','v11','v12']
     columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
     columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
-    columnsName_modules=['ss','f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8']
+    columnsName_modules=['ss','f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','gama1','gamma2','phi_12','phi_13','phi_14']
     columnsName_rosparameters=['CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
                             'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
                             'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
@@ -234,29 +234,70 @@ def stsubplot(fig,position,number,gs):
         ax[-1].set_xticklabels(labels=[])
     return ax
 
+
+
+def cpg_diagram(fig,axs,gs,grf_data,time):
+    '''
+    plot ground reaction forces of four legs in curves
+    '''
+    position=axs.get_position()
+    axs.set_yticks([])
+    axs.set_yticklabels(labels=[])
+    axs.set_xticks([])
+    axs.set_xticklabels(labels=[])
+    axs.set_xlim([int(min(time)),int(max(time))])
+
+
+    c4_1color=(46/255.0, 77/255.0, 129/255.0)
+    c4_2color=(0/255.0, 198/255.0, 156/255.0)
+    c4_3color=(255/255.0, 1/255.0, 118/255.0)
+    c4_4color=(225/255.0, 213/255.0, 98/255.0)
+    colors=[c4_1color, c4_2color, c4_3color, c4_4color]
+    ax=stsubplot(fig,position,4,gs)
+    LegName=['RF','RH', 'LF', 'LH']
+    barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest',vmin=0.0,vmax=1.0)
+    for idx in range(4):
+        ax[idx].plot(time,grf_data[:,idx],color=colors[idx])
+        ax[idx].set_ylabel(LegName[idx])
+        ax[idx].set_yticks([0,1])
+        ax[idx].set_yticklabels(labels=[0,1])
+        ax[idx].set_ylim([-1.1,1.1])
+        ax[idx].set_xlim([int(min(time)),int(max(time))])
+        #xticks=np.arange(int(min(time)),int(max(time))+1,5)
+        #ax[idx].set_xticks(xticks)
+        #ax[idx].set_xticklabels([])
+        ax[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        ax[idx].grid(which='both',axis='y',color='k',linestyle=':')
+
+
 def grf_diagram(fig,axs,gs,grf_data,time):
     '''
     plot ground reaction forces of four legs in curves
     '''
     position=axs.get_position()
-    axs.set_yticklabels(labels=[])
     axs.set_yticks([])
-    axs.set_xticks([t for t in np.arange(time[0],time[-1]+0.1,2,dtype='int')])
-    axs.set_xticklabels(labels=[str(t) for t in np.arange(round(time[0]),round(time[-1])+0.1,2,dtype='int')],fontweight='light')
-    axs.set_title("Ground reaction force",loc="left",pad=2)
+    axs.set_yticklabels(labels=[])
+    axs.set_xticks([])
+    axs.set_xticklabels(labels=[])
 
+    c4_1color=(46/255.0, 77/255.0, 129/255.0)
+    c4_2color=(0/255.0, 198/255.0, 156/255.0)
+    c4_3color=(255/255.0, 1/255.0, 118/255.0)
+    c4_4color=(225/255.0, 213/255.0, 98/255.0)
+    colors=[c4_1color, c4_2color, c4_3color, c4_4color]
     ax=stsubplot(fig,position,4,gs)
     LegName=['RF','RH', 'LF', 'LH']
     barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest',vmin=0.0,vmax=1.0)
     for idx in range(4):
-        ax[idx].set_yticks([0.1*(idx+1)])
-        ax[idx].plot(grf_data[:,idx])
+        ax[idx].plot(time,grf_data[:,idx],color=colors[idx])
         ax[idx].set_ylabel(LegName[idx])
-        ax[idx].set_yticklabels(labels=[0.0,0.5,1.0])
-        ax[idx].set_yticks([0.0,0.5,1.0])
+        ax[idx].set_yticks([0.5,1])
+        ax[idx].set_yticklabels(labels=[0.5,1])
         ax[idx].set_ylim([-0.1,1.1])
-        ax[idx].set_xticks([])
-        ax[idx].set_xticklabels(labels=[])
+        ax[idx].set_xlim([int(min(time)),int(max(time))])
+        #xticks=np.arange(int(min(time)),int(max(time))+1,5)
+        #ax[idx].set_xticks(xticks)
+        #ax[idx].set_xticklabels([])
         ax[idx].grid(which='both',axis='x',color='k',linestyle=':')
         ax[idx].grid(which='both',axis='y',color='k',linestyle=':')
 
@@ -265,8 +306,8 @@ def gait_diagram(fig,axs,gs,gait_data):
     plot gait diagram using while and black block to indicate swing and stance phase
     '''
     position=axs.get_position()
-    axs.set_yticklabels(labels=[])
     axs.set_yticks([])
+    axs.set_yticklabels(labels=[])
     axs.set_xticks([])
     axs.set_xticklabels(labels=[])
     #axs.set_title("Gait",loc="left",pad=2)
@@ -4674,13 +4715,13 @@ def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_
                     print(folder_category)
                     cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
-                    g_data[category].append(module_data[:,1:])
+                    g_data[category].append(module_data)
                     
     # plot
-    figsize=(5.5,2.0)
+    figsize=(7.2*3,2.5)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(2,1)#13
-    gs1.update(hspace=0.22,top=0.96,bottom=0.21,left=0.11,right=0.98)
+    gs1.update(hspace=0.22,top=0.96,bottom=0.18,left=0.11,right=0.98)
     axs=[]
     axs.append(fig.add_subplot(gs1[0:2,0]))
 
@@ -4689,7 +4730,8 @@ def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_
     labels=[str(ll) for ll in sorted([ float(ll) for ll in labels])]
 
     for index, class_name in enumerate(labels): # name is a inclination names
-        g_data_df=pd.DataFrame(g_data[class_name][0],columns=['f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8'])
+        columnsName_modules=['ss','f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','gama1','gamma2','phi_12','phi_13','phi_14']
+        g_data_df=pd.DataFrame(g_data[class_name][0],columns=columnsName_modules)
         idx=0
         xdata, g1_ydata = [], []
         g2_ydata=[]; 
@@ -4703,11 +4745,14 @@ def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_
         def init():
             axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
             axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-            axs[idx].set_ylabel(r'$g_i$')
-            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.1,0.1])
-            axs[idx].set_yticks([-0.1,0.0,0.1])
-            axs[idx].set_yticklabels([-0.1,0.0,0.1])
-            xticks=np.arange(0,int(max(time)),10)
+            axs[idx].set_ylabel(r'$f_{1,2}$ and $g_{1,2}$ of the RF leg')
+            axs[idx].legend([r'$f_1$',r'$f_2$',r'$g_1$',r'$g_2$'],ncol=4,loc='upper left')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.04,0.04])
+            yticks= [-0.04,-0.02,0.0,0.02,0.04]
+            axs[idx].set_yticks(yticks)
+            axs[idx].set_yticklabels([str(ytick) for ytick in yticks])
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            #xticks=np.arange(0,int(max(time)),10)
             axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
             axs[idx].set_xticks(xticks)
             axs[idx].set_xlabel('Time [s]')
@@ -4715,15 +4760,15 @@ def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_
 
         def update(frame):
             xdata.append(time[frame])
-            g1_ydata.append(g_data_df.iat[frame,8])
-            g2_ydata.append(g_data_df.iat[frame,9])
-            g3_ydata.append(g_data_df.iat[frame,10])
-            g4_ydata.append(g_data_df.iat[frame,11])
+            g1_ydata.append(g_data_df.iat[frame,1])
+            g2_ydata.append(g_data_df.iat[frame,2])
+            g3_ydata.append(g_data_df.iat[frame,9])
+            g4_ydata.append(g_data_df.iat[frame,10])
             ln1.set_data(xdata, g1_ydata)
             ln2.set_data(xdata, g2_ydata)
             ln3.set_data(xdata, g3_ydata)
             ln4.set_data(xdata, g4_ydata)
-            return ln1,ln2,ln3,ln4
+            return ln1,ln2, ln3,ln4
 
 
         #axs[idx].plot(time,average_average_gamma,color=colorList[index])
@@ -4738,6 +4783,194 @@ def g_VideoText(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_
         aniPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) +str(class_name) + '.mp4'
         ani.save(aniPath,dpi=360)
         plt.cla()
+
+def APC_ANC_plots(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
+    '''
+    @description: this is for plot the g, f term, gamma, xi, ...  term of the adaptive physical and neural couplings
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_point, the start point (time) of all the data
+    @param: end_point, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, the trials that are included to computate
+    @return: show and save a data figure.
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    g_data={}
+    f_data={}
+    gamma_data={}
+    xi_data={}
+    phi_data={}
+    cpg={}
+    grf={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories: # 仅仅读取入口参数指定的实验类别数据
+            g_data[category]=[]
+            f_data[category]=[]
+            gamma_data[category]=[]
+            xi_data[category]=[]
+            phi_data[category]=[]
+            cpg[category]=[]
+            grf[category]=[]
+            control_method=files_name['titles'].iat[0]
+            print("The experiment category:", category)
+            for idx in files_name.index: #遍历某个分类category下的所有数据文件
+                if idx in np.array(files_name.index)[trial_ids]:# 仅仅读取指定trial_id的数据
+                    folder_category= data_file_dic + files_name['data_files'][idx]
+                    print(folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    # 2)  data process
+                    f_data[category].append(module_data[:,1:9])
+                    g_data[category].append(module_data[:,9:17])
+                    gamma_data[category].append(module_data[:,19:21])
+                    phi_data[category].append(module_data[:,21:])
+                    cpg[category].append(cpg_data)
+                    grf[category].append(grf_data)
+                    xi=np.zeros(len(module_data[:,9]))
+                    xi[np.where(module_data[:,9]>0)[0][0]:]=0.01
+                    xi_data[category].append(xi)
+
+                    
+
+
+
+    #2) Whether get right data
+    for exp_idx in range(len(experiment_categories)):
+        for trial_id in range(len(trial_ids)):
+            experiment_category=experiment_categories[exp_idx]# The first category of the input parameters (arg)
+            if not cpg[experiment_category]:
+                warnings.warn('Without proper data was read')
+            #3) plot
+            figsize=(21/3,24/3)
+            fig = plt.figure(figsize=figsize,constrained_layout=False)
+            plot_column_num=1# the columns of the subplot. here set it to one
+            gs1=gridspec.GridSpec(16,plot_column_num)#13
+            gs1.update(hspace=0.18,top=0.95,bottom=0.08,left=0.1,right=0.98)
+            axs=[]
+            for idx in range(plot_column_num):# how many columns, depends on the experiment_categories
+                axs.append(fig.add_subplot(gs1[0:3,idx]))
+                axs.append(fig.add_subplot(gs1[3:6,idx]))
+                axs.append(fig.add_subplot(gs1[6:8,idx]))
+                axs.append(fig.add_subplot(gs1[8:10,idx]))
+                axs.append(fig.add_subplot(gs1[10:12,idx]))
+                axs.append(fig.add_subplot(gs1[12:14,idx]))
+                axs.append(fig.add_subplot(gs1[14:16,idx]))
+
+            c4_1color=(46/255.0, 77/255.0, 129/255.0)
+            c4_2color=(0/255.0, 198/255.0, 156/255.0)
+            c4_3color=(255/255.0, 1/255.0, 118/255.0)
+            c4_4color=(225/255.0, 213/255.0, 98/255.0)
+            colors=[c4_1color, c4_2color, c4_3color, c4_4color]
+
+
+            idx=0# CPGs
+            cpg_diagram(fig,axs[idx],gs1,cpg[experiment_category][trial_id],time)
+            axs[idx].set_ylabel(u'CPGs')
+            axs[idx].yaxis.set_label_coords(-0.08,.5)
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            axs[idx].set(xlim=[min(time),max(time)])
+
+            idx=1# GRFs
+            grf_diagram(fig,axs[idx],gs1,grf[experiment_category][trial_id],time)
+            axs[idx].set_ylabel(u'GRFs')
+            axs[idx].yaxis.set_label_coords(-0.08,.5)
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            axs[idx].set(xlim=[min(time),max(time)])
+
+
+            #plt.subplots_adjust(hspace=0.4)
+            idx=2
+            axs[idx].set_ylabel(u'$\Phi$ [rad]')
+            axs[idx].plot(time, phi_data[experiment_category][trial_id][:,0],color=(77/255,133/255,189/255))
+            axs[idx].plot(time, phi_data[experiment_category][trial_id][:,1],color=(247/255,144/255,61/255))
+            axs[idx].plot(time, phi_data[experiment_category][trial_id][:,2],color=(89/255,169/255,90/255))
+            #axs[idx].plot(time, phi_std,color='k')
+            axs[idx].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$'],ncol=3,loc='upper left')
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set(ylim=[-0.2,3.5])
+            axs[idx].set_yticks([0.0,1.5,3.0])
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            axs[idx].set(xlim=[min(time),max(time)])
+
+            idx=3# parameters
+            axs[idx].set_ylabel(r'$\gamma$')
+            axs[idx].plot(time, gamma_data[experiment_category][trial_id][:,0],color=colors[0])
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.01,0.52])
+            yticks= [0.0,0.2,0.4,0.5]
+            axs[idx].set_yticks(yticks)
+            axs[idx].set_yticklabels([str(ytick) for ytick in yticks])
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            #axs[idx].legend([r'$\gamma$'],ncol=1,loc='upper left')
+
+
+            idx=4# parameters
+            #axs[idx].set_ylabel(u'$\xi$')
+            axs[idx].set_ylabel(r'$\xi$')
+            axs[idx].plot(time, xi_data[experiment_category][trial_id],color=colors[0])
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.001,0.012])
+            yticks= [0.0,0.01]
+            axs[idx].set_yticks(yticks)
+            axs[idx].set_yticklabels([str(ytick) for ytick in yticks])
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            #axs[idx].legend([r'$\xi$'],ncol=1,loc='upper left')
+
+            idx=5# f and g
+            axs[idx].set_ylabel(u'$f_i,g_i$')
+            axs[idx].plot(time, f_data[experiment_category][trial_id][:,0],color=colors[0])
+            axs[idx].plot(time, f_data[experiment_category][trial_id][:,1],color=colors[1])
+            axs[idx].plot(time, g_data[experiment_category][trial_id][:,0],color=colors[2])
+            axs[idx].plot(time, g_data[experiment_category][trial_id][:,1],color=colors[3])
+            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+            axs[idx].set(xlim=[min(time),max(time)],ylim=[-0.02,0.031])
+            yticks= [-0.02,0.0,0.013,0.03]
+            axs[idx].set_yticks(yticks)
+            axs[idx].set_yticklabels([str(ytick) for ytick in yticks])
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([])
+            axs[idx].legend([r'$f_1$',r'$f_2$',r'$g_1$',r'$g_2$'],ncol=4,loc='upper left')
+
+
+            idx=6
+            axs[idx].set_ylabel(r'Gait')
+            gait_diagram(fig,axs[idx],gs1,grf[experiment_category][trial_id])
+            axs[idx].set_xlabel(u'Time [s]')
+            xticks=np.arange(int(min(time)),int(max(time))+1,5)
+            axs[idx].set_xticks(xticks)
+            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+            axs[idx].yaxis.set_label_coords(-0.065,.5)
+            axs[idx].set(xlim=[min(time),max(time)])
+
+            # save figure
+            folder_fig = data_file_dic + 'data_visulization/'
+            if not os.path.exists(folder_fig):
+                os.makedirs(folder_fig)
+
+            figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'general_display.svg'
+            plt.savefig(figPath)
+            plt.show()
+            plt.close()
+
+
+
 
 
 
@@ -4933,6 +5166,16 @@ if __name__=="__main__":
 
 
     '''   Animate of g (neural coupings and phsyical communication)  '''
-    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/g_curves/"
-    data_file_dic= "/home/suntao/workspace/experiment_data/"
-    g_VideoText(data_file_dic,start_point=60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #g_VideoText(data_file_dic,start_point=0,end_point=50*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+
+
+
+    ''' A complete figures to show the APC and ANC  '''
+    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    APC_ANC_plots(data_file_dic,start_point=10*60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+
+
+
