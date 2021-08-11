@@ -1,0 +1,6 @@
+testing_folder:
+- ./models_parameters_results/2021-08-11/test_130056/test_1
+- ./models_parameters_results/2021-08-11/test_130102/test_1
+training_folder:
+- ./models_parameters_results/2021-08-11/training_130056
+- ./models_parameters_results/2021-08-11/training_130102
