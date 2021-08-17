@@ -1,0 +1,4 @@
+model_checkpoint_path: "my_checkpoint_sub_0_2_3_4_5_6_7_8_9_10_11_12_13.ckpt-1"
+all_model_checkpoint_paths: "my_checkpoint_sub_0_2_3_4_5_6_7_8_9_10_11_12_13.ckpt-1"
+all_model_checkpoint_timestamps: 1628665356.927406
+last_preserved_timestamp: 1628665355.877278

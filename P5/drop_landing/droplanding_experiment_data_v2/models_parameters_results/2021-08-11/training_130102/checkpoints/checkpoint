@@ -1,4 +1,0 @@
-model_checkpoint_path: "my_checkpoint_sub_0.ckpt-1"
-all_model_checkpoint_paths: "my_checkpoint_sub_0.ckpt-1"
-all_model_checkpoint_timestamps: 1628658067.6935167
-last_preserved_timestamp: 1628658066.6815264
