@@ -1,5 +1,8 @@
 #! /bin/zsh
 # sim start
+# This launch run experiment to test different speed/ MI 
+#
+#
 
 if [ $# -gt 0 ]; then
     runs=$1
