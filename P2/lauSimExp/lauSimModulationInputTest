@@ -1,0 +1,39 @@
+#! /bin/zsh
+# sim start
+
+# running times
+if [ $# -gt 0 ]; then
+    runs=$1
+else
+    runs=1
+fi
+
+echo "run ${runs} times"
+# files
+data_log_file_path=$HOME/workspace/experiment_data/datapath.log
+data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
+echo "" > $data_log_file #create a experiment data log file 
+rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # initialize the roughness to be zero
+
+
+#for cpg_mi in 0.0 0.02 0.04 0.06 0.08 0.1 0.12 0.14 0.16 0.18 0.2 0.22 0.24 0.26 0.28 
+#for cpg_mi in 0.0 0.04 0.08 0.12 0.16 0.2
+#for cpg_mi in 0.02 0.06 0.1 0.14 0.18
+#for cpg_mi in 0.22 0.24 0.26 0.28
+for cpg_mi in 0.06 0.30
+do
+    #threshold_value=5.0  # carrying load using 6.5, normal case using 5.0
+    controlMethod="PhaseModulation"
+    experiment_class=$cpg_mi  # 0 roughness test, 1 walking speed test
+    for i in $(seq 1 $runs); do
+        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+        eval "rosparam set /CPGMi ${cpg_mi}"
+        sleep 45 #22 #32 #55 
+        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+        data_path_temp=$(cat $data_log_file_path)
+        echo "$controlMethod\t$data_path_temp\t$experiment_class">> $data_log_file
+    done
+    sleep 4
+done
+
+echo "Experiments Done!"

@@ -6,6 +6,8 @@ if [ $# -gt 0 ]; then
 else
     runs=1
 fi
+
+
 echo "run ${runs} times"
 for i in $(seq 1 ${runs}); do
     (${lilibot}) &
