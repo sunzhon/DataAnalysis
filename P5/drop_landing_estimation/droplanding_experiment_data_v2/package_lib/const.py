@@ -8,7 +8,6 @@ VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 
 #DATA_PATH = os.environ.get('KAM_DATA_PATH')
 #DATA_VISULIZATION_PATH=os.path.join(DATA_PATH,'dataset_visulization')
-DATA_VISULIZATION_PATH=os.path.join('/home/sun/workspace/PythonProject/DataAnalysis/P5/drop_landing/droplanding_experiment_data_v2/datasets_files','dataset_visulization')
 
 #TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
 TRIAL_NUM=25
@@ -192,7 +191,13 @@ DATA_PATH="/media/sun/My Passport/suntao/D drop landing"
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 V3D_LABELS_FIELDS=['LON','RON']+['R_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['R_Force'+dire for dire in DIRECTIONS] + ['L_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['L_Force'+dire for dire in DIRECTIONS] 
 
+# experimental results are stored at this path
+EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/Experimental_Results"
+
+DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','dataset_visulization')
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 LABELS_FIELDS= ['L_KneeMoment_X']
+
+

@@ -40,9 +40,9 @@ import re
 import datetime
 
 if __name__=='__main__':
-    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD
+    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 else:
-    from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS
+    from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,EXPERIMENT_RESULTS_PATH
 
 
 from sklearn.preprocessing import StandardScaler
@@ -297,7 +297,7 @@ def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_typ
         
 
 
-def create_training_files(model_object=None, hyperparams={'lr':0},base_folder='./models_parameters_results/'):
+def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/')):
     '''
     Create folder and sub folder for training, as well as model source code and super parameters
 
@@ -385,7 +385,7 @@ def save_training_process(training_folder, loss):
 
 
 
-def create_testing_files(training_folder, base_folder='./models_parameters_results/'):
+def create_testing_files(training_folder, base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/')):
 
     # Create top folder based on date
     date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
@@ -736,7 +736,7 @@ def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:
         plt.text(idx-100, -1.5,idx[0],fontsize='small',rotation='vertical')
     plt.ylim(-2,2)
     #plt.xlim(900,5000)
-    plt.savefig('./models_parameters_results/split_droplanding.svg')
+    plt.savefig(os.path.joint(EXPERIMENT_RESULTS_PATH,'models_parameters_results/split_droplanding.svg'))
     return (start_drop,end_drop)
 
 

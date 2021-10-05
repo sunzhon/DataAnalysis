@@ -35,7 +35,7 @@ print("tensorflow version:",tf.__version__)
 import package_lib.dp_lib as dp_lib
 
 from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
-from package_lib.const import DROPLANDING_PERIOD
+from package_lib.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 
 
 subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
@@ -626,6 +626,8 @@ import seaborn as sns
     
 def plot_prediction_statistic(features, labels, predictions,testing_folder):
     
+    if(re.search('test_\d',testing_folder)!=None):
+        testing_folder=os.path.dirname(testing_folder) # 父目录
     # Load hyperparameters, Note the values in hyperparams become string type
     training_folder=testing_folder+"/../training_"+re.search(r"\d+/$",testing_folder).group()
     hyperparams_file=training_folder+"/hyperparams.yaml"
@@ -724,7 +726,7 @@ def main():
     hyperparams=initParameters()
     
     # Create a list of training and testing files
-    train_test_folder= "./models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
+    train_test_folder= os.path.join(EXPERIMENT_RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
     if(os.path.exists(train_test_folder)==False):
         os.makedirs(train_test_folder)    
     train_test_folder_log=train_test_folder+"/train_test_folder.log"
@@ -787,7 +789,7 @@ if __name__=='__main__':
     hyperparams=initParameters()
     #1) test model
     if(not testing_folder in locals().keys()):
-        testing_folder='./models_parameters_results/2021-09-28/test_191409/test_1'
+        testing_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-09-28/test_191409/test_1')
         #training_folder='./models_parameters_results/2021-09-28/training_125651/'
         #features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
         #log_dict['training_folder'].append(training_folder)
