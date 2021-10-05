@@ -120,7 +120,8 @@ def load_data_log(data_file_dic):
 
     #1.1) load file list 
     data_file_log = data_file_dic +"ExperimentDataLog.csv"
-    data_files = pd.read_csv(data_file_log, sep='\t',header=None, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str)
+    data_files = pd.read_csv(data_file_log, sep='\t',delimiter=r'\t',skiprows=1,header=None, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str)
+    #data_files = pd.read_csv(data_file_log, skiprows=1, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str)
 
     data_files_categories=data_files.groupby('categories')
     keys = data_files_categories.groups.keys()
@@ -176,7 +177,7 @@ def read_data(freq,start_point,end_point,folder_name):
     columnsName_jointVelocities=['v1','v2','v3','v4','v5','v6', 'v7','v8','v9','v10','v11','v12']
     columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
     columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
-    columnsName_modules=['ss','f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','gama1','gamma2','phi_12','phi_13','phi_14']
+    columnsName_modules=['ANC_stability', 'adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','phi_12','phi_13','phi_14']
     columnsName_rosparameters=['CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
                             'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
                             'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
@@ -528,7 +529,7 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
         else:#机器人没有放在地面
             convergenTime=0
             warnings.warn('The robot may be not dropped on the ground!')
-
+    
         return touch_moment_idx, convergen_idx
 
 
@@ -4616,6 +4617,100 @@ def boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_point=12
     plt.show()
 
 
+def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+    '''
+    Plot convergence time statistic in three different methods under different MI, it can indicates the actual traverability of the locomotion
+
+    '''
+    # 1) read data
+    titles_files_categories=load_data_log(data_file_dic)
+    phi={}
+    for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
+        if category in experiment_categories:
+            phi[category]={}
+            for control_method, file_name in files_name.groupby('titles'): #control methods
+                print("The experiment category: ", category, "control method is: ", control_method)
+                phi[category][control_method]=[]
+                for idx in file_name.index: #遍历某个分类category下的所有数据文件, trials
+                    if idx in np.array(file_name.index)[trial_ids]:# which one is to load
+                        folder_category= data_file_dic + file_name['data_files'][idx]
+                        print(folder_category)
+                        cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                        # 2)  data process
+                        if calculate_phase_convergence_time(time,grf_data,cpg_data,freq)>0:
+                            phi[category][control_method].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
+                            print("Convergence time:{:.2f}".format(phi[category][control_method][-1]))# print the convergence time of each trial
+    
+    #3) plot
+    figsize=(6,4)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    Roughness=[float(ll) for ll in experiment_categories]
+    print(Roughness)
+    ind= np.arange(len(experiment_categories))
+
+
+    #3.1) plot 
+    phi_values=[]
+    control_methods=list(phi[experiment_categories[0]].keys())
+    for idx,control_method in enumerate(control_methods):
+        phi_values.append([])
+        for category in experiment_categories:
+            phi_values[idx].append(phi[category][control_method])
+    
+    idx=0
+    boxwidth=0.2
+    box=[]
+    for box_idx in range(len(control_methods)):
+        box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False))
+
+       # fill with colors
+    colors = ['lightblue', 'lightgreen','wheat']
+    for bplot, color in zip((box[0], box[1],box[2]),colors):
+        for patch in bplot['boxes']:
+            patch.set_facecolor(color)
+
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    #axs[idx].set_yticks([0,0.1,0.2,0.3])
+    #axs[idx].set(ylim=[-0.01,0.3])
+    legend_names=['PR' if name=="phase_reset" else 'Tegotae' if name=='phase_modulation' else 'APNC' if name=='apnc' else name for name in control_methods]
+    axs[idx].legend([box[0]['boxes'][0], box[1]['boxes'][0], box[2]['boxes'][0]],legend_names)
+    axs[idx].set_xticks(ind)
+    axs[idx].set_xticklabels(Roughness)
+    axs[idx].set_ylabel(r'Phase convergence time [s]')
+    axs[idx].set_xlabel(r'Roughness')
+
+    # plot the success_rate with twinx 
+    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+    success_rate=[]
+    for control_idx in range(len(control_methods)):
+        success_rate.append([])
+        for idx in range(len(phi_values[control_idx])):
+            success_count= np.array(phi_values[control_idx][idx]) < 20.0
+            success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+    color = 'tab:red'
+    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+    for box_idx in range(len(control_methods)):
+        ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', color=colors[box_idx])
+    ax2.tick_params(axis='y', labelcolor=color)
+    #ax2.set_ylim(-10,110)
+    ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+    #axs[idx].set_title('Phase reset')
+    
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_convergence_time.svg'
+    plt.savefig(figPath)
+    plt.show()
+
 
 def WalkingSpeed_GaitDiagram(data_file_dic,start_point=60,end_point=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
     '''
@@ -4631,7 +4726,6 @@ def WalkingSpeed_GaitDiagram(data_file_dic,start_point=60,end_point=900,freq=60.
     '''
     # 1) read data
     titles_files_categories=load_data_log(data_file_dic)
-    pdb.set_trace()
     speed={}
     gait_diagram_data={}
     for category, files_name in titles_files_categories: #category is the thrid columns, files_name is the table
@@ -4971,9 +5065,6 @@ def APC_ANC_plots(data_file_dic,start_point=60,end_point=900,freq=60.0,experimen
 
 
 
-
-
-
 if __name__=="__main__":
 
     #test_neuralprocessing()
@@ -5119,6 +5210,7 @@ if __name__=="__main__":
     data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic= "/home/suntao/roughness_data/"
     data_file_dic= "/media/suntao/DATA/Research/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
+    data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
     trial_ids=[4]
     experiment_categories=['1.0']
     #plot_single_details(data_file_dic,start_point=60*10,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, experiment_name="parameter investigation")
@@ -5126,8 +5218,8 @@ if __name__=="__main__":
     experiment_categories=['0.1','0.2','0.3','0.4','0.5']
     #experiment_categories=['0.6','0.7','0.8','0.9','1.0']
     #plot_phase_shift_dynamics(data_file_dic,start_point=120,end_point=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0])
-    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     trial_ids=[0,1]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
     #boxplot_phase_convergenceTime_sucessRateBar_statistic(data_file_dic,start_point=60*5,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
@@ -5135,16 +5227,18 @@ if __name__=="__main__":
 
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic= "/media/suntao/DATA/Research/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data/"
+    data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data/"
     trial_ids=[0]
     experiment_categories=['0.0','0.04','0.08','0.12','0.16','0.2']
     experiment_categories=['0.18']
     #plot_single_details(data_file_dic,start_point=60*10,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, experiment_name="parameter investigation")
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
     experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
-    experiment_categories=['0.0','0.02','0.04','0.06','0.08']
-    experiment_categories=['0.1','0.12','0.14','0.16','0.18']
-    experiment_categories=['0.2','0.22','0.24','0.26','0.28']
+    #experiment_categories=['0.0','0.02','0.04','0.06','0.08']
+    #experiment_categories=['0.1','0.12','0.14','0.16','0.18']
+    #experiment_categories=['0.2','0.22','0.24','0.26','0.28']
     trial_ids=[0]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #plot_phase_shift_dynamics(data_file_dic,start_point=60*15,end_point=60*30,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0])
     #boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_point=60*5,end_point=60*40,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
@@ -5157,6 +5251,15 @@ if __name__=="__main__":
     #trial_ids=[0]
     #WalkingSpeed_GaitDiagram(data_file_dic,start_point=60*30,end_point=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
+    ''' Various roughness in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
+
+    data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/3M_roughness_data/"
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    experiment_categories=['0','0.5']
+    trial_ids=[0,1,2,3,4]
+    boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
     '''   Laikago test in real world  '''
     #data_file_dic="/media/suntao/DATA/Research/P2_workspace/Experiments/laikago_real_robot_experiments/laikago_experiment_data/"
@@ -5175,7 +5278,7 @@ if __name__=="__main__":
     ''' A complete figures to show the APC and ANC  '''
     data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    APC_ANC_plots(data_file_dic,start_point=10*60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+    #APC_ANC_plots(data_file_dic,start_point=10*60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
 
 
 
