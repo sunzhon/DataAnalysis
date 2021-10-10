@@ -17,11 +17,10 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 
 
 
-#for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
-#for experiment_variable in 0.0  0.1 0.2 0.3; # Three type of roughness terrains
-for experiment_variable in 1.0
+#for experiment_variable in 5 10 15 20 25 30 35 40 45 50 55 60
+for experiment_variable in 60
 do
-    for control_method in "phase_reset" "phase_modulation" #"apnc";
+    for control_method in "phase_reset" "phase_modulation" "apnc";
     do
 
         if [ $control_method = "phase_reset" ]; then
@@ -42,7 +41,8 @@ do
         fi
 
         experiment_class=$experiment_variable  # 0 roughness test, 1 walking speed test
-        roughness="\"data: $experiment_variable\"" # 地面粗超度
+        rougness_value=0.0
+        roughness="\"data: $rougness_value\"" # 地面粗超度
         cpg_mi=0.08   # Modulation input, MI
 
         cmd="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness}"
@@ -51,6 +51,7 @@ do
             echo "Control method is $control_method, experiment category is : $experiment_class"
             rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
             eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
+            eval "rosparam set /RosRate ${experiment_class}"
             eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
             eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
             eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
