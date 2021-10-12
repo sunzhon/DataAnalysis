@@ -1,6 +1,29 @@
 #! /bin/zsh
 # sim start
 
+# 1) Define a function to change MNC (modular neural controller) rate in stbot.yaml
+ function set_param()
+ {
+
+    file_name="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot.yaml"
+    file_name_new="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_new.yaml"
+    file_name_old="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_old.yaml"
+    mncrate=$1
+    param_name=$1
+    param_value=$2
+    awk '{if($1 == "'$param_name'") $2 = "'$param_value'";print}' $file_name > $file_name_new && mv $file_name $file_name_old && mv $file_name_new $file_name 
+    
+    if [ -f "$file_name_old" ]; then
+    rm $file_name_old
+    fi
+ }
+
+
+
+
+
+ # 2) Main routine
+
 # running times
 if [ $# -gt 0 ]; then
     runs=$1
@@ -17,11 +40,12 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 
 
 
-#for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
-#for experiment_variable in 0.0  0.1 0.2 0.3; # Three type of roughness terrains
-for experiment_variable in 1.0
+for experiment_variable in 5 10 15 20 25 30 35 40 45 50 55 60
+#for experiment_variable in 60
 do
-    for control_method in "phase_reset" "phase_modulation" #"apnc";
+    # modify ros rate
+    $(set_param "RosRate:" $experiment_variable)
+    for control_method in "phase_reset" "phase_modulation" "apnc";
     do
 
         if [ $control_method = "phase_reset" ]; then
@@ -42,13 +66,15 @@ do
         fi
 
         experiment_class=$experiment_variable  # 0 roughness test, 1 walking speed test
-        roughness="\"data: $experiment_variable\"" # 地面粗超度
+        rougness_value=0.0
+        roughness="\"data: $rougness_value\"" # 地面粗超度
         cpg_mi=0.08   # Modulation input, MI
 
         cmd="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness}"
         for i in $(seq 1 $runs); do
             eval $cmd                            #publishing the roughness
             echo "Control method is $control_method, experiment category is : $experiment_class"
+            #eval "rosparam set /RosRate ${experiment_class}"
             rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
             eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
             eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
@@ -69,4 +95,8 @@ do
     done
 done 
 echo "Experiments Done!"
+
+
+
+
 
