@@ -5,7 +5,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=1
+    runs=5
 fi
 
 echo "run ${runs} times"
@@ -16,30 +16,57 @@ echo "" > $data_log_file #create a experiment data log file
 rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # initialize the roughness to be zero
 
 
-<<<<<<< HEAD
-#for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
-for experiment_variable in 0.5
+
+
+for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
+#for experiment_variable in 0.0  0.1 0.2 0.3; # Three type of roughness terrains
 do
-    threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
-    gain_value=0.03 #GRF feedback modulation gain
-    controlMethod="PhaseModulation" # PhaseReset
-    experiment_class=$experiment_variable  # 0 roughness test, 1 walking speed test
-    roughness="\"data: $experiment_variable\"" # 地面粗超度
-    cpg_mi=0.08   # Modulation input, MI
+    for control_method in "phase_reset" "phase_modulation" # "apnc";
+    do
 
-    cmd="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness}"
-    for i in $(seq 1 $runs); do
-        eval $cmd                            #publishing the roughness
-        rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
-        eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
-        eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
-        eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
-        sleep 45 #22 #32 #55 
-        rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
-        data_path_temp=$(cat $data_log_file_path)
-        echo "$controlMethod\t$data_path_temp\t$experiment_class">> $data_log_file
+        if [ $control_method = "phase_reset" ]; then
+            cpg_type=8 # phase reset
+            threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.0 #GRF feedback modulation gain
+            echo "phase resetting"
+        fi
+        if test $control_method = "phase_modulaion" ; then
+            cpg_type=9  # phase modulation is tegotae
+            threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.03 #GRF feedback modulation gain
+        fi
+        if [ $control_method = 'apnc' ]; then
+            cpg_type=10 # adaptive physical and neural commnications
+            threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.0 #GRF feedback modulation gain
+        fi
+
+        experiment_class=$experiment_variable  # 0 roughness test, 1 walking speed test
+        roughness="\"data: $experiment_variable\"" # 地面粗超度
+        cpg_mi=0.08   # Modulation input, MI
+
+        cmd="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness}"
+        for i in $(seq 1 $runs); do
+            eval $cmd                            #publishing the roughness
+            echo "Control method is $control_method"
+            rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+            eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
+            eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
+            eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
+            eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
+            if [ $control_method = "apnc" ]; then
+                sleep 20
+            eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
+                sleep 30
+            else
+                sleep 50 #22 #32 #55 
+            fi
+            rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+            data_path_temp=$(cat $data_log_file_path)
+            echo "$control_method\t$data_path_temp\t$experiment_class">> $data_log_file
+        done
+        sleep 4
     done
-    sleep 4
-done
-
+done 
 echo "Experiments Done!"
+
