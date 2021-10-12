@@ -5472,19 +5472,18 @@ if __name__=="__main__":
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
     trial_ids=[0,1,2,3,4,5,6,7,8]
-    boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
     ##----- Update frequency
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
-    data_file_dic="/media/suntao/DATA/UpdateFrequency_3M/"
+    #data_file_dic="/media/suntao/DATA/UpdateFrequency_3M/"
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
     trial_ids=[0]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
-
+    boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
     '''   Laikago test in real world  '''
@@ -5498,7 +5497,6 @@ if __name__=="__main__":
     data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #g_VideoText(data_file_dic,start_point=0,end_point=50*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
-
 
 
     ''' A complete figures to show the APC and ANC  '''

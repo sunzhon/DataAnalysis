@@ -1,31 +1,28 @@
 #! /bin/zsh
 # sim start
 
-# Define a function to change ros rat in stbot.yaml
- function modify_rosrate()
+# 1) Define a function to change MNC (modular neural controller) rate in stbot.yaml
+ function set_param()
  {
 
     file_name="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot.yaml"
     file_name_new="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_new.yaml"
     file_name_old="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_old.yaml"
-    rosrate=$1
-    #awk '$1 == "RosRate:" $2="'$rosrate'"' $file_name
-    #awk '$1 == "RosRate:"{$1 = $1; $2 = "'$rosrate'"}1' $file_name | echo $file_name
-    awk '{if($1 == "RosRate:") $2 = "'$rosrate'";print}' $file_name > $file_name_new && mv $file_name $file_name_old && mv $file_name_new $file_name 
+    mncrate=$1
+    param_name=$1
+    param_value=$2
+    awk '{if($1 == "'$param_name'") $2 = "'$param_value'";print}' $file_name > $file_name_new && mv $file_name $file_name_old && mv $file_name_new $file_name 
     
     if [ -f "$file_name_old" ]; then
     rm $file_name_old
     fi
-
-     echo $1,$2;
-     return $(($1+$2));
  }
 
 
 
 
 
-
+ # 2) Main routine
 
 # running times
 if [ $# -gt 0 ]; then
@@ -46,8 +43,8 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 for experiment_variable in 5 10 15 20 25 30 35 40 45 50 55 60
 #for experiment_variable in 60
 do
-    # modify rosrate
-    $(modify_rosrate $experiment_variable)
+    # modify ros rate
+    $(set_param "RosRate:" $experiment_variable)
     for control_method in "phase_reset" "phase_modulation" "apnc";
     do
 
