@@ -219,9 +219,13 @@ def read_data(freq,start_point,end_point,folder_name):
     read_rows=min([4000000,jointsensory_data.shape[0], cpg_data.shape[0], command_data.shape[0], parameter_data.shape[0], module_data.shape[0]])
     if end_point>read_rows:
         print(termcolor.colored("Warning:end_point out the data bound, please use a small one","yellow"))
+        end_point=read_rows
     time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
     #time = np.linspace(0,int(end_point/freq)-int(start_point/freq),end_point-start_point)
     return cpg_data[start_point:end_point,:], command_data[start_point:end_point,:], module_data[start_point:end_point,:], parameter_data[start_point:end_point,:], grf_data[start_point:end_point,:], pose_data[start_point:end_point,:], position_data[start_point:end_point,:],velocity_data[start_point:end_point,:],current_data[start_point:end_point,:],voltage_data[start_point:end_point,:], time
+
+
+
 
 def stsubplot(fig,position,number,gs):
     axprops = dict(xticks=[], yticks=[])
@@ -1288,7 +1292,6 @@ def touch_difference(joint_cmd, actual_grf):
     Te3=(diff*move_stage==-1)
     Te2=(diff*(~move_stage)==1)
     Te4=(diff*(~move_stage)==-1)
-    pdb.set_trace()
     return [new_expected_grf, new_actual_grf, diff, Te1, Te2, Te3, Te4]
 
 def getTouchData(data_file_dic,start_point=900,end_point=1200,freq=60,experiment_categories=['0.0']):
@@ -1373,7 +1376,6 @@ def plot_comparasion_expected_actual_grf_all_leg(data_file_dic,start_point=600,e
         axs.append(fig.add_subplot(gs1[6:8,idx]))
 
     for idx,inclination in enumerate(experiment_categories):
-        pdb.set_trace()
         plot_comparasion_of_expected_actual_grf(Te[inclination][0],leg_id=0,ax=axs[4*idx])
         plot_comparasion_of_expected_actual_grf(Te[inclination][0],leg_id=1,ax=axs[4*idx+1])
         plot_comparasion_of_expected_actual_grf(Te[inclination][0],leg_id=2,ax=axs[4*idx+2])
@@ -4809,7 +4811,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
 
 
-def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=1200,end_point=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=5,end_point=30,experiment_categories=['0'],trial_ids=[0]):
     '''
     Plot convergence time statistic in three different methods under different controlller update frequency, it can indicates the actual traverability of the locomotion
 
@@ -4827,6 +4829,9 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(dat
                     if idx in np.array(file_name.index)[trial_ids]:# which one is to load
                         folder_category= data_file_dic + file_name['data_files'][idx]
                         print(folder_category)
+                        freq=int(category) # the category is the frequency
+                        start_point=start_point*freq
+                        end_point=end_point*freq
                         cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
                         # 2)  data process
                         phase_con_time=calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
@@ -5478,12 +5483,15 @@ if __name__=="__main__":
     ##----- Update frequency
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
+    data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
+    data_file_dic= "/media/sun/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
+
     #data_file_dic="/media/suntao/DATA/UpdateFrequency_3M/"
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
     trial_ids=[0]
-    boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=5,end_point=30,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
     '''   Laikago test in real world  '''
@@ -5503,6 +5511,4 @@ if __name__=="__main__":
     data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
     #APC_ANC_plots(data_file_dic,start_point=10*60,end_point=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
-
-
 
