@@ -218,9 +218,8 @@ def read_data(freq,start_point,end_point,folder_name):
     #2) postprecessing 
     read_rows=min([4000000,jointsensory_data.shape[0], cpg_data.shape[0], command_data.shape[0], parameter_data.shape[0], module_data.shape[0]])
     if end_point>read_rows:
-        print(termcolor.colored("Warning:end_point out the data bound, please use a small one","yellow"))
-        end_point=read_rows
-    time = np.linspace(int(start_point/freq),int(end_point/freq),end_point-start_point)
+        print(termcolor.colored("Warning:end_point out the data bound, please use a small one","yellow"),"end_point :{}, read_rows :{}".format(end_point,read_rows))
+    time = np.linspace(int(1.0*start_point/freq),int(1.0*end_point/freq),end_point-start_point)
     #time = np.linspace(0,int(end_point/freq)-int(start_point/freq),end_point-start_point)
     return cpg_data[start_point:end_point,:], command_data[start_point:end_point,:], module_data[start_point:end_point,:], parameter_data[start_point:end_point,:], grf_data[start_point:end_point,:], pose_data[start_point:end_point,:], position_data[start_point:end_point,:],velocity_data[start_point:end_point,:],current_data[start_point:end_point,:],voltage_data[start_point:end_point,:], time
 
@@ -4728,15 +4727,18 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
                 print("The experiment category: ", category, "control method is: ", control_method)
                 phi[category][control_method]=[]
                 for idx in file_name.index: #遍历某个分类category下的所有数据文件, trials
-                    if idx in np.array(file_name.index)[trial_ids]:# which one is to load
-                        folder_category= data_file_dic + file_name['data_files'][idx]
-                        print(folder_category)
-                        cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
-                        # 2)  data process
-                        phase_con_time=calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
-                        if phase_con_time>0:
-                            phi[category][control_method].append(phase_con_time)
-                            print("Convergence time:{:.2f}".format(phi[category][control_method][-1]))# print the convergence time of each trial
+                    try:
+                        if idx in np.array(file_name.index)[trial_ids]:# which one is to be loaded
+                            folder_category= data_file_dic + file_name['data_files'][idx]
+                            print(folder_category)
+                            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                            # 2)  data process
+                            phase_con_time=calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
+                            if phase_con_time>0:
+                                phi[category][control_method].append(phase_con_time)
+                                print("Convergence time:{:.2f}".format(phi[category][control_method][-1]))# print the convergence time of each trial
+                    except IndexError:
+                        print("category 类别数目没有trial_ids 列出的多, 请添加trials")
     
     #3) plot
     figsize=(6,4)
@@ -4830,9 +4832,9 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(dat
                         folder_category= data_file_dic + file_name['data_files'][idx]
                         print(folder_category)
                         freq=int(category) # the category is the frequency
-                        start_point=start_point*freq
-                        end_point=end_point*freq
-                        cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                        start_point_=start_point*freq
+                        end_point_=end_point*freq
+                        cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point_,end_point_,folder_category)
                         # 2)  data process
                         phase_con_time=calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
                         if phase_con_time>0:
@@ -5473,11 +5475,12 @@ if __name__=="__main__":
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic="/media/suntao/DATA/MI_3M/"
+    data_file_dic= "/media/sun/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
     experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
-    trial_ids=[0,1,2,3,4,5,6,7,8]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10]
+    boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_point=60*5,end_point=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
     ##----- Update frequency
@@ -5490,8 +5493,8 @@ if __name__=="__main__":
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
-    trial_ids=[0]
-    boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=5,end_point=30,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    trial_ids=[0,1,2]
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_point=5,end_point=30,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
     '''   Laikago test in real world  '''
