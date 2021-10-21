@@ -10,9 +10,10 @@ VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 #DATA_VISULIZATION_PATH=os.path.join(DATA_PATH,'dataset_visulization')
 
 #TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
-TRIAL_NUM=25
+TRIAL_NUM=40
 TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]
 SESSIONS=['20210926_vicon']
+SESSIONS=['20210926_vicon','20211015_vicon']
 
 
 #XSEN_IMU_ID={'MASTER':'0120092C','L_THIGH':'00B44910','L_SHANK':'00B4490A','R_THIGH':'00B44912','R_SHANK':'00B44916'} # for lower body plugin gait
@@ -20,9 +21,11 @@ XSEN_IMU_ID={'MASTER':'0120092C','CHEST':'00B44914','WAIST':'00B44918','L_THIGH'
 
 
 SUBJECTS = [#'P_01_suntao',
-            'P_02_dongxuan'
+            #'P_02_dongxuan',
             #,'P_03_liyan',
             #'P_04_kezhe'
+            'P_08_zhangboyuan',
+            'P_09_libang'
     
             #'s002_wangdianxin', 's004_ouyangjue', 's005_tangansheng', 's006_xusen', 's007_zuogangao', 's008_liyu',
             #'s009_sunyubo', 's010_handai', 's011_wuxingze', 's012_likaixiang', 's013_zhangxiaohan', 's014_maqichao',
@@ -34,6 +37,7 @@ SUBJECTS = [#'P_01_suntao',
 #TRIALS_PRINT = ['Baseline', 'FPA', 'Step Width', 'Trunk Sway']
 #STATIC_TRIALS = ['static_back', 'static_side']
 DYNAMIC_TRIALS = ['baseline', 'parallel', 'toe_in', 'toe_out']
+DYNAMIC_TRIALS = ['baseline', 'fpa_01', 'fpa_02','fpa_03','fpa_04','fpa_05','single']
 STATIC_TRIALS = ['static']
 
 STEP_TYPES = STANCE, STANCE_SWING = range(2)
@@ -182,22 +186,23 @@ V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_K
 V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'RIGHT_GRF', 'RIGHT_GRF.1','RIGHT_GRF.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'LEFT_GRF','LEFT_GRF.1','LEFT_GRF.2']
 
 
-DROPLANDING_PERIOD=120 # 落地后的两秒内， 这是研究每次落地实验的时间范围
+DROPLANDING_PERIOD=60 # 落地后的两秒内， 这是研究每次落地实验的时间范围
 
 """
 这三个变量的设置 需要一致
 """
-DATA_PATH="/media/sun/My Passport/suntao/D drop landing"
+DATA_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/D drop landing"
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 V3D_LABELS_FIELDS=['LON','RON']+['R_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['R_Force'+dire for dire in DIRECTIONS] + ['L_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['L_Force'+dire for dire in DIRECTIONS] 
 
 # experimental results are stored at this path
 EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/Experimental_Results"
+EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results"
 
 DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','dataset_visulization')
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
-LABELS_FIELDS= ['L_KneeMoment_X']
+LABELS_FIELDS= ['L_KneeMoment_X','R_KneeMoment_X']
 
 

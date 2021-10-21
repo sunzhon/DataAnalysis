@@ -36,6 +36,8 @@ import inspect
 import yaml
 import pdb
 import re
+import warnings
+import termcolor
 
 import datetime
 
@@ -54,6 +56,8 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
     @Parameters:
     Row_idx: the index of row. data type is int
     Col_names: the names of columns. data type is string
+
+    args['assign'], which  concate the data in three dimensions, the firsy dimension is trial numbers
     
     """
     assert(type(col_names)==list)
@@ -78,7 +82,15 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
             if('assign_trials' in args.keys()):
                 all_datasets_np=np.array(all_datasets_list)
             else:
-                all_datasets_np=np.concatenate(all_datasets_list,axis=0)
+                try:
+                    if(sum([len(trial) for trial in all_datasets_list])%DROPLANDING_PERIOD==0):
+                        pdb.set_tace()
+                        all_datasets_np=np.concatenate(all_datasets_list,axis=0)
+                    else:
+                        warnings.warm(termcolor.colored("Trials have different time step numbers, please use a small DROPLANDING_PERIOD"))
+
+                except IndexError:
+                    print("Trials have different counts")
             return all_datasets_np
 
         # bingfei drop landing experiment data
@@ -673,7 +685,7 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
     #reshape_pd_datasets=pd_datasets.melt('Time_vicon', var_name='cols',value_name='vals')
     #reshape_pd_datasets.head()
     #sns.lineplot(data=reshape_pd_datasets,x='Time_vicon', y='vals',hue='cols')
-    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime()))+".svg")
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
     plt.show()
     #data_mean, data_std = normalization_parameters(200,features_names)    
@@ -760,6 +772,72 @@ def drop_landing_range():
 
 
 
+def plot_statistic_kneemoment_under_fpa(data: list,subjects: list):
+
+    phi={}
+    experiment_categories=['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05','single']
+    for cat_idx, category in enumerate(experiment_categories):
+        phi[category]={}
+        for sub_idx, subject in enumerate(subjects):
+            phi[category][subject]=[]
+            one_subject_data=data[sub_idx]
+            column_idx=-2
+            for idx in range(5*cat_idx,5*(cat_idx+1)):
+                temp_left=one_subject_data[idx,:,-2]
+                temp_right=one_subject_data[idx,:,-1]
+                phi[category][subject].append(max([max(temp_right),max(temp_left)]))
+
+    #2) plot
+    figsize=(6,4)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    FPA=[ str(ll) for ll in experiment_categories]
+    print(FPA)
+    ind= np.arange(len(experiment_categories))
+
+
+    #3.1) plot 
+    phi_values=[]
+    control_methods=list(phi[experiment_categories[0]].keys())
+    for idx,control_method in enumerate(control_methods):
+        phi_values.append([])
+        for category in experiment_categories:
+            phi_values[idx].append(phi[category][control_method])
+    
+    idx=0
+    boxwidth=0.2
+    box=[]
+    for box_idx in range(len(control_methods)):
+        box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
+       # fill with colors
+    colors = ['lightblue', 'lightgreen','wheat']
+    for bplot, color in zip(box,colors[0:len(box)]):
+        for patch in bplot['boxes']:
+            patch.set_facecolor(color)
+
+    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+    #axs[idx].set_yticks([0,0.1,0.2,0.3])
+    #axs[idx].set(ylim=[-0.01,0.3])
+    legend_names=[name for name in control_methods]
+    axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)])
+    axs[idx].set_xticks(ind)
+    axs[idx].set_xticklabels(FPA)
+    axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
+    axs[idx].set_xlabel(r'FPA')
+
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
+    plt.savefig(datasets_visulization_path)
+    plt.show()
+
+
+
+
+
 # basic parameters
 all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,
                   'sub_6': 7600, 'sub_7': 5583, 'sub_8': 6032, 'sub_9': 6508, 'sub_10': 6348, 'sub_11': 7010, 'sub_12': 8049, 'sub_13': 6248}
@@ -783,7 +861,8 @@ raw_dataset_path=os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
 
 hyperparams['columns_names']=columns_names
 hyperparams['raw_dataset_path']=raw_dataset_path
-hyperparams['sub_idx']={'P_02_dongxuan':TRIALS}
+sub_name='P_09_libang'
+hyperparams['sub_idx']={sub_name:TRIALS}
 
 
 labels_names=LABELS_FIELDS
@@ -796,18 +875,27 @@ hyperparams['labels_names']=labels_names
 
 
 if __name__=='__main__':
-    sub_name='P_02_dongxuan'
-    series, scaled_series,scaler=load_normalize_data(sub_idx={'P_02_dongxuan':TRIALS},hyperparams=hyperparams,assign_trials=True)
+    multi_subject_data=[]
+    hyperparams['sub_idx']={'P_08_zhangboyuan':TRIALS}
+    series, scaled_series,scaler=load_normalize_data(sub_idx={sub_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
+    multi_subject_data.append(series)
+    hyperparams['sub_idx']={'P_09_libang':TRIALS}
+    series, scaled_series,scaler=load_normalize_data(sub_idx={sub_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
+    multi_subject_data.append(series)
+
+
+    subjects_list=['P_08','P_09']
+    plot_statistic_kneemoment_under_fpa(multi_subject_data,subjects_list)
 
     # display datasets
     #display_rows=['KneeAngle_X', 'KneeAngle_Y','KneeAngle_Z','KneeForce_X','KneeForce_Y', 'KneeForce_Z', 'KneeMoment_X','KneeMoment_Y','KneeMoment_Z','Force_X','Force_Y','Force_Z']
     #display_rows=['KneeMoment_X', 'KneeMoment_Y','KneeMoment_Z','Cop_X','Cop_Y','Cop_Z']
     #display_rows=display_rows
     #display_rows=['Up_Acc_X', 'Up_Acc_Y','Up_Acc_Z','Up_Gyr_X','Up_Gyr_Y','Up_Gyr_Z','Lower_Acc_X','Lower_Acc_Y','Lower_Acc_Z', 'Lower_Gyr_X','Lower_Gyr_Y','Lower_Gyr_Z']
-    display_rows=['SHANK_Accel_X']
     #display_rows=['SHANK_Accel_X']
+    display_rows=['KneeMoment_X']
     #datasets_ranges=(dp_lib.all_datasets_ranges['sub_'+str(sub_idx-1)],dp_lib.all_datasets_ranges['sub_'+str(sub_idx)])
-    display_rawdatase(series[0,0:150,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title=sub_name, display_rows=display_rows)
+    #display_rawdatase(series[0,0:150,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title=sub_name, display_rows=display_rows)
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
     #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)
     #dp_lib.display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')

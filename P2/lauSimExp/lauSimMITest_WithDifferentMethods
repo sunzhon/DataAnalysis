@@ -17,9 +17,9 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 
 
 
-for experiment_variable in 0.02 0.04 0.06 0.08 0.1 0.12 0.14 0.16 0.18 0.2 0.22 0.24 0.26 0.28 
+#for experiment_variable in 0.02 0.04 0.06 0.08 0.1 0.12 0.14 0.16 0.18 0.2 0.22 0.24 0.26 0.28 
 #for experiment_variable in 0.0 0.04 0.08 0.12 0.16 0.2
-#for experiment_variable in 0.0 0.04
+for experiment_variable in 0.0
 do
     for control_method in "phase_reset" "phase_modulation" "apnc";
     do

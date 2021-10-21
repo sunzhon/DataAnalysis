@@ -5,9 +5,9 @@
  function set_param()
  {
 
-    file_name="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot.yaml"
-    file_name_new="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_new.yaml"
-    file_name_old="/home/suntao/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_old.yaml"
+    file_name="$HOME/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot.yaml"
+    file_name_new="$HOME/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_new.yaml"
+    file_name_old="$HOME/workspace/gorobots/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_old.yaml"
     mncrate=$1
     param_name=$1
     param_value=$2
@@ -28,7 +28,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=1
+    runs=10
 fi
 
 echo "run ${runs} times"
@@ -83,9 +83,9 @@ do
             if [ $control_method = "apnc" ]; then
                 sleep 20
             eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
-                sleep 30
+                sleep 40
             else
-                sleep 50 #22 #32 #55 
+                sleep 60 #22 #32 #55 
             fi
             rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
             data_path_temp=$(cat $data_log_file_path)

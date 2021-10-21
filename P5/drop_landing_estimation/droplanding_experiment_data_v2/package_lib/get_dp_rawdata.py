@@ -45,6 +45,7 @@ class XsenReader():
         self.subject_name=subject_info.name
         self.xsen_data={}
         self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
+        self.session_trial_exists=False
         for trial in TRIALS:
             ## Xsen file has no trial_type varaible, just trial_number
             #for trial_type in DYNAMIC_TRIALS:
@@ -52,6 +53,9 @@ class XsenReader():
             if os.path.exists(xsen_data_path):
                 print(xsen_data_path,trial)
                 self.xsen_data[trial]=wearable_toolkit.XsenTxtReader(self.folder_path,trial)
+                self.session_trial_exists=(self.session_trial_exists or True)
+            else:
+                self.session_trial_exists=(self.session_trial_exists or False)
 
 
     def get_data_to_h5(self):
@@ -88,12 +92,16 @@ class V3DReader():
         self.v3d_data={}
         self.subject_name=subject_info.name
         self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
+        self.session_trial_exists=False
         for trial in TRIALS:
             for trial_type in DYNAMIC_TRIALS:
                 v3d_data_path = os.path.join(self.folder_path, self.subject_name + ' ' + trial_type +' '+ trial + '.csv')
                 if os.path.exists(v3d_data_path):
                     print(v3d_data_path)
                     self.v3d_data[trial]=wearable_toolkit.Visual3dCsvReader(v3d_data_path)
+                    self.session_trial_exists=(self.session_trial_exists or True)
+                else:
+                    self.session_trial_exists=(self.session_trial_exists or False)
             
         
     def get_data_to_h5(self):
@@ -129,12 +137,16 @@ class ViconReader():
         self.vicon_data={}
         self.subject_name=subject_info.name
         self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
+        self.session_trial_exists=False
         for trial in TRIALS:
             for trial_type in DYNAMIC_TRIALS:
                 vicon_data_path = os.path.join(self.folder_path, self.subject_name + ' '+trial_type +' '+ trial + '.csv')
                 if os.path.exists(vicon_data_path):
                     print(vicon_data_path)
                     self.vicon_data[trial]=wearable_toolkit.ViconCsvReader(vicon_data_path, trial, vicon_calibrate_data_path, subject_info=subject_info)
+                    self.session_trial_exists=(self.session_trial_exists or True)
+                else:
+                    self.session_trial_exists=(self.session_trial_exists or False)
             
         
     def get_data_to_h5(self):
@@ -166,8 +178,6 @@ def get_data_to_h5():
         for session in SESSIONS:
             print("Subject {}, Session {}".format(subject,session))
             subject_info = subject_infos.loc[subject, :]
-
-
             #- read vicon data
             vicon=ViconReader(subject_info,session)
 
@@ -180,18 +190,22 @@ def get_data_to_h5():
             ## crop xsen data and extract drop landing data of v3d, vicon and xsen
             for trial in TRIALS:
                 #crop xsen to assign with vicon and v3d dataset
-                frame_start=vicon.vicon_data[trial].frame_start
-                frame_end=vicon.vicon_data[trial].frame_end
-                v3d.v3d_data[trial].crop()
-                xsen.xsen_data[trial].crop(frame_start,frame_end)
-                #extract drop landing period
-                v3d.v3d_data[trial].extract_droplanding_period()
-                xsen.xsen_data[trial].extract_droplanding_period()
+                if(vicon.session_trial_exists):
+                    frame_start=vicon.vicon_data[trial].frame_start
+                    frame_end=vicon.vicon_data[trial].frame_end
+                    v3d.v3d_data[trial].crop()
+                    xsen.xsen_data[trial].crop(frame_start,frame_end)
+                    #extract drop landing period
+                    v3d.v3d_data[trial].extract_droplanding_period()
+                    xsen.xsen_data[trial].extract_droplanding_period()
 
-
-            xsen.get_data_to_h5()
-            v3d.get_data_to_h5()
-            vicon.get_data_to_h5()
+            
+            if(xsen.session_trial_exists):
+                xsen.get_data_to_h5()
+            if(v3d.session_trial_exists):
+                v3d.get_data_to_h5()
+            if(vicon.session_trial_exists):
+                vicon.get_data_to_h5()
 
 
                 
@@ -220,15 +234,22 @@ def get_all_data_to_h5():
             for session in SESSIONS:
                 features_path=os.path.join(DATA_PATH,subject,re.sub('vicon','xsen',session),'features_rawdataset.hdf5')
                 labels_path=os.path.join(DATA_PATH,subject,re.sub('vicon','v3d',session),'labels_rawdataset.hdf5')
-                with h5py.File(features_path,'r') as ff:
-                    with h5py.File(labels_path,'r') as fl:
-                        for trial in TRIALS:
-                            #pdb.set_trace()
-                            # - combine features and labels along with columns
-                            features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
-                            sub.create_dataset(trial,data=features_labels)
-                        sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns'])
-    
+                if(os.path.exists(features_path) and os.path.exists(labels_path)):
+                    print("combine feature and labels hdf5 datasets together at: ",h5format_dataset)
+                    try:
+                        with h5py.File(features_path,'r') as ff:
+                            with h5py.File(labels_path,'r') as fl:
+                                for trial in TRIALS:
+                                    #pdb.set_trace()
+                                    # - combine features and labels along with columns
+                                    features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
+                                    sub.create_dataset(trial,data=features_labels)
+                                # set columns as attributes of the hdf5 file dataset
+                                sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns'])
+                    except OSError:
+                        print("h5 file path is wrong")
+                        pdb.set_trace()
+                        
 
 """
 配置文件在const 中
