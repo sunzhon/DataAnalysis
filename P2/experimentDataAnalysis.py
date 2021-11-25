@@ -224,7 +224,7 @@ def read_data(freq,start_time,end_time,folder_name):
     start_point=int(start_time*freq)
     end_point=int(end_time*freq)
     if end_point>read_rows:
-        print(termcolor.colored("Warning:end_time out the data bound, please use a small one","yellow"),"end_time :{}, read_rows :{}".format(end_time,read_rows))
+        print(termcolor.colored("Warning:end_point out the data bound, please use a small one","yellow"),"end_point :{}, read_rows :{}".format(end_point,read_rows))
     time = np.linspace(start_time,end_time,end_point-start_point)
     #time = np.linspace(0,int(end_time/freq)-int(start_time/freq),end_time-start_time)
     return cpg_data[start_point:end_point,:], command_data[start_point:end_point,:], module_data[start_point:end_point,:], parameter_data[start_point:end_point,:], grf_data[start_point:end_point,:], pose_data[start_point:end_point,:], position_data[start_point:end_point,:],velocity_data[start_point:end_point,:],current_data[start_point:end_point,:],voltage_data[start_point:end_point,:], time
@@ -403,7 +403,7 @@ def calculate_phase_diff(CPGs_output,time):
     C4=CPGs_output[:,6:8]
         
     # Checking wheather the center of the orbit in in orgin
-    start=500;end=800 # 选取一段做评估
+    start=500;end=800 # 选取一段做评估, 建立极限环的圆心和半径
     C1_center=np.sum(C1[start:end,:], axis=0) # 轨迹圆心坐标
     C1_center_norm=np.linalg.norm(C1_center) #轨迹圆心到坐标原点的距离
 
@@ -522,8 +522,8 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
         grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
         if(grf_stance_index[0].size!=0):#机器人落地了 robot on the ground
             touch_moment_idx= grf_stance_index[0][0]# 落地时刻 the touch momnet $n_0$
-            phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # 相位差的标准差
-            #phi_distances=calculate_phase_diff_std(cpg_data,time,method_option=2) # 相位差的标准差
+            phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # 相位差的标准差, start from touch moment
+            #phi_distances=calculate_phase_diff_std(cpg_data,time,method_option=2) # 相位差的标准差, start from start_time
             phi_distances_threshold=1.4# empirically set 1.4
             for idx, value in enumerate(phi_distances): #serach the idx of the convergence moment/time
                 if idx>=len(phi_distances)-1: # Not converge happen
@@ -533,7 +533,8 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
                     break
                     # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
                 if (value > phi_distances_threshold) and (phi_distances[idx+1]<=phi_distances_threshold):# the state variable converge to the desired fixed point (3.14, 3.14, 0)
-                    convergence_idx=idx
+                    convergence_idx=idx # start from touch moment
+                    #convergence_idx=idx-touch_moment_idx # start from start_time
                     break
         else:#机器人没有放在地面
             convergenTime=0
@@ -4602,7 +4603,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file
     plt.show()
 
 
-def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):
+def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0],**args):
     '''
     Plot convergence time statistic in three different methods under different MI, it can indicates the actual traverability of the locomotion
 
@@ -4645,6 +4646,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
     #3.1) plot 
     phi_values=[]
+    pd_phi_values_list=[]
     try:
         control_methods=list(phi[experiment_categories[0]].keys())
     except KeyError:
@@ -4654,49 +4656,139 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
         phi_values.append([])
         for category in experiment_categories:
             phi_values[idx].append(phi[category][control_method])
+            temp=pd.DataFrame(data=phi[category][control_method],columns=["values"])
+            temp.insert(1,'experiment_categories',category)
+            temp.insert(2,'control_methods',control_method)
+            pd_phi_values_list.append(temp)
     
-    idx=0
-    boxwidth=0.2
-    box=[]
-    for box_idx in range(len(control_methods)):
-        box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=False,showmeans=False,showfliers=False,notch=False))
+    pd_phi_values=pd.concat(pd_phi_values_list)
+    pd_phi_values=pd_phi_values.rename(columns={'control_methods':'Control methods'})
+    pd_phi_values=pd_phi_values.replace('phase_modulation','Tegotae')
+    pd_phi_values=pd_phi_values.replace('phase_reset','Phase reset')
+    pd_phi_values=pd_phi_values.replace('apnc','APNC')
 
-    # fill with colors
-    colors = ['tab:red', 'tab:green','tab:blue']
-    for bplot, color in zip(box,colors[0:len(box)]):
-        for patch in bplot['boxes']:
-            patch.set_facecolor(color)
 
-    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-    #axs[idx].set_yticks([0,0.1,0.2,0.3])
-    #axs[idx].set(ylim=[-0.01,0.3])
-    legend_names=['PR' if name=="phase_reset" else 'Tegotae' if name=='phase_modulation' else 'APNC' if name=='apnc' else name for name in control_methods]
-    axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],loc='best')
-    axs[idx].set_xticks(ind)
-    axs[idx].set_xticklabels(MI)
-    axs[idx].set_ylabel(r'Phase convergence time [s]')
-    axs[idx].set_xlabel(r'MI')
 
-    # plot the success_rate with twinx 
-    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
-    success_rate=[]
-    for control_idx in range(len(control_methods)):
-        success_rate.append([])
-        for idx in range(len(phi_values[control_idx])):
-            success_count= np.array(phi_values[control_idx][idx]) < 20.0
-            success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
-            
-    color = 'tab:orange'
-    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
-    for box_idx in range(len(control_methods)):
-        ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
-    ax2.tick_params(axis='y', labelcolor=color)
-    #ax2.set_ylim(-10,110)
-    ax2.set_yticks([0, 20,40, 60, 80, 100])
 
-    #axs[idx].set_title('Phase reset')
+
+    if(args['plot_type']=='boxplot'):
+        idx=0
+        boxwidth=0.2
+        box=[]
+        for box_idx in range(len(control_methods)):
+            box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=False,showmeans=False,showfliers=False,notch=False))
+
+        # fill with colors
+        colors = ['tab:red', 'tab:green','tab:blue']
+        for bplot, color in zip(box,colors[0:len(box)]):
+            for patch in bplot['boxes']:
+                patch.set_facecolor(color)
+
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        legend_names=['PR' if name=="phase_reset" else 'Tegotae' if name=='phase_modulation' else 'APNC' if name=='apnc' else name for name in control_methods]
+        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],loc='best')
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(MI)
+        axs[idx].set_ylabel(r'Phase convergence time [s]')
+        axs[idx].set_xlabel(r'MI')
+
+        # plot the success_rate with twinx 
+        ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+        success_rate=[]
+        for control_idx in range(len(control_methods)):
+            success_rate.append([])
+            for idx in range(len(phi_values[control_idx])):
+                success_count= np.array(phi_values[control_idx][idx]) < 20.0
+                success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+                
+        color = 'tab:orange'
+        ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+        for box_idx in range(len(control_methods)):
+            ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
+        ax2.tick_params(axis='y', labelcolor=color)
+        #ax2.set_ylim(-10,110)
+        ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+        #axs[idx].set_title('Phase reset')
     
+    if(args['plot_type']=='barplot'):
+        ## barplot
+        idx=0
+        boxwidth=0.3
+        colors = ['green','blue','red']
+        axs[idx]=sns.barplot(x='experiment_categories',y='values',hue='Control methods', data=pd_phi_values,palette=colors,hue_order=['Tegotae','Phase reset','APNC'])
+    
+        # set art of the plot
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(MI)
+        axs[idx].set_ylabel(r'Phase convergence time [s]')
+        axs[idx].set_xlabel(r'MI')
+
+
+
+        # plot the success_rate with twinx 
+        ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+        success_rate=[]
+        for control_idx in range(len(control_methods)):
+            success_rate.append([])
+            for idx in range(len(phi_values[control_idx])):
+                success_count= np.array(phi_values[control_idx][idx]) < end_time
+                success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+
+        color = 'tab:orange'
+        ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+        for box_idx in range(len(control_methods)):
+            ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
+        ax2.tick_params(axis='y', labelcolor=color)
+        #ax2.set_ylim(-10,110)
+        ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+
+
+    if(args['plot_type']=='catplot'):
+        ## barplot
+        idx=0
+        boxwidth=0.3
+        colors = ['green','blue','red']
+        axs[idx]=sns.catplot(x='experiment_categories',y='values',hue='Control methods', data=pd_phi_values,palette=colors,hue_order=['Tegotae','Phase reset','APNC'])
+    
+        # set art of the plot
+        #axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        #axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        #axs[idx].set_xticks(ind)
+        #axs[idx].set_xticklabels(MI)
+        #axs[idx].set_ylabel(r'Phase convergence time [s]')
+        #axs[idx].set_xlabel(r'MI')
+
+
+
+        # plot the success_rate with twinx 
+        ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+        success_rate=[]
+        for control_idx in range(len(control_methods)):
+            success_rate.append([])
+            for idx in range(len(phi_values[control_idx])):
+                success_count= np.array(phi_values[control_idx][idx]) < end_time
+                success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+
+        color = 'tab:orange'
+        ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+        for box_idx in range(len(control_methods)):
+            ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
+        ax2.tick_params(axis='y', labelcolor=color)
+        #ax2.set_ylim(-10,110)
+        ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+
     # save figure
     folder_fig = data_file_dic + 'data_visulization/'
     if not os.path.exists(folder_fig):
@@ -4708,7 +4800,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
 
 
-def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0]):
+def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],**args):
     '''
     Plot convergence time statistic in three different methods under different controlller update frequency, it can indicates the actual traverability of the locomotion
 
@@ -4753,52 +4845,110 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(dat
     #3.1) plot 
     phi_values=[]
     control_methods=list(phi[experiment_categories[0]].keys())
+    pd_phi_values_list=[]
     for idx,control_method in enumerate(control_methods):
         phi_values.append([])
         for category in experiment_categories:
             phi_values[idx].append(phi[category][control_method])
+            temp=pd.DataFrame(data=phi[category][control_method],columns=["values"])
+            temp.insert(1,'experiment_categories',category)
+            temp.insert(2,'control_methods',control_method)
+            pd_phi_values_list.append(temp)
     
-    idx=0
-    boxwidth=0.2
-    box=[]
-    for box_idx in range(len(control_methods)):
-        box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False))
+    pd_phi_values=pd.concat(pd_phi_values_list)
+    pd_phi_values=pd_phi_values.rename(columns={'control_methods':'Control methods'})
+    pd_phi_values=pd_phi_values.replace('phase_modulation','Tegotae')
+    pd_phi_values=pd_phi_values.replace('phase_reset','Phase reset')
+    pd_phi_values=pd_phi_values.replace('apnc','APNC')
 
-       # fill with colors
-    colors = ['lightblue', 'lightgreen','wheat']
-    for bplot, color in zip(box,colors[0:len(box)]):
-        for patch in bplot['boxes']:
-            patch.set_facecolor(color)
 
-    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-    #axs[idx].set_yticks([0,0.1,0.2,0.3])
-    #axs[idx].set(ylim=[-0.01,0.3])
-    legend_names=['PR' if name=="phase_reset" else 'Tegotae' if name=='phase_modulation' else 'APNC' if name=='apnc' else name for name in control_methods]
-    axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)])
-    axs[idx].set_xticks(ind)
-    axs[idx].set_xticklabels(MI)
-    axs[idx].set_ylabel(r'Phase convergence time [s]')
-    axs[idx].set_xlabel(r'Update frequency [Hz]')
+    if(args['plot_type']=='boxplot'):
+        idx=0
+        boxwidth=0.2
+        box=[]
+        ### There are two type of the plot, boxplot and barplot
+        ## boxplot
+        for box_idx in range(len(control_methods)):
+            box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=False,showmeans=False,showfliers=False))
 
-    # plot the success_rate with twinx 
-    ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
-    success_rate=[]
-    for control_idx in range(len(control_methods)):
-        success_rate.append([])
-        for idx in range(len(phi_values[control_idx])):
-            success_count= np.array(phi_values[control_idx][idx]) < 20.0
-            success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
-    color = 'tab:red'
-    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
-    for box_idx in range(len(control_methods)):
-        ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', color=colors[box_idx])
-    ax2.tick_params(axis='y', labelcolor=color)
-    #ax2.set_ylim(-10,110)
-    ax2.set_yticks([0, 20,40, 60, 80, 100])
 
-    #axs[idx].set_title('Phase reset')
+        # fill with colors
+        colors = ['tab:red', 'tab:green','tab:blue']
+        for bplot, color in zip(box,colors[0:len(box)]):
+            for patch in bplot['boxes']:
+                patch.set_facecolor(color)
+        
+
+        # set art of the plot
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        legend_names=['PR' if name=="phase_reset" else 'Tegotae' if name=='phase_modulation' else 'APNC' if name=='apnc' else name for name in control_methods]
+        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)])
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(MI)
+        axs[idx].set_ylabel(r'Phase convergence time [s]')
+        axs[idx].set_xlabel(r'Update frequency [Hz]')
+
+
+
+        # plot the success_rate with twinx 
+        ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+        success_rate=[]
+        for control_idx in range(len(control_methods)):
+            success_rate.append([])
+            for idx in range(len(phi_values[control_idx])):
+                success_count= np.array(phi_values[control_idx][idx]) < end_time
+                success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+
+        color = 'tab:orange'
+        ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+        for box_idx in range(len(control_methods)):
+            ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
+        ax2.tick_params(axis='y', labelcolor=color)
+        #ax2.set_ylim(-10,110)
+        ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+        #axs[idx].set_title('Phase reset')
+
+    if(args['plot_type']=='barplot'):
+        ## barplot
+        idx=0
+        boxwidth=0.3
+        colors = ['lightgreen','lightblue','pink']
+        axs[idx]=sns.barplot(x='experiment_categories',y='values',hue='Control methods', data=pd_phi_values,palette=colors,ci='sd',hue_order=['Tegotae','Phase reset','APNC'])
     
+        # set art of the plot
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(MI)
+        axs[idx].set_ylabel(r'Phase convergence time [s]')
+        axs[idx].set_xlabel(r'Update frequency [Hz]')
+
+
+
+        # plot the success_rate with twinx 
+        ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+        success_rate=[]
+        for control_idx in range(len(control_methods)):
+            success_rate.append([])
+            for idx in range(len(phi_values[control_idx])):
+                success_count= np.array(phi_values[control_idx][idx]) < end_time
+                success_rate[control_idx].append(sum(success_count)/len(trial_ids)*100)
+
+        color = 'tab:orange'
+        ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
+        for box_idx in range(len(control_methods)):
+            ax2.plot(ind+(box_idx-int(len(control_methods)/2))*boxwidth, success_rate[box_idx],'h', markeredgecolor=color,color=colors[box_idx])
+        ax2.tick_params(axis='y', labelcolor=color)
+        #ax2.set_ylim(-10,110)
+        ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+        #axs[idx].set_title('Phase reset')
     # save figure
     folder_fig = data_file_dic + 'data_visulization/'
     if not os.path.exists(folder_fig):
@@ -5627,14 +5777,14 @@ if __name__=="__main__":
 
     experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     #trial_ids=[0,1]
-    #experiment_categories=['0.0','0.1','0.2']
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=60*5,end_time=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
-    experiment_categories=['0.5']
+    experiment_categories=['1.0']
     control_methods=['apnc']
-    #plot_single_details(data_file_dic, start_time=60*5, end_time=60*40, freq=60, experiment_categories=experiment_categories, trial_ids=[0], control_methods=control_methods,investigation="paramater investigation")
+    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=[2], control_methods=control_methods,investigation="paramater investigation")
 
 
     ##----- MI
@@ -5644,12 +5794,12 @@ if __name__=="__main__":
     data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
     #experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     experiment_categories=['0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
-    #experiment_categories=['0.0','0.04','0.08','0.12','0.16','0.2','0.24','0.28']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
-    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    trial_ids=[0,1,2]
 
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=60*5,end_time=60*30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
     #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=10*60,end_time=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
 
 
@@ -5664,14 +5814,16 @@ if __name__=="__main__":
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #experiment_categories=['0.0','0.04']
-    trial_ids=[0,1,2,3]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=50,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='barplot')
 
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
-    plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods=['apnc'],investigation='update_frequency')
+    #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods=['apnc'],investigation='update_frequency')
 
-    experiment_categories=['5']
-    plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=[0], control_methods=['apnc'],investigation="update_frequency")
+    experiment_categories=['15']
+    control_methods=['phase_reset']
+    trial_ids=[2]
+    #plot_single_details(data_file_dic, start_time=5, end_time=50, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods,investigation="update_frequency")
 
     '''   Laikago test in real world  '''
     #data_file_dic="/media/suntao/DATA/Research/P2_workspace/Experiments/laikago_real_robot_experiments/laikago_experiment_data/"

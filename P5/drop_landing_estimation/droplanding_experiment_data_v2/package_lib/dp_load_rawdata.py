@@ -22,6 +22,7 @@ from scipy import linalg
 from sklearn.preprocessing import MinMaxScaler
 from scipy.interpolate import interp1d
 import re
+import termcolor
 
 import pdb
 if __name__ == "__main__":
@@ -52,7 +53,7 @@ class XsenReader():
             xsen_data_path = os.path.join(self.folder_path)
             if os.path.exists(xsen_data_path):
                 print(xsen_data_path,trial)
-                self.xsen_data[trial]=wearable_toolkit.XsenTxtReader(self.folder_path,trial)
+                self.xsen_data[trial]=wearable_toolkit.XsenTxtReader(self.folder_path,self.subject_name,trial)
                 self.session_trial_exists=(self.session_trial_exists or True)
             else:
                 self.session_trial_exists=(self.session_trial_exists or False)
@@ -70,9 +71,9 @@ class XsenReader():
         # save the h5 file
         with h5py.File(h5format_dataset, "w") as f:
             f.attrs['columns']=list(self.xsen_data['01'].data_frame.columns)
-            sub=f.create_group(self.subject_name)
+            subject_h5dataset=f.create_group(self.subject_name)
             for trial in TRIALS:
-                sub.create_dataset(trial,data=self.xsen_data[trial].data_frame)
+                subject_h5dataset.create_dataset(trial,data=self.xsen_data[trial].data_frame)
 
 
 
@@ -98,7 +99,7 @@ class V3DReader():
                 v3d_data_path = os.path.join(self.folder_path, self.subject_name + ' ' + trial_type +' '+ trial + '.csv')
                 if os.path.exists(v3d_data_path):
                     print(v3d_data_path)
-                    self.v3d_data[trial]=wearable_toolkit.Visual3dCsvReader(v3d_data_path)
+                    self.v3d_data[trial]=wearable_toolkit.Visual3dCsvReader(v3d_data_path,self.subject_name,trial)
                     self.session_trial_exists=(self.session_trial_exists or True)
                 else:
                     self.session_trial_exists=(self.session_trial_exists or False)
@@ -173,9 +174,9 @@ class ViconReader():
 Save each subject experiment data into two h5 data fromat (features and labels)
 
 '''
-def get_data_to_h5():
-    for subject in SUBJECTS:
-        for session in SESSIONS:
+def transfer_rawdata_to_h5():
+    for subject in SUBJECTS: # subjects
+        for session in SESSIONS:# trial types
             print("Subject {}, Session {}".format(subject,session))
             subject_info = subject_infos.loc[subject, :]
             #- read vicon data
@@ -208,13 +209,12 @@ def get_data_to_h5():
                 vicon.get_data_to_h5()
 
 
-                
 
 '''
 Save all subjects' features and labels h5 format data into a h5 data format file: features_labels_rawdatasets.hdf5
 
 '''
-def get_all_data_to_h5():
+def transfer_allsubject_to_a_h5():
     # declare h5 file
     h5format_dataset=os.path.join(DATA_PATH,"features_labels_rawdatasets.hdf5")
     
@@ -240,14 +240,18 @@ def get_all_data_to_h5():
                         with h5py.File(features_path,'r') as ff:
                             with h5py.File(labels_path,'r') as fl:
                                 for trial in TRIALS:
-                                    #pdb.set_trace()
                                     # - combine features and labels along with columns
-                                    features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
-                                    sub.create_dataset(trial,data=features_labels)
+                                    if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):
+                                        features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
+                                        sub.create_dataset(trial,data=features_labels)
+                                    else:
+                                        print(termcolor.colored("subject: {} in trial:{} features anad lables have different rows".format(subject,trial),"red"))
+                                        pdb.set_trace()
                                 # set columns as attributes of the hdf5 file dataset
                                 sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns'])
-                    except OSError:
-                        print("h5 file path is wrong")
+                    except Exception as e: 
+                        print(e)
+                        print(termcolor.colored("Subject: {} h5 file path in session: {} is wrong".format(subject,session),'red'))
                         pdb.set_trace()
                         
 
@@ -257,6 +261,6 @@ def get_all_data_to_h5():
 """
     
 if __name__=="__main__":
-    get_data_to_h5()
-    get_all_data_to_h5()
+    transfer_rawdata_to_h5()
+    transfer_allsubject_to_a_h5()
                 

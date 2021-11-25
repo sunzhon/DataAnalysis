@@ -63,8 +63,8 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
     assert(type(col_names)==list)
     with h5py.File(raw_datasets_path, 'r') as fd:
         # 1) The coloms of the features and labels
-        keys=list(fd.keys())
-        columns=fd[keys[0]].attrs.get('columns')
+        subject_names=list(fd.keys())
+        all_data_fields=fd[subject_names[0]].attrs.get('columns')
         col_idxs=[]
 
         # suntao drop landing experiment data
@@ -72,25 +72,30 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
             all_datasets_list=[]
             trials=row_idx
             subject_name=args['subject_name']
-            columns=[hyperparams['features_names']]
+            if(subject_name not in subject_names):
+                print("This subject:{subject_name} is not in datasets".format(subject_name))
+                exit()
+            feature_data_fields=[hyperparams['features_names']]
             for trial in trials:
-                temp_pd_data=pd.DataFrame(data=fd[subject_name][trial][:,:],columns=fd[subject_name].attrs['columns'])
+                try:
+                    temp_pd_data=pd.DataFrame(data=np.array(fd[subject_name][trial]),columns=fd[subject_name].attrs['columns'])
+                except Exception as e:
+                    print(e)
+                #-- read the specified columns
                 temp_necessary_data=temp_pd_data[col_names].values
                 all_datasets_list.append(temp_necessary_data)
 
             # extract the drop landing trials, the output is a numpy matrix with three dimensions, the first dimension is trial times
-            if('assign_trials' in args.keys()):
-                all_datasets_np=np.array(all_datasets_list)
-            else:
-                try:
+            try:
+                if('assign_trials' in args.keys()):
+                    all_datasets_np=np.array(all_datasets_list)
+                else:
                     if(sum([len(trial) for trial in all_datasets_list])%DROPLANDING_PERIOD==0):
-                        pdb.set_tace()
                         all_datasets_np=np.concatenate(all_datasets_list,axis=0)
                     else:
                         warnings.warm(termcolor.colored("Trials have different time step numbers, please use a small DROPLANDING_PERIOD"))
-
-                except IndexError:
-                    print("Trials have different counts")
+            except Exception as e:
+                print(e,"Trials have different counts")
             return all_datasets_np
 
         # bingfei drop landing experiment data
@@ -179,7 +184,6 @@ def load_normalize_data(hyperparams,scaler=None,**args):
         series=np.concatenate(series_temp,axis=0)
         print("Raw data of subject {:}".format(sub_idx))
         
-    
     # This is for process suntao experimental datasets
     #**** Multiple subject and trial data indexed by "subs, trials, trial"
     if(isinstance(sub_idx,dict)):
@@ -205,8 +209,6 @@ def load_normalize_data(hyperparams,scaler=None,**args):
 
     
 
-
-
     # load dataset
     print('Loaded dataset shape:',series.shape)
 
@@ -217,8 +219,12 @@ def load_normalize_data(hyperparams,scaler=None,**args):
 
     dim=series.shape
     reshape_series=series.reshape(-1,dim[-1])
-    scaler.fit(reshape_series)
-    scaled_series=scaler.transform(reshape_series.astype(np.float32),copy=True)
+    try:
+        scaler.fit(reshape_series)
+        scaled_series=scaler.transform(reshape_series.astype(np.float32),copy=True)
+    except Exception as e:
+        print(e)
+        pdb.set_trace()
 
     # NOTE: 是否需要三维显示
     # three dimension
@@ -508,7 +514,7 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     figsize=(12,3*subplots_rows)
     fig=plt.figure(figsize=figsize)
     axs=fig.subplots(subplots_rows,2).reshape(-1,2)
-    # plot labels and predictions
+    # -- plot labels and predictions
     for plot_idx, label_name in enumerate(labels_names):
         axs[plot_idx%3,plot_idx//3].plot(Time,pd_labels[label_name],'g')
         axs[plot_idx%3,plot_idx//3].plot(Time,pd_predictions[label_name],'r')
@@ -537,7 +543,7 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     pred_mean=np.mean(pred_error,axis=0)
     pred_std=np.std(pred_error,axis=0)
     pred_rmse=np.sqrt(np.sum(np.power(pred_error,2),axis=0)/pred_error.shape[0])
-    print("mean: {:.2f}, std: {:.2f}, rsme: {:.2f}", pred_mean, pred_std, pred_rmse)
+    print("mean: {:.2f}, std: {:.2f}, rsme: {:.2f} of the errors between estimation and ground truth", pred_mean, pred_std, pred_rmse)
 
     # these are matplotlib.patch.Patch properties
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -561,8 +567,8 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
         axs[plot_idx%3,plot_idx//3].grid(which='both',axis='x',color='k',linestyle=':')
         axs[plot_idx%3,plot_idx//3].grid(which='both',axis='y',color='k',linestyle=':')
         # place a text box in upper left in axes coords
-        textstr = '\n'.join((r'$mean \pm std=%.2f \pm %.2f$' % (pred_mean[plot_idx], pred_std[plot_idx],),r'$RMSE=%.2f$' % (pred_rmse[plot_idx], )))
-        axs[plot_idx%3,plot_idx//3].text(0.05, 0.95, textstr, transform=axs[plot_idx%3,plot_idx//3].transAxes, fontsize=14,verticalalignment='top', bbox=props)
+        #textstr = '\n'.join((r'$mean \pm std=%.2f \pm %.2f$' % (pred_mean[plot_idx], pred_std[plot_idx],),r'$RMSE=%.2f$' % (pred_rmse[plot_idx], )))
+        #axs[plot_idx%3,plot_idx//3].text(0.05, 0.95, textstr, transform=axs[plot_idx%3,plot_idx//3].transAxes, fontsize=14,verticalalignment='top', bbox=props)
     
     axs[plot_idx%3,plot_idx//3].set_xlabel('Time [s]')
     # save figure
@@ -613,10 +619,11 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
     Params: datasets_ranges: a two dimension numpy or a range 
 
     '''
-    # read datasets
+    #0) read datasets
     print(isinstance(datasets_ranges,np.ndarray))
+
     # input datasets
-    if(isinstance(datasets_ranges, np.ndarray)):
+    if(isinstance(datasets_ranges, np.ndarray)):# load dataset
         datasets=copy.deepcopy(datasets_ranges)
     else:# load data from path
         if('raw_datasets_path' in args.keys()):
@@ -624,7 +631,9 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
         else:
             raw_datasets_path="./datasets_files/raw_datasets.hdf5"
         datasets=read_rawdata(range(datasets_ranges[0],datasets_ranges[1]),col_names,raw_datasets_path)
-    if datasets.ndim>2:
+    
+    #1) data process
+    if datasets.ndim>=3:# 如果是三维，说明有多个trials, 将他们按行合并
         datasets=datasets.reshape(-1,datasets.shape[-1])
     # normalize datasets
     if(norm_type!=None):
@@ -635,52 +644,59 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
         pd_datasets=pd.DataFrame(data=datasets,columns=col_names)
         print('plot raw datasets without normalization')
 
-    # plots
+    #2) plots
     figsize=(14,16)
     fig=plt.figure(figsize=figsize)
-    display_rows=args['display_rows']
-    gs1=gridspec.GridSpec(2*len(display_rows),2)#13
-    gs1.update(hspace=0.1,wspace=0.15,top=0.95,bottom=0.05,left=0.04,right=0.98)
-    axs=[]
-    for plot_col in range(2):
-        for plot_row in range(len(display_rows)):
-            axs.append(fig.add_subplot(gs1[2*plot_row:2*plot_row+2,plot_col]))
+    display_rows=args['display_rows']#绘制的行数
+    display_cols=args['display_cols']
 
-    print(pd_datasets.shape)
-    axs=np.array(axs).reshape(2,-1).T
-    freq=100.0;
-    Time=np.linspace(0,pd_datasets.shape[0]/freq,num=pd_datasets.shape[0])
-    for plot_col in range(2):# Left and ight
-        axs[0,plot_col].set_title(args['plot_title'])
-        if plot_col==0:
-            prefix="L_"
-        else:
-            prefix="R_"
-        for plot_idx, plot_row in enumerate(display_rows):
-            axs[plot_idx,plot_col].plot(Time,pd_datasets[prefix+plot_row])
-            axs[plot_idx,plot_col].legend([prefix+plot_row])
+    plot_method='seaborn'
+    if(plot_method=='matplotlib'):
+        gs1=gridspec.GridSpec(2*len(display_rows),len(display_cols))#13
+        gs1.update(hspace=0.1,wspace=0.15,top=0.95,bottom=0.05,left=0.04,right=0.98)
+        axs=[]
+        for plot_col in range(2):
+            for plot_row in range(len(display_rows)):
+                axs.append(fig.add_subplot(gs1[2*plot_row:2*plot_row+2,plot_col]))
 
-            #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1]])
-            #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+2]])
-            #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+3]])
-            #axs[plot_idx,plot_col].legend(col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1:3*plot_idx+plot_col*len(FEATURES_FIELDS)+4],ncol=3)
-            axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
-            axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
-            #axs[plot_idx].set_ylabel()
-            axs[plot_idx,plot_col].set_xticklabels([])
-        # plot targets
-        #for plot_idx in range(6,9):
-        #    axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[plot_idx-(12-3*plot_idx)]])
-        #    axs[plot_idx,plot_col].legend([col_names[plot_idx-(12-plot_col*3)]])
-        #    axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
-        #    axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
-        #    axs[plot_idx,plot_col].set_xticklabels(labels=[])
-        
-        #pdb.set_trace()
-        xticks=axs[plot_idx,plot_col].get_xticks()
-        #axs[plot_idx,plot_col].set_ylim((-10,120))
-        axs[plot_idx,plot_col].set_xticklabels([str(round(tt,1)) for tt in xticks])
-        axs[plot_idx,plot_col].set_xlabel("Time [s]")
+        print(pd_datasets.shape)
+        axs=np.array(axs).reshape(2,-1).T
+        freq=100.0;
+        Time=np.linspace(0,pd_datasets.shape[0]/freq,num=pd_datasets.shape[0])
+        for plot_col in range(2):# Left and ight
+            axs[0,plot_col].set_title(args['plot_title'])
+            if plot_col==0:
+                prefix="L_"
+            else:
+                prefix="R_"
+            for plot_idx, plot_row in enumerate(display_rows):
+                axs[plot_idx,plot_col].plot(Time,pd_datasets[prefix+plot_row])
+                axs[plot_idx,plot_col].legend([prefix+plot_row])
+
+                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1]])
+                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+2]])
+                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+3]])
+                #axs[plot_idx,plot_col].legend(col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1:3*plot_idx+plot_col*len(FEATURES_FIELDS)+4],ncol=3)
+                axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
+                axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
+                #axs[plot_idx].set_ylabel()
+                axs[plot_idx,plot_col].set_xticklabels([])
+            # plot targets
+            #for plot_idx in range(6,9):
+            #    axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[plot_idx-(12-3*plot_idx)]])
+            #    axs[plot_idx,plot_col].legend([col_names[plot_idx-(12-plot_col*3)]])
+            #    axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
+            #    axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
+            #    axs[plot_idx,plot_col].set_xticklabels(labels=[])
+            
+            xticks=axs[plot_idx,plot_col].get_xticks()
+            #axs[plot_idx,plot_col].set_ylim((-10,120))
+            #axs[plot_idx,plot_col].set_xticklabels([str(round(tt,1)) for tt in xticks])
+            axs[plot_idx,plot_col].set_xlabel("Time [s]")
+
+    if(plot_method=='seaborn'):
+        g=sns.FacetGrid(pd_datasets)
+        g.map_dataframe(x='',y='',)
     #plt.show()
     #reshape_pd_datasets=pd_datasets.melt('Time_vicon', var_name='cols',value_name='vals')
     #reshape_pd_datasets.head()
@@ -772,23 +788,26 @@ def drop_landing_range():
 
 
 
-def plot_statistic_kneemoment_under_fpa(data: list,subjects: list):
+def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name, subjects: list, subject_heights,plot_type='catbox'):
 
     phi={}
     experiment_categories=['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05','single']
-    for cat_idx, category in enumerate(experiment_categories):
+    for cat_idx, category in enumerate(experiment_categories):# trial types
         phi[category]={}
-        for sub_idx, subject in enumerate(subjects):
+        for sub_idx, subject in enumerate(subjects):# subjects
             phi[category][subject]=[]
             one_subject_data=data[sub_idx]
-            column_idx=-2
-            for idx in range(5*cat_idx,5*(cat_idx+1)):
-                temp_left=one_subject_data[idx,:,-2]
-                temp_right=one_subject_data[idx,:,-1]
-                phi[category][subject].append(max([max(temp_right),max(temp_left)]))
+            for idx in range(5*cat_idx,5*(cat_idx+1)):# trials
+                pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
+                temp_left=pd_temp_data[display_name[0]]
+                temp_right=pd_temp_data[display_name[1]]
+                phi[category][subject].append(max([max(temp_right),max(temp_left)])/subject_heights[sub_idx])
+                print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,phi[category][subject][-1]))
 
+    
+    pdb.set_trace()
     #2) plot
-    figsize=(6,4)
+    figsize=(8,4)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1=gridspec.GridSpec(6,1)#13
     gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
@@ -802,39 +821,83 @@ def plot_statistic_kneemoment_under_fpa(data: list,subjects: list):
 
     #3.1) plot 
     phi_values=[]
-    control_methods=list(phi[experiment_categories[0]].keys())
-    for idx,control_method in enumerate(control_methods):
+    pd_phi_values_list=[]
+    subject_names=list(phi[experiment_categories[0]].keys())
+    for idx,subject_name in enumerate(subject_names):
         phi_values.append([])
         for category in experiment_categories:
-            phi_values[idx].append(phi[category][control_method])
+            phi_values[idx].append(phi[category][subject_name])
+            temp=pd.DataFrame(data=phi[category][subject_name],columns=["values"])
+            temp.insert(1,'experiment_categories',category)
+            temp.insert(2,'subject_names',subject_name)
+            pd_phi_values_list.append(temp)
     
-    idx=0
-    boxwidth=0.2
-    box=[]
-    for box_idx in range(len(control_methods)):
-        box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(control_methods)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
-       # fill with colors
-    colors = ['lightblue', 'lightgreen','wheat']
-    for bplot, color in zip(box,colors[0:len(box)]):
-        for patch in bplot['boxes']:
-            patch.set_facecolor(color)
+    pd_phi_values=pd.concat(pd_phi_values_list)
 
-    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-    #axs[idx].set_yticks([0,0.1,0.2,0.3])
-    #axs[idx].set(ylim=[-0.01,0.3])
-    legend_names=[name for name in control_methods]
-    axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)])
-    axs[idx].set_xticks(ind)
-    axs[idx].set_xticklabels(FPA)
-    axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
-    axs[idx].set_xlabel(r'FPA')
+
+    if(plot_type=='catbox'):
+        idx=0
+        boxwidth=0.05
+        box=[]
+        for box_idx in range(len(subject_names)):
+            box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
+           # fill with colors
+        colors = ['lightblue', 'lightgreen','wheat']
+        import matplotlib._color_data as mcd
+        overlap = {name for name in mcd.CSS4_COLORS if "xkcd:" + name in mcd.XKCD_COLORS}
+        colors=[mcd.CSS4_COLORS[color_name] for color_name in overlap]
+
+        for bplot, color in zip(box,colors[0:len(box)]):
+            for patch in bplot['boxes']:
+                patch.set_facecolor(color)
+
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        legend_names=[name for name in subject_names]
+        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(FPA)
+        axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
+        axs[idx].set_xlabel(r'FPA')
+    else:
+        idx=0
+        sns.set_theme(style='whitegrid')
+        g=sns.catplot(x='experiment_categories',y='values',hue='subject_names',data=pd_phi_values,kind='point')
+        #g=sns.catplot(x='experiment_categories',y='values',data=pd_phi_values,kind='point')
+
+        g.ax.grid(which='both',axis='x',color='k',linestyle=':')
+        g.ax.grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        legend_names=[name for name in subject_names]
+        #axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
+        g.ax.set_xticks(ind)
+        g.ax.set_xticklabels(FPA)
+        g.ax.set_ylabel(r'Peak knee moment [BW.BH], display_name')
+        g.ax.set_xlabel(r'FPA')
+
+
+
 
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
     plt.show()
 
 
+#- set hyperparaams: sub_idx. subject_name: trial
+def setHyperparams_subject(hyperparaams):
+    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
+    subject_names=[ss for ss in subject_infos.index]
+    for subject_idx in subjects_list:
+        for subject_name in subject_names:
+            if(re.search(subject_idx,subject_name)!=None):
+                subject_idx_name=subject_name
+                break
+        print(subject_idx_name)
+        hyperparaams['sub_idx'][subject_idx_name]=TRIALS
 
 
 
@@ -856,36 +919,43 @@ hyperparams={
         #'device': str(torch.device("cuda" if torch.cuda.is_available() else "cpu")),
 }
 
-columns_names=FEATURES_FIELDS+LABELS_FIELDS
+# h5 dataset path
 raw_dataset_path=os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
-
-hyperparams['columns_names']=columns_names
 hyperparams['raw_dataset_path']=raw_dataset_path
-sub_name='P_09_libang'
-hyperparams['sub_idx']={sub_name:TRIALS}
+hyperparams['sub_idx']={}
+hyperparams['features_names']=FEATURES_FIELDS;
+hyperparams['labels_names']=LABELS_FIELDS
+hyperparams['features_num']=len(FEATURES_FIELDS)
+hyperparams['labels_num']=len(LABELS_FIELDS)
+hyperparams['columns_names']=hyperparams['features_names']+hyperparams['labels_names']
+setHyperparams_subject(hyperparams)
 
 
-labels_names=LABELS_FIELDS
-features_names=FEATURES_FIELDS
-columns_names=features_names+labels_names
-hyperparams['features_num']=len(features_names)
-hyperparams['labels_num']=len(labels_names)
-hyperparams['features_names']=features_names;
-hyperparams['labels_names']=labels_names
 
 
 if __name__=='__main__':
     multi_subject_data=[]
-    hyperparams['sub_idx']={'P_08_zhangboyuan':TRIALS}
-    series, scaled_series,scaler=load_normalize_data(sub_idx={sub_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
-    multi_subject_data.append(series)
-    hyperparams['sub_idx']={'P_09_libang':TRIALS}
-    series, scaled_series,scaler=load_normalize_data(sub_idx={sub_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
-    multi_subject_data.append(series)
 
+    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
+    subject_names_column=[ss for ss in subject_infos.index]
 
-    subjects_list=['P_08','P_09']
-    plot_statistic_kneemoment_under_fpa(multi_subject_data,subjects_list)
+    
+    subject_names=[]
+    for subject_idx in subjects_list:
+        for subject_name in subject_names_column:
+            if(re.search(subject_idx,subject_name)!=None):
+                subject_idx_name=subject_name
+                break
+        print(subject_idx_name)
+        subject_names.append(subject_idx_name)
+        hyperparams['sub_idx']={subject_idx_name:TRIALS}
+        hyperparams['columns_names']=['L_KneeMoment_X','L_KneeMoment_Y','R_KneeMoment_X','R_KneeMoment_Y']
+        series, scaled_series,scaler=load_normalize_data(sub_idx={subject_idx_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
+        multi_subject_data.append(series)
+
+    subject_heights=[float(subject_infos['Unnamed: 3'][sub_name]) for sub_name in subject_names]
+    plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],['L_KneeMoment_Y','R_KneeMoment_Y'],subjects_list,subject_heights,  plot_type="s")
 
     # display datasets
     #display_rows=['KneeAngle_X', 'KneeAngle_Y','KneeAngle_Z','KneeForce_X','KneeForce_Y', 'KneeForce_Z', 'KneeMoment_X','KneeMoment_Y','KneeMoment_Z','Force_X','Force_Y','Force_Z']
@@ -893,10 +963,12 @@ if __name__=='__main__':
     #display_rows=display_rows
     #display_rows=['Up_Acc_X', 'Up_Acc_Y','Up_Acc_Z','Up_Gyr_X','Up_Gyr_Y','Up_Gyr_Z','Lower_Acc_X','Lower_Acc_Y','Lower_Acc_Z', 'Lower_Gyr_X','Lower_Gyr_Y','Lower_Gyr_Z']
     #display_rows=['SHANK_Accel_X']
-    display_rows=['KneeMoment_X']
+    display_rows=['KneeMoment_X','KneeMoment_Y']
     #datasets_ranges=(dp_lib.all_datasets_ranges['sub_'+str(sub_idx-1)],dp_lib.all_datasets_ranges['sub_'+str(sub_idx)])
-    #display_rawdatase(series[0,0:150,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title=sub_name, display_rows=display_rows)
+    #display_rawdatase(series[0,0:150,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title=sub_name, display_rows=display_rows,display_cols=[''])
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
     #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)
     #dp_lib.display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')
+    #display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')
+    
 

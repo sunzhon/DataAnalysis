@@ -5,7 +5,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=5
+    runs=4
 fi
 
 echo "run ${runs} times"
@@ -21,7 +21,7 @@ for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
 #for experiment_variable in 0.0  0.1 0.2 0.3; # Three type of roughness terrains
 #for experiment_variable in 0.5
 do
-    for control_method in "apnc" #"phase_reset" "phase_modulation" "apnc";
+    for control_method in "phase_reset" "phase_modulation" "apnc";
     do
 
         if [ $control_method = "phase_reset" ]; then

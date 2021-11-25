@@ -27,6 +27,7 @@ import wearable_math as wearable_math
 import pdb
 import os, re
 import warnings
+import termcolor
 
 
 
@@ -83,12 +84,34 @@ class Visual3dCsvReader:
     """
     TRUE_EVENT_INDEX = 0
 
-    def __init__(self, file_path):
+    def __init__(self, file_path,subject_name,trial):
         # 读取V3D 输出数据
+        self.file_path = file_path
+        self.subject_name = subject_name
+        self.trial = trial
         self.data = pd.read_csv(file_path, delimiter='\t', header=1, skiprows=[2, 3, 4])
-        self.data.fillna(0)
-        self.data=self.data[V3D_DATA_FIELDS]
-        self.data.columns=V3D_LABELS_FIELDS
+        self.data = self.data.fillna(0)
+        
+        # extrect data specified by V3D_DATA_FIELDS
+        actual_v3d_data_fields=[ss for ss in self.data.columns]
+        try:
+            if actual_v3d_data_fields==V3D_DATA_FIELDS:
+                self.data=self.data[V3D_DATA_FIELDS]
+                self.data.columns=V3D_LABELS_FIELDS
+            else:
+                exist_fields, unexist_fields = [],[]
+                for fields in V3D_DATA_FIELDS:
+                    if(fields in actual_v3d_data_fields):
+                        exist_fields.append(fields)
+                    else:
+                        unexist_fields.append(fields)
+                        print(termcolor.colored("V3D export data has less data feilds:",'yellow'),fields)
+                        self.data.insert(self.data.shape[1],fields,0)
+                self.data=self.data.reindex(columns=V3D_DATA_FIELDS)
+                self.data.columns=V3D_LABELS_FIELDS
+        except ValueError:
+            pdb.set_trace()
+
         # 提取标签数据
         self.data_frame = self.data[V3D_LABELS_FIELDS].fillna(0)
         self.data_frame.columns = V3D_LABELS_FIELDS
@@ -102,6 +125,9 @@ class Visual3dCsvReader:
             self.data_frame=self.data_frame.loc[:int(row_num/10-1)] # 截取前面有效的行数，对齐模型计算数据和力数据
         #convolve2d(self.data_frame[FORCE_PALTE_FEILDS],filter_weight,'valid')
         print('V3d raw data shape:', self.data.shape, 'raw data frame shape:', self.data_frame.shape)
+        if(self.data.shape[0]==0):
+            print(termcolor.colored("V3D export data is wrong, please check vicon data process:",'red'),fields)
+            pdb.set_trace()
 
     def crop(self, start_index=0, end_index=None):
         '''
@@ -112,7 +138,12 @@ class Visual3dCsvReader:
             end_index=self.data_frame.shape[0]
 
         # keep index after start_index
-        self.data = self.data.loc[start_index:end_index]
+        try:
+            self.data = self.data.loc[start_index:end_index]
+        except Exception as e:
+            print(e)
+            pdb.set_trace()
+
         self.data.index = range(self.data.shape[0])
 
         self.data_frame = self.data_frame.loc[start_index:end_index]
@@ -124,13 +155,37 @@ class Visual3dCsvReader:
         #-- get touch moment, this is determined by the foot who touchs ground first
         left_touch_moment=self.data['LON'][0]
         right_touch_moment=self.data['RON'][0]
-        combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+
+        # if there is no touch moment, then set it to a big value , eg. 1000000
+        left_touch_moment=left_touch_moment if left_touch_moment >1 else 1000000
+        right_touch_moment=right_touch_moment if right_touch_moment >1 else 1000000
+        try:
+            combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+            if(combined_touch_moment==0) or (combined_touch_moment==1000000):
+                print(termcolor.colored("The trial has no right touch moment",'red'))
+        except Exception as e:
+            print(e)
+            pdb.set_trace()
+
         print('v3d touch moment: {}'.format(combined_touch_moment))
+
         #-- determine start_index and end_index, the drop landing
-        start_index=combined_touch_moment
-        end_index=combined_touch_moment+DROPLANDING_PERIOD-1
+        start_index=combined_touch_moment-DROPLANDING_PERIOD/4
+        end_index=combined_touch_moment+DROPLANDING_PERIOD/4*3-1
+
+
+        #-- check row_range is in start_index and end_index
+        row_length=self.data_frame.shape[0]
+        if((start_index<0) or (end_index>row_length)):
+            print(termcolor.colored("Trial: {} of subject: {} extract period is out the effective data period".format(self.trial,self.subject_name),'red'))
+            pdb.set_trace()
+
         #-- extract drop landing period data
         self.data_frame=self.data_frame.loc[start_index:end_index]
+        if(self.data_frame.shape[0]!=DROPLANDING_PERIOD):
+            print("data_frame row is less than sepcified DROPLANDING_PERIOD")
+            pdb.set_trace()
+
         print('v3d extracted data frame shape:', self.data_frame.shape)
 
 
@@ -150,9 +205,10 @@ class Visual3dCsvReader:
 
 
 class XsenTxtReader():
-    def __init__(self,folder_path,trial):
+    def __init__(self,folder_path, subject_name, trial):
         self.folder_path=folder_path
         self.trial=trial
+        self.subject_name=subject_name
 
         is_verbose=False
         #- read txt data of a trial which has eight txt files
@@ -161,6 +217,7 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         chest_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        chest_txt=self.interp_data(chest_txt)
 
 
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['WAIST']+'.txt'
@@ -168,12 +225,14 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         waist_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        waist_txt=self.interp_data(waist_txt)
 
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['L_THIGH']+'.txt'
         file_path=os.path.join(folder_path,file_name)
         if is_verbose:
             print(file_path)
         l_thigh_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        l_thigh_txt=self.interp_data(l_thigh_txt)
         
         
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['L_SHANK']+'.txt'
@@ -181,6 +240,7 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         l_shank_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        l_shank_txt=self.interp_data(l_shank_txt)
 
 
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['L_FOOT']+'.txt'
@@ -188,12 +248,14 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         l_foot_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        l_foot_txt=self.interp_data(l_foot_txt)
         
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['R_THIGH']+'.txt'
         file_path=os.path.join(folder_path,file_name)
         if is_verbose:
             print(file_path)
         r_thigh_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        r_thigh_txt=self.interp_data(r_thigh_txt)
         
         
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['R_SHANK']+'.txt'
@@ -201,6 +263,7 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         r_shank_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        r_shank_txt=self.interp_data(r_shank_txt)
 
 
         file_name='MT_'+XSEN_IMU_ID['MASTER']+'_0'+trial+'-000_'+XSEN_IMU_ID['R_FOOT']+'.txt'
@@ -208,21 +271,30 @@ class XsenTxtReader():
         if is_verbose:
             print(file_path)
         r_foot_txt=np.loadtxt(file_path,comments='//',skiprows=6,dtype=float)
+        r_foot_txt=self.interp_data(r_foot_txt)
 
+
+        # combine the eight IMU data into a csv file
         row_num=min(chest_txt.shape[0], waist_txt.shape[0],
                     l_thigh_txt.shape[0],l_shank_txt.shape[0],l_foot_txt.shape[0],
                     r_thigh_txt.shape[0],r_shank_txt.shape[0],r_foot_txt.shape[0]
                    )
-
-        all_imu_data=np.hstack((chest_txt[:row_num,:], waist_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,l_thigh_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,l_shank_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,l_foot_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,r_thigh_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,r_shank_txt[:row_num,1:]))
-        all_imu_data=np.hstack((all_imu_data,r_foot_txt[:row_num,1:]))
         
-        pd_all_imu_data=pd.DataFrame(data=all_imu_data,columns=IMU_DATA_FIELDS)
+        try:
+            all_imu_data=np.hstack((chest_txt[:row_num,:], waist_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,l_thigh_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,l_shank_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,l_foot_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,r_thigh_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,r_shank_txt[:row_num,1:]))
+            all_imu_data=np.hstack((all_imu_data,r_foot_txt[:row_num,1:]))
+        except:
+            pdb.set_trace()
+
+
+        # butterworth filter
+        filtered_all_imu_data=data_filter(all_imu_data, 10, 100, filter_order=2)
+        pd_all_imu_data=pd.DataFrame(data=filtered_all_imu_data,columns=IMU_DATA_FIELDS)
 
         csv_path=os.path.join(folder_path,'features'+'_trial_'+trial+'.csv')
         if is_verbose:
@@ -230,7 +302,7 @@ class XsenTxtReader():
         pd_all_imu_data.to_csv(csv_path,index=False)
         
         self.data=pd_all_imu_data
-        self.data_frame=self.data.loc[:,IMU_FEATURES_FIELDS]
+        self.data_frame=self.data.loc[:,IMU_FEATURES_FIELDS] #read necessary columns
         self.data_frame.columns=IMU_FEATURES_FIELDS
         self.data_frame.index=range(self.data_frame.shape[0])
 
@@ -243,6 +315,8 @@ class XsenTxtReader():
         self.data_frame=self.data_frame.reindex([ int(x) for x in np.linspace(0,extend_row,num=extend_row)])
         self.data_frame.interpolate(inplace=True)
         '''
+
+
 
 
 
@@ -264,11 +338,14 @@ class XsenTxtReader():
 
 
     def extract_droplanding_period(self):
-
+        
+        #-v3d file in a same session
         list_v3d_files=os.listdir(re.sub('xsen','v3d',self.folder_path))
-        v3d_file=[x for x in list_v3d_files if self.trial in x][0]
+        v3d_file=[x for x in list_v3d_files if self.trial+'.csv' in x][0]
+        print("v3d file: {} for getting touch momemnt".format(v3d_file))
         v3d_file_path=os.path.join(re.sub('xsen','v3d', self.folder_path), v3d_file)
         v3d_data = pd.read_csv(v3d_file_path, delimiter='\t', header=1, skiprows=[2, 3, 4])
+        v3d_data = v3d_data.fillna(0)
 
         #- extract drop landing period
         left_touch_moment=v3d_data['LON'][0]
@@ -276,17 +353,84 @@ class XsenTxtReader():
         #-- get touch moment, this is determined by the foot who touchs ground first
         # NOTE: left_touch_moment and right_touch_moment are global variables, which are write by Visaul3D CsvReader,
         # So this class should be instanlizated after Visual3DCsvReader
-        combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+
+        # if there is no touch moment, then set it to a big value , eg. 1000000
+        left_touch_moment=left_touch_moment if left_touch_moment >1 else 1000000
+        right_touch_moment=right_touch_moment if right_touch_moment >1 else 1000000
+        try:
+            combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+            if(combined_touch_moment==0) or (combined_touch_moment==1000000):
+                print(termcolor.colored("The trial has no right touch moment",'red'))
+                pdb.set_trace()
+        except:
+            pdb.set_trace()
         print('xsen touch moment: {}'.format(combined_touch_moment))
+
         #-- determine start_index and end_index, the drop landing
-        start_index=combined_touch_moment
-        end_index=combined_touch_moment+DROPLANDING_PERIOD - 1
+        start_index=combined_touch_moment-DROPLANDING_PERIOD/4 
+        end_index=combined_touch_moment+DROPLANDING_PERIOD/4*3 - 1
+
+        #-- check row_range is in start_index and end_index
+        row_length=self.data_frame.shape[0]
+        if((start_index<0) or (end_index>row_length)):
+            print(termcolor.colored("Trial: {} of subject: {} extract period is out the effective data period".format(self.trial,self.subject_name),'red'))
+            pdb.set_trace()
+        
         #-- extract drop landing period data
         self.data_frame=self.data_frame.loc[start_index:end_index]
+        if(self.data_frame.shape[0]!=DROPLANDING_PERIOD):
+            print("data_frame row is less than sepcified DROPLANDING_PERIOD")
+            pdb.set_trace()
+
 
         print('xsen  extracted data frame shape:', self.data_frame.shape)
 
 
+    def interp_data(self,a_imu_txt):
+        if(a_imu_txt.shape[0]==0):
+            print(termcolor.colored("subject:{} in trial: {} loss IMU data".format(self.subject_name, self.trial),'red'))
+            self.data_loss=True
+            exit()
+        # reindex the packacge counter (The first column)
+        counter=a_imu_txt[:,0]
+        reindex_counter=counter-counter[0] # the first countr number is set to 0
+        reindex_counter=np.hstack((reindex_counter[reindex_counter>=0],reindex_counter[reindex_counter<0]+65535+1)) # 65535 is the max counter value
+        a_imu_txt[:,0]=reindex_counter
+        new_a_imu_txt=list(a_imu_txt.T)
+        
+        # interpolate package where they loss
+        if(a_imu_txt.shape[0]<a_imu_txt[-1,0]):
+            print(termcolor.colored("Trial:{} loss package".format(self.trial),"yellow"))
+            nonexist_packages=[]
+            exist_flag=False
+            for package_idx in range(int(a_imu_txt[-1,0])):# The necessary package number
+                if(package_idx in reindex_counter): # reindex_counter, actual package
+                    exist_flag=True
+                else:
+                    exist_flag=False
+                    nonexist_packages.append(package_idx)
+                if ((exist_flag==True) and (len(nonexist_packages)!=0)):
+                    for col_idx in range(0,a_imu_txt.shape[1]):
+                        before_nonexist_package = nonexist_packages[0]-1 # 插值采样开始点
+                        after_nonexist_package  = nonexist_packages[-1]+1# 插值采样结束点
+                        start_index = np.where(reindex_counter==before_nonexist_package)[0][0]
+                        end_index = np.where(reindex_counter==after_nonexist_package)[0][0]
+                        print(nonexist_packages,termcolor.colored("ssssssssssssss",'red'))
+                        fx=np.array([before_nonexist_package,after_nonexist_package])
+                        fy=a_imu_txt[[start_index,end_index],col_idx]
+                        temp=np.interp(nonexist_packages,fx,fy)
+                        new_a_imu_txt[col_idx]=np.insert(new_a_imu_txt[col_idx],nonexist_packages[0],temp)
+                    nonexist_packages=[]
+
+        try:
+            ret=np.array(new_a_imu_txt).T
+        except Exception as e:
+            print(e)
+            pdb.set_trace()
+
+        # round package_number
+        ret[:,0]=np.round(ret[:,0])
+        return ret
 
         
 
@@ -606,7 +750,7 @@ class ViconCsvReader:
 
     
     
-
+# butterworth low-pass filter
 def data_filter(data, cut_off_fre, sampling_fre, filter_order=4):
     fre = cut_off_fre / (sampling_fre / 2)
     b, a = butter(filter_order, fre, 'lowpass')

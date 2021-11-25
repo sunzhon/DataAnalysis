@@ -32,11 +32,16 @@ import yaml
 import h5py
 print("tensorflow version:",tf.__version__)
 # load datasets in a numpy 
-import package_lib.dp_lib as dp_lib
+import package_lib.dp_process_rawdata as dp_lib
+
+import seaborn as sns
 
 from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 from package_lib.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 
+
+from sklearn.preprocessing import StandardScaler
+from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 
 subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
 
@@ -61,11 +66,10 @@ def initParameters():
     hyperparams['batch_size']=4
     hyperparams['window_size']=DROPLANDING_PERIOD
     hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=25
+    hyperparams['epochs']=5
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
     
-    print('sub_idxs:',hyperparams['sub_idx'])
     return hyperparams
 
 
@@ -75,9 +79,6 @@ def initParameters():
 # In[2]:
 
 
-from sklearn.preprocessing import StandardScaler
-import package_lib.dp_lib as dp_lib
-from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 
 
 
@@ -233,10 +234,7 @@ class myCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
-if __name__=='__main__':
-    pass
-    #model=model_v1(hyperparams)
-    #print(model.summary())
+    
 #training_folder=dp_lib.create_training_files(hyperparams=dp_lib.hyperparams)
 #model summary
 
@@ -402,10 +400,13 @@ def save_trainedModel(trained_model,history_dict,training_folder,**args):
     # sub_idx of the subjects for training 
     train_sub_idx=hyperparams['train_sub_idx']
     train_sub_idx_str=''
-    for ii in train_sub_idx:
-        train_sub_idx_str+='_'+str(ii)
+    if(len(train_sub_idx)>10):# if subject has too much, then just use its first and last sub to name
+        train_sub_idx_str=train_sub_idx[0]+train_sub_idx[-1]
+    else:
+        for ii in train_sub_idx:
+            train_sub_idx_str+='_'+str(ii)
+
     # Save weights and models
-     #-----
     
     # checkpoints
     checkpoint_folder=training_folder+'/checkpoints/'
@@ -495,9 +496,12 @@ def test_model(training_folder, xy_test,scaler,**args):
     #3) sub_idx of the subjects for training 
     train_sub_idx=hyperparams['train_sub_idx']
     train_sub_idx_str=''
-    for ii in train_sub_idx:
-        train_sub_idx_str+='_'+str(ii)
-        
+    if(len(train_sub_idx)>10):# if subject has too much, then just use its first and last sub to name
+        train_sub_idx_str=train_sub_idx[0]+train_sub_idx[-1]
+    else:
+        for ii in train_sub_idx:
+            train_sub_idx_str+='_'+str(ii)
+
     #4) Load model
     saved_model_file=training_folder+'/saved_model/my_model_sub'+train_sub_idx_str+'.h5'
     #saved_model_file=training_folder+'/saved_model/my_model_sub_'+'0123456789a'+'.h5'
@@ -562,9 +566,9 @@ def plot_prediction(features,labels,predictions,testing_folder):
     mae=tf.keras.metrics.mean_absolute_error(labels, predictions).numpy()
     
     mse=tf.keras.metrics.mean_squared_error(labels, predictions).numpy()
-    print('MAE: {:.3f}, RMSE:{:.3f} \n of six joint angles in 2.5 seconds'.format(np.mean(mae),np.mean(np.sqrt(mse))))
+    print('MAE: {:.3f}, RMSE:{:.3f} in a period'.format(np.mean(mae),np.mean(np.sqrt(mse))))
     
-    
+    pdb.set_trace()
     # Load hyperparameters, Note the values in hyperparams become string type
     if(re.search('test_\d',testing_folder)!=None):
         testing_folder=os.path.dirname(testing_folder) # 父目录
@@ -582,7 +586,6 @@ def plot_prediction(features,labels,predictions,testing_folder):
     
     
     # Save plot results
-    #sub_idx=15
     test_sub_idx=hyperparams['test_sub_idx']
     test_sub_idx_str=''
     for ii in test_sub_idx:
@@ -611,25 +614,12 @@ def plot_history(history_dict):
 
 
     
-if __name__=='__main__':
-    pass
-    #plot_prediction(features,labels,predictions,testing_folder)
-
-
-# ## 6.2 Statistical plots
-
-# In[13]:
-
-
-import pandas as pd
-import seaborn as sns
-    
 def plot_prediction_statistic(features, labels, predictions,testing_folder):
     
     if(re.search('test_\d',testing_folder)!=None):
         testing_folder=os.path.dirname(testing_folder) # 父目录
     # Load hyperparameters, Note the values in hyperparams become string type
-    training_folder=testing_folder+"/../training_"+re.search(r"\d+/$",testing_folder).group()
+    training_folder=testing_folder+"/../training"+re.search(r"_\d+$",testing_folder).group()
     hyperparams_file=training_folder+"/hyperparams.yaml"
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
@@ -739,10 +729,13 @@ def main():
 
     # leave-one-out cross-validation
     loo = LeaveOneOut()
-    for train_index, test_index in loo.split(hyperparams['sub_idx']['P_02_dongxuan']):
-        
+    #subject_name='P_16_zhangjinduo'
+    #applied_dataset_trials = hyperparams['sub_idx'][subject_name][:29]
+
+    applied_dataset_trials = range(len(norm_trials_data.keys()))
+    for train_index, test_index in loo.split(applied_dataset_trials):
         #0) train and test subject dataset 
-        print("TRAIN:", train_index, "TEST:", test_index)
+        print("train set:", train_index, "test set:", test_index)
         hyperparams['train_sub_idx']=[str(ii) for ii in  train_index] # the values of params should be str or int types
         hyperparams['test_sub_idx']=[str(ii) for ii in test_index]
         xy_train=[norm_trials_data['trial_'+str(ii)] for ii in train_index]
@@ -785,17 +778,27 @@ def main():
 
 
 if __name__=='__main__':
+
+    #0) Train and test model
+
     #training_folder, testing_folder, xy_test, scaler =  main()
     hyperparams=initParameters()
-    #1) test model
+
+    #model=model_v1(hyperparams)
+    #print(model.summary())
+
+
+    #1) test model and visualize testing results
     if(not testing_folder in locals().keys()):
-        testing_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-09-28/test_191409/test_1')
-        #training_folder='./models_parameters_results/2021-09-28/training_125651/'
+        testing_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-11-14/test_002015/test_1')
+        training_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-11-14/training_002015/')
         #features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
         #log_dict['training_folder'].append(training_folder)
         #log_dict['testing_folder'].append(testing_folder)
-    testing_results=testing_folder+'/test_results.h5'
-    print(testing_results)
+
+
+    testing_results=os.path.join(testing_folder,'test_results.h5')
+    #print(testing_results)
     with h5py.File(testing_results,'r') as fd:
         features=fd['features'][:,:]
         predictions=fd['predictions'][:,:]

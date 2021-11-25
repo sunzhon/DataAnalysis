@@ -12,8 +12,8 @@ VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 #TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
 TRIAL_NUM=40
 TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]
-SESSIONS=['20210926_vicon']
-SESSIONS=['20210926_vicon','20211015_vicon']
+SESSIONS=['20210926_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon']
+#SESSIONS=['20211026_vicon']
 
 
 #XSEN_IMU_ID={'MASTER':'0120092C','L_THIGH':'00B44910','L_SHANK':'00B4490A','R_THIGH':'00B44912','R_SHANK':'00B44916'} # for lower body plugin gait
@@ -25,17 +25,28 @@ SUBJECTS = [#'P_01_suntao',
             #,'P_03_liyan',
             #'P_04_kezhe'
             'P_08_zhangboyuan',
-            'P_09_libang'
-    
-            #'s002_wangdianxin', 's004_ouyangjue', 's005_tangansheng', 's006_xusen', 's007_zuogangao', 's008_liyu',
-            #'s009_sunyubo', 's010_handai', 's011_wuxingze', 's012_likaixiang', 's013_zhangxiaohan', 's014_maqichao',
-            #'s015_weihuan', 's017_tantian', 's018_wangmian', 's019_chenhongyuan', 's020_houjikang'
-            # , 's003_linyuan', 's001_tantian', 's016_houjikang'
+            'P_09_libang',
+            'P_10_dongxuan',
+            'P_11_liuchunyu',
+            #'P_12_fuzijun'
+            'P_13_xulibang',
+            'P_14_hunan',
+            'P_15_liuzhaoyu',
+            'P_16_zhangjinduo',
+            'P_17_congyuanqi',
+            'P_18_hezhonghai',
+            'P_19_xiongyihui',
+            'P_20_xuanweicheng',
+            'P_21_wujianing',
+            'P_22_zhangning',
+            'P_23_wangjinhong',
+            'P_24_liziqing'
             ]
-# HYPER_PARAM_SUBJECT = ['s003_linyuan']
 
-#TRIALS_PRINT = ['Baseline', 'FPA', 'Step Width', 'Trunk Sway']
-#STATIC_TRIALS = ['static_back', 'static_side']
+
+
+
+
 DYNAMIC_TRIALS = ['baseline', 'parallel', 'toe_in', 'toe_out']
 DYNAMIC_TRIALS = ['baseline', 'fpa_01', 'fpa_02','fpa_03','fpa_04','fpa_05','single']
 STATIC_TRIALS = ['static']
@@ -186,7 +197,7 @@ V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_K
 V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'RIGHT_GRF', 'RIGHT_GRF.1','RIGHT_GRF.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'LEFT_GRF','LEFT_GRF.1','LEFT_GRF.2']
 
 
-DROPLANDING_PERIOD=60 # 落地后的两秒内， 这是研究每次落地实验的时间范围
+DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验的时间范围
 
 """
 这三个变量的设置 需要一致
@@ -203,6 +214,6 @@ DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','da
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
-LABELS_FIELDS= ['L_KneeMoment_X','R_KneeMoment_X']
+LABELS_FIELDS= ['L_KneeMoment_Y','R_KneeMoment_Y']
 
 

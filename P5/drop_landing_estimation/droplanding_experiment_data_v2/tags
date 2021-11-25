@@ -67,8 +67,7 @@ SEGMENT_DEFINITIONS	package_lib/const.py	/^SEGMENT_DEFINITIONS = {$/;"	v
 SEGMENT_MASS_PERCENT	package_lib/const.py	/^SEGMENT_MASS_PERCENT = {'L_FOOT': 1.37, 'R_FOOT': 1.37, 'R_SHANK': 4.33, 'R_THIGH': 14.16,$/;"	v
 SENSOR_COMBINATION	package_lib/const.py	/^SENSOR_COMBINATION = ['8IMU_2camera', '8IMU', '3IMU_2camera', '3IMU', '1IMU_2camera', '1IMU', '2camera']$/;"	v
 SENSOR_COMBINATION_SORTED	package_lib/const.py	/^SENSOR_COMBINATION_SORTED = ['8IMU_2camera', '3IMU_2camera', '8IMU', '1IMU_2camera', '3IMU', '2camera', '1IMU']$/;"	v
-SESSIONS	package_lib/const.py	/^SESSIONS=['20210926_vicon','20211015_vicon']$/;"	v
-SESSIONS	package_lib/const.py	/^SESSIONS=['20210926_vicon']$/;"	v
+SESSIONS	package_lib/const.py	/^SESSIONS=['20210926_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon']$/;"	v
 STATIC_TRIALS	package_lib/const.py	/^STATIC_TRIALS = ['static']$/;"	v
 STEP_TYPE	package_lib/const.py	/^STEP_TYPE = STANCE$/;"	v
 SUBJECTS	package_lib/const.py	/^SUBJECTS = [#'P_01_suntao',$/;"	v
@@ -76,7 +75,7 @@ SageCsvReader	package_lib/wearable_toolkit.py	/^class SageCsvReader:$/;"	c
 TRIALS	package_lib/const.py	/^TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]$/;"	v
 TRIAL_NUM	package_lib/const.py	/^TRIAL_NUM=40$/;"	v
 TRUE_EVENT_INDEX	package_lib/wearable_toolkit.py	/^    TRUE_EVENT_INDEX = 0$/;"	v	class:Visual3dCsvReader
-V3DReader	package_lib/get_dp_rawdata.py	/^class V3DReader():$/;"	c
+V3DReader	package_lib/dp_load_rawdata.py	/^class V3DReader():$/;"	c
 V3D_DATA_FIELDS	package_lib/const.py	/^V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'FP1', 'FP1.1','FP1.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'FP2','FP2.1','FP2.2']$/;"	v
 V3D_DATA_FIELDS	package_lib/const.py	/^V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'RIGHT_GRF', 'RIGHT_GRF.1','RIGHT_GRF.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'LEFT_GRF','LEFT_GRF.1','LEFT_GRF.2']$/;"	v
 V3D_LABELS_FIELDS	package_lib/const.py	/^V3D_LABELS_FIELDS=['LON','RON']+['R_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['R_Force'+dire for dire in DIRECTIONS] + ['L_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['L_Force'+dire for dire in DIRECTIONS] $/;"	v
@@ -86,11 +85,11 @@ VIDEO_LIST	package_lib/const.py	/^VIDEO_LIST = ["LShoulder", "RShoulder", "MidHi
 VIDEO_ORIGINAL_SAMPLE_RATE	package_lib/const.py	/^VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962$/;"	v
 VIDEO_PATH	package_lib/const.py	/^VIDEO_PATH = os.environ.get('VIDEO_DATA_PATH')$/;"	v
 ViconCsvReader	package_lib/wearable_toolkit.py	/^class ViconCsvReader:$/;"	c
-ViconReader	package_lib/get_dp_rawdata.py	/^class ViconReader():$/;"	c
+ViconReader	package_lib/dp_load_rawdata.py	/^class ViconReader():$/;"	c
 VideoCsvReader	package_lib/wearable_toolkit.py	/^class VideoCsvReader:$/;"	c
 Visual3dCsvReader	package_lib/wearable_toolkit.py	/^class Visual3dCsvReader:$/;"	c
 XSEN_IMU_ID	package_lib/const.py	/^XSEN_IMU_ID={'MASTER':'0120092C','CHEST':'00B44914','WAIST':'00B44918','L_THIGH':'00B44915','L_SHANK':'00B44909','L_FOOT':'00B44907','R_THIGH':'00B4490C','R_SHANK':'00B4490E','R_FOOT':'00B44911'}$/;"	v
-XsenReader	package_lib/get_dp_rawdata.py	/^class XsenReader():$/;"	c
+XsenReader	package_lib/dp_load_rawdata.py	/^class XsenReader():$/;"	c
 XsenTxtReader	package_lib/wearable_toolkit.py	/^class XsenTxtReader():$/;"	c
 __find_stationary_phase	package_lib/wearable_toolkit.py	/^    def __find_stationary_phase(gyr_magnitude, acc_magnitude, foot_stationary_acc_thd, foot_stationary_gyr_thd):$/;"	m	class:SageCsvReader	file:
 __find_stationary_phase_2	package_lib/wearable_toolkit.py	/^    def __find_stationary_phase_2(gyr_magnitude, acc_magnitude, foot_stationary_acc_thd, foot_stationary_gyr_thd):$/;"	m	class:SageCsvReader	file:
@@ -101,13 +100,13 @@ __init__	fnn_model.py	/^    def __init__(self, input_size, hidden_size, num_laye
 __init__	fnn_model.py	/^    def __init__(self, input_size, hidden_size, num_layers, output_size,seed=0,device='cpu'):$/;"	m	class:MyLSTM_MoldeV2
 __init__	fnn_model.py	/^    def __init__(self, num_features, num_labels):$/;"	m	class:MyFNN_ModelV2
 __init__	fnn_model.py	/^    def __init__(self,datafile,features_names,labels_names,train=True,norm_type='mean_std',preprocess_filer=False):$/;"	m	class:DroplandingDataset
+__init__	package_lib/dp_load_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:V3DReader
+__init__	package_lib/dp_load_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:ViconReader
+__init__	package_lib/dp_load_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:XsenReader
 __init__	package_lib/fnn_model_bk.py	/^    def __init__(self, input_size, hidden_size, num_layers, output_size,seed=0,device='cpu'):$/;"	m	class:MyLSTM_MoldeV1
 __init__	package_lib/fnn_model_bk.py	/^    def __init__(self, input_size, hidden_size, num_layers, output_size,seed=0,device='cpu'):$/;"	m	class:MyLSTM_MoldeV2
 __init__	package_lib/fnn_model_bk.py	/^    def __init__(self, num_features, num_labels):$/;"	m	class:MyFNN_ModelV2
 __init__	package_lib/fnn_model_bk.py	/^    def __init__(self,datafile,features_names,labels_names,train=True,norm_type='mean_std',preprocess_filer=False):$/;"	m	class:DroplandingDataset
-__init__	package_lib/get_dp_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:V3DReader
-__init__	package_lib/get_dp_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:ViconReader
-__init__	package_lib/get_dp_rawdata.py	/^    def __init__(self,subject_info,session):$/;"	m	class:XsenReader
 __init__	package_lib/wearable_toolkit.py	/^    def __init__(self, file_path):$/;"	m	class:SageCsvReader
 __init__	package_lib/wearable_toolkit.py	/^    def __init__(self, file_path):$/;"	m	class:VideoCsvReader
 __init__	package_lib/wearable_toolkit.py	/^    def __init__(self, file_path):$/;"	m	class:Visual3dCsvReader
@@ -116,10 +115,10 @@ __init__	package_lib/wearable_toolkit.py	/^    def __init__(self,folder_path,tri
 __len__	fnn_model.py	/^    def __len__(self):$/;"	m	class:DroplandingDataset	file:
 __len__	package_lib/fnn_model_bk.py	/^    def __len__(self):$/;"	m	class:DroplandingDataset	file:
 all_datasets_len	fnn_model.py	/^all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,$/;"	v
-all_datasets_len	package_lib/dp_lib.py	/^all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,$/;"	v
+all_datasets_len	package_lib/dp_process_rawdata.py	/^all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,$/;"	v
 all_datasets_len	package_lib/fnn_model_bk.py	/^all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,$/;"	v
 all_datasets_ranges	fnn_model.py	/^all_datasets_ranges={'sub_-1':0,'sub_0': 6951, 'sub_1': 14390, 'sub_2': 22076, 'sub_3': 30754, 'sub_4': 36934, 'sub_5': 43605,$/;"	v
-all_datasets_ranges	package_lib/dp_lib.py	/^all_datasets_ranges={'sub_-1':0,'sub_0': 6951, 'sub_1': 14390, 'sub_2': 22076, 'sub_3': 30754, 'sub_4': 36934, 'sub_5': 43605,$/;"	v
+all_datasets_ranges	package_lib/dp_process_rawdata.py	/^all_datasets_ranges={'sub_-1':0,'sub_0': 6951, 'sub_1': 14390, 'sub_2': 22076, 'sub_3': 30754, 'sub_4': 36934, 'sub_5': 43605,$/;"	v
 all_datasets_ranges	package_lib/fnn_model_bk.py	/^all_datasets_ranges={'sub_-1':0,'sub_0': 6951, 'sub_1': 14390, 'sub_2': 22076, 'sub_3': 30754, 'sub_4': 36934, 'sub_5': 43605,$/;"	v
 append_external_kam	package_lib/wearable_toolkit.py	/^    def append_external_kam(self):$/;"	m	class:ViconCsvReader
 batch_size	fnn_model.py	/^    batch_size=hyperparams['batch_size']$/;"	v
@@ -127,14 +126,14 @@ batch_size	package_lib/fnn_model_bk.py	/^    batch_size=hyperparams['batch_size'
 calibrate_force_plate_center	package_lib/wearable_toolkit.py	/^def calibrate_force_plate_center(file_path, plate_num):$/;"	f
 col_names	fnn_model.py	/^        col_names=['Time_vicon','L_Up_Acc_X', 'L_Up_Acc_Y', 'L_Up_Acc_Z', 'L_Up_Gyr_X', 'L_Up_Gyr_Y','L_Up_Gyr_Z', 'L_Up_Mag_X', 'L_Up_Mag_Y','L_Up_Mag_Z',$/;"	v
 col_names	package_lib/fnn_model_bk.py	/^        col_names=['Time_vicon','L_Up_Acc_X', 'L_Up_Acc_Y', 'L_Up_Acc_Z', 'L_Up_Gyr_X', 'L_Up_Gyr_Y','L_Up_Gyr_Z', 'L_Up_Mag_X', 'L_Up_Mag_Y','L_Up_Mag_Z',$/;"	v
-columns_names	package_lib/dp_lib.py	/^columns_names=FEATURES_FIELDS+LABELS_FIELDS$/;"	v
-columns_names	package_lib/dp_lib.py	/^columns_names=features_names+labels_names$/;"	v
+columns_names	package_lib/dp_process_rawdata.py	/^columns_names=FEATURES_FIELDS+LABELS_FIELDS$/;"	v
+columns_names	package_lib/dp_process_rawdata.py	/^columns_names=features_names+labels_names$/;"	v
 cpus	rnn_model.py	/^cpus=tf.config.list_logical_devices(device_type='CPU')$/;"	v
 create_step_id	package_lib/wearable_toolkit.py	/^    def create_step_id(self, segment, verbose=False):$/;"	m	class:SageCsvReader
 create_step_id	package_lib/wearable_toolkit.py	/^    def create_step_id(self, step_type):$/;"	m	class:Visual3dCsvReader
-create_testing_files	package_lib/dp_lib.py	/^def create_testing_files(training_folder, base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results\/')):$/;"	f
+create_testing_files	package_lib/dp_process_rawdata.py	/^def create_testing_files(training_folder, base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results\/')):$/;"	f
 create_testing_files	package_lib/fnn_model_bk.py	/^def create_testing_files(training_folder, base_folder='.\/models_parameters_results\/'):$/;"	f
-create_training_files	package_lib/dp_lib.py	/^def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results\/')):$/;"	f
+create_training_files	package_lib/dp_process_rawdata.py	/^def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results\/')):$/;"	f
 create_training_files	package_lib/fnn_model_bk.py	/^def create_training_files(model_object=None, hyperparams={'lr':0},base_folder='.\/models_parameters_results\/'):$/;"	f
 crop	package_lib/wearable_toolkit.py	/^    def crop(self, start_index):$/;"	m	class:SageCsvReader
 crop	package_lib/wearable_toolkit.py	/^    def crop(self, start_index):$/;"	m	class:ViconCsvReader
@@ -146,15 +145,16 @@ datasets	fnn_model.py	/^        datasets=DroplandingDataset(raw_datasets_path,fe
 datasets	package_lib/fnn_model_bk.py	/^        datasets=DroplandingDataset(raw_datasets_path,features_names,labels_names,norm_type=norm_type)$/;"	v
 datasets_ranges	fnn_model.py	/^        datasets_ranges=(0,6951)$/;"	v
 datasets_ranges	fnn_model.py	/^        datasets_ranges=(all_datasets_ranges['sub_'+str(sub_idx-1)],all_datasets_ranges['sub_'+str(sub_idx)])$/;"	v
+datasets_ranges	package_lib/dp_process_rawdata.py	/^    datasets_ranges=(dp_lib.all_datasets_ranges['sub_'+str(sub_idx-1)],dp_lib.all_datasets_ranges['sub_'+str(sub_idx)])$/;"	v
 datasets_ranges	package_lib/fnn_model_bk.py	/^        datasets_ranges=(0,6951)$/;"	v
 datasets_ranges	package_lib/fnn_model_bk.py	/^        datasets_ranges=(all_datasets_ranges['sub_'+str(sub_idx-1)],all_datasets_ranges['sub_'+str(sub_idx)])$/;"	v
 device	fnn_model.py	/^    device=hyperparams['device']$/;"	v
 device	package_lib/fnn_model_bk.py	/^    device=hyperparams['device']$/;"	v
-display_rawdatase	package_lib/dp_lib.py	/^def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):$/;"	f
+display_rawdatase	package_lib/dp_process_rawdata.py	/^def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):$/;"	f
 display_rawdatase	package_lib/fnn_model_bk.py	/^def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):$/;"	f
-display_rows	package_lib/dp_lib.py	/^    display_rows=['KneeMoment_X']$/;"	v
+display_rows	package_lib/dp_process_rawdata.py	/^    display_rows=['KneeMoment_X']$/;"	v
 drop_landing_period	package_lib/fnn_model_bk.py	/^def drop_landing_period():$/;"	f
-drop_landing_range	package_lib/dp_lib.py	/^def drop_landing_range():$/;"	f
+drop_landing_range	package_lib/dp_process_rawdata.py	/^def drop_landing_range():$/;"	f
 eval_loader	fnn_model.py	/^        eval_loader = torch.utils.data.DataLoader(dataset=eval_sets, batch_size=batch_size, shuffle=True)$/;"	v
 eval_loader	package_lib/fnn_model_bk.py	/^        eval_loader = torch.utils.data.DataLoader(dataset=eval_sets, batch_size=batch_size, shuffle=True)$/;"	v
 eval_sets	fnn_model.py	/^        eval_sets=torch.utils.data.Subset(datasets,indices_eval)$/;"	v
@@ -163,12 +163,12 @@ expr	ptags.py	/^expr = r'^[ \\t]*(def|class)[ \\t]+([a-zA-Z0-9_]+)[ \\t]*[:\\(]'
 extract_droplanding_period	package_lib/wearable_toolkit.py	/^    def extract_droplanding_period(self):$/;"	m	class:Visual3dCsvReader
 extract_droplanding_period	package_lib/wearable_toolkit.py	/^    def extract_droplanding_period(self):$/;"	m	class:XsenTxtReader
 extract_imu_fields	package_lib/const.py	/^extract_imu_fields = lambda imus, fields: [imu + "_" + field for imu in imus for field in fields]$/;"	v
-extract_subject_drop_landing_data	package_lib/dp_lib.py	/^def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:$/;"	f
+extract_subject_drop_landing_data	package_lib/dp_process_rawdata.py	/^def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:$/;"	f
 extract_subject_drop_landing_data	package_lib/fnn_model_bk.py	/^def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:$/;"	f
 extract_video_fields	package_lib/const.py	/^extract_video_fields = lambda videos, angles: [video + "_" + position + "_" + angle for video in videos$/;"	v
 features	rnn_model.py	/^        features=fd['features'][:,:]$/;"	v
 features_names	fnn_model.py	/^    features_names=hyperparams['features_names']$/;"	v
-features_names	package_lib/dp_lib.py	/^features_names=FEATURES_FIELDS$/;"	v
+features_names	package_lib/dp_process_rawdata.py	/^features_names=FEATURES_FIELDS$/;"	v
 features_names	package_lib/fnn_model_bk.py	/^    features_names=hyperparams['features_names']$/;"	v
 fill_low_probability_data	package_lib/wearable_toolkit.py	/^    def fill_low_probability_data(self):$/;"	m	class:VideoCsvReader
 fill_missing_marker	package_lib/wearable_toolkit.py	/^    def fill_missing_marker(self, calibrate_makers, motion_markers):$/;"	m	class:ViconCsvReader
@@ -181,14 +181,14 @@ forward	package_lib/fnn_model_bk.py	/^    def forward(self, inputs):$/;"	m	class
 forward	package_lib/fnn_model_bk.py	/^    def forward(self,x):# batch_size, sequence, input_size=features_dim$/;"	m	class:MyFNN_ModelV2
 generate_coordinate	package_lib/wearable_math.py	/^def generate_coordinate(points):$/;"	f
 generate_labels_csv	package_lib/wearable_toolkit.py	/^    def generate_labels_csv(self):$/;"	m	class:ViconCsvReader
-get_all_data_to_h5	package_lib/get_dp_rawdata.py	/^def get_all_data_to_h5():$/;"	f
+get_all_data_to_h5	package_lib/dp_load_rawdata.py	/^def get_all_data_to_h5():$/;"	f
 get_angular_velocity	package_lib/wearable_toolkit.py	/^    def get_angular_velocity(self, segment, direction):$/;"	m	class:ViconCsvReader
 get_angular_velocity_theta	package_lib/wearable_toolkit.py	/^    def get_angular_velocity_theta(self, segment, check_len):$/;"	m	class:ViconCsvReader
 get_column_position	package_lib/wearable_toolkit.py	/^    def get_column_position(self, marker_name):$/;"	m	class:VideoCsvReader
-get_data_to_h5	package_lib/get_dp_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:V3DReader
-get_data_to_h5	package_lib/get_dp_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:ViconReader
-get_data_to_h5	package_lib/get_dp_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:XsenReader
-get_data_to_h5	package_lib/get_dp_rawdata.py	/^def get_data_to_h5():$/;"	f
+get_data_to_h5	package_lib/dp_load_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:V3DReader
+get_data_to_h5	package_lib/dp_load_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:ViconReader
+get_data_to_h5	package_lib/dp_load_rawdata.py	/^    def get_data_to_h5(self):$/;"	m	class:XsenReader
+get_data_to_h5	package_lib/dp_load_rawdata.py	/^def get_data_to_h5():$/;"	f
 get_field_data	package_lib/wearable_toolkit.py	/^    def get_field_data(self, sensor, field):$/;"	m	class:SageCsvReader
 get_first_event_index	package_lib/wearable_toolkit.py	/^    def get_first_event_index(self):$/;"	m	class:SageCsvReader
 get_frame_range	package_lib/wearable_toolkit.py	/^    def get_frame_range(self):$/;"	m	class:ViconCsvReader
@@ -203,19 +203,19 @@ get_walking_strike_off	package_lib/wearable_toolkit.py	/^    def get_walking_str
 get_world_position	package_lib/wearable_math.py	/^def get_world_position(origin, x_axis, y_axis, z_axis, relative_point):$/;"	f
 gpus	rnn_model.py	/^gpus=tf.config.list_logical_devices(device_type='GPU')$/;"	v
 hyperparams	fnn_model.py	/^hyperparams={$/;"	v
-hyperparams	package_lib/dp_lib.py	/^hyperparams={$/;"	v
+hyperparams	package_lib/dp_process_rawdata.py	/^hyperparams={$/;"	v
 hyperparams	package_lib/fnn_model_bk.py	/^hyperparams={$/;"	v
 hyperparams	rnn_model.py	/^    hyperparams=initParameters()$/;"	v
 initParameters	rnn_model.py	/^def initParameters():$/;"	f
-inverse_norm	package_lib/dp_lib.py	/^def inverse_norm(norm_datasets:np.ndarray, col_names:list, norm_type:str)->np.ndarray:$/;"	f
+inverse_norm	package_lib/dp_process_rawdata.py	/^def inverse_norm(norm_datasets:np.ndarray, col_names:list, norm_type:str)->np.ndarray:$/;"	f
 inverse_norm	package_lib/fnn_model_bk.py	/^def inverse_norm(norm_datasets:np.ndarray, col_names:list, norm_type:str)->np.ndarray:$/;"	f
 is_qualified_ron_event	package_lib/wearable_toolkit.py	/^    def is_qualified_ron_event(ron_i):$/;"	f	function:translate_step_event_to_step_id
 labels	rnn_model.py	/^        labels=fd['labels'][:,:]$/;"	v
 labels_names	fnn_model.py	/^    labels_names=hyperparams['labels_names']$/;"	v
-labels_names	package_lib/dp_lib.py	/^labels_names=LABELS_FIELDS$/;"	v
+labels_names	package_lib/dp_process_rawdata.py	/^labels_names=LABELS_FIELDS$/;"	v
 labels_names	package_lib/fnn_model_bk.py	/^    labels_names=hyperparams['labels_names']$/;"	v
-load_normalize_data	package_lib/dp_lib.py	/^def load_normalize_data(hyperparams,scaler=None,**args):$/;"	f
-load_test_datasets	package_lib/dp_lib.py	/^def load_test_datasets(test_datasets_range:list,norm_type='max_min',raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5")->zip:$/;"	f
+load_normalize_data	package_lib/dp_process_rawdata.py	/^def load_normalize_data(hyperparams,scaler=None,**args):$/;"	f
+load_test_datasets	package_lib/dp_process_rawdata.py	/^def load_test_datasets(test_datasets_range:list,norm_type='max_min',raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5")->zip:$/;"	f
 load_test_datasets	package_lib/fnn_model_bk.py	/^def load_test_datasets(test_datasets_range:list,norm_type='max_min',raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5")->zip:$/;"	f
 low_pass_filtering	package_lib/wearable_toolkit.py	/^    def low_pass_filtering(self, cut_off_fre, sampling_fre, filter_order):$/;"	m	class:VideoCsvReader
 main	ptags.py	/^def main():$/;"	f
@@ -226,12 +226,13 @@ model	package_lib/fnn_model_bk.py	/^        model=MyFNN_ModelV2(num_features,num
 model_forecast	rnn_model.py	/^def model_forecast(model, series, hyperparams):$/;"	f
 model_v1	rnn_model.py	/^def model_v1(hyperparams):$/;"	f
 model_v2	rnn_model.py	/^def model_v2():$/;"	f
+multi_subject_data	package_lib/dp_process_rawdata.py	/^    multi_subject_data=[]$/;"	v
 myCallback	rnn_model.py	/^class myCallback(tf.keras.callbacks.Callback):$/;"	c
-norm_datasets	package_lib/dp_lib.py	/^def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.ndarray:$/;"	f
+norm_datasets	package_lib/dp_process_rawdata.py	/^def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.ndarray:$/;"	f
 norm_datasets	package_lib/fnn_model_bk.py	/^def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.ndarray:$/;"	f
 norm_type	fnn_model.py	/^    norm_type=hyperparams['norm_type']$/;"	v
 norm_type	package_lib/fnn_model_bk.py	/^    norm_type=hyperparams['norm_type']$/;"	v
-normalization_parameters	package_lib/dp_lib.py	/^def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_type="mean_std", raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5"):$/;"	f
+normalization_parameters	package_lib/dp_process_rawdata.py	/^def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_type="mean_std", raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5"):$/;"	f
 normalization_parameters	package_lib/fnn_model_bk.py	/^def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_type="mean_std", raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5"):$/;"	f
 normalize_subjects_data	rnn_model.py	/^def normalize_subjects_data(hyperparams):$/;"	f
 num_features	fnn_model.py	/^    num_features=len(features_names)$/;"	v
@@ -243,14 +244,14 @@ partial_fit	package_lib/wearable_toolkit.py	/^    def partial_fit(self, X, y=Non
 plot_history	rnn_model.py	/^def plot_history(history_dict):$/;"	f
 plot_prediction	rnn_model.py	/^def plot_prediction(features,labels,predictions,testing_folder):$/;"	f
 plot_prediction_statistic	rnn_model.py	/^def plot_prediction_statistic(features, labels, predictions,testing_folder):$/;"	f
-plot_statistic_kneemoment_under_fpa	package_lib/dp_lib.py	/^def plot_statistic_kneemoment_under_fpa(data):$/;"	f
-plot_test_results	package_lib/dp_lib.py	/^def plot_test_results(features,labels,predictions,features_names,labels_names,fig_save_folder=None,**args):$/;"	f
+plot_statistic_kneemoment_under_fpa	package_lib/dp_process_rawdata.py	/^def plot_statistic_kneemoment_under_fpa(data: list,subjects: list):$/;"	f
+plot_test_results	package_lib/dp_process_rawdata.py	/^def plot_test_results(features,labels,predictions,features_names,labels_names,fig_save_folder=None,**args):$/;"	f
 plot_test_results	package_lib/fnn_model_bk.py	/^def plot_test_results(features,labels,predictions,features_names,labels_names,fig_save_folder=None,**args):$/;"	f
 predictions	rnn_model.py	/^        predictions=fd['predictions'][:,:]$/;"	v
-raw_dataset_path	package_lib/dp_lib.py	/^raw_dataset_path=os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')$/;"	v
+raw_dataset_path	package_lib/dp_process_rawdata.py	/^raw_dataset_path=os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')$/;"	v
 raw_datasets_path	fnn_model.py	/^    raw_datasets_path=hyperparams['raw_datasets_path']$/;"	v
 raw_datasets_path	package_lib/fnn_model_bk.py	/^    raw_datasets_path=hyperparams['raw_datasets_path']$/;"	v
-read_rawdata	package_lib/dp_lib.py	/^def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:$/;"	f
+read_rawdata	package_lib/dp_process_rawdata.py	/^def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:$/;"	f
 read_rawdata	package_lib/fnn_model_bk.py	/^def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=".\/datasets_files\/raw_datasets.hdf5")-> numpy.ndarray:$/;"	f
 reading	package_lib/wearable_toolkit.py	/^    def reading(file_path):$/;"	m	class:ViconCsvReader
 resample_to_100hz	package_lib/wearable_toolkit.py	/^    def resample_to_100hz(self):$/;"	m	class:VideoCsvReader
@@ -258,16 +259,21 @@ rigid_transform_3d	package_lib/wearable_toolkit.py	/^def rigid_transform_3d(a, b
 rotation_matrix_to_euler_angles	package_lib/wearable_toolkit.py	/^def rotation_matrix_to_euler_angles(R):$/;"	f
 save_testResult	rnn_model.py	/^def save_testResult(features,labels,predictions,testing_folder):$/;"	f
 save_trainedModel	rnn_model.py	/^def save_trainedModel(trained_model,history_dict,training_folder,**args):$/;"	f
-save_training_process	package_lib/dp_lib.py	/^def save_training_process(training_folder, loss):$/;"	f
+save_training_process	package_lib/dp_process_rawdata.py	/^def save_training_process(training_folder, loss):$/;"	f
 save_training_process	package_lib/fnn_model_bk.py	/^def save_training_process(training_folder, loss):$/;"	f
-save_training_results	package_lib/dp_lib.py	/^def save_training_results(training_folder, model, loss):$/;"	f
+save_training_results	package_lib/dp_process_rawdata.py	/^def save_training_results(training_folder, model, loss):$/;"	f
 save_training_results	package_lib/fnn_model_bk.py	/^def save_training_results(training_folder, model, loss):$/;"	f
+setHyperparams_subject	package_lib/dp_process_rawdata.py	/^def setHyperparams_subject(hyperparaams):$/;"	f
 split_dataset	rnn_model.py	/^def split_dataset(scaled_series,sub_idx):$/;"	f
 sub_idx	fnn_model.py	/^        sub_idx=0$/;"	v
 sub_idx	package_lib/fnn_model_bk.py	/^        sub_idx=0$/;"	v
-sub_name	package_lib/dp_lib.py	/^sub_name='P_09_libang'$/;"	v
-subject_infos	package_lib/get_dp_rawdata.py	/^subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)$/;"	v
+sub_name	package_lib/dp_process_rawdata.py	/^sub_name='P_09_libang'$/;"	v
+subject_idx_name	package_lib/dp_process_rawdata.py	/^                subject_idx_name=subject_name$/;"	v
+subject_infos	package_lib/dp_load_rawdata.py	/^subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)$/;"	v
+subject_infos	package_lib/dp_process_rawdata.py	/^    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)$/;"	v
 subject_infos	rnn_model.py	/^subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)$/;"	v
+subject_names	package_lib/dp_process_rawdata.py	/^    subject_names=[ss for ss in subject_infos.index]$/;"	v
+subjects_list	package_lib/dp_process_rawdata.py	/^    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']$/;"	v
 sync_via_correlation	package_lib/wearable_toolkit.py	/^def sync_via_correlation(data1, data2, verbose=False):$/;"	f
 tags	ptags.py	/^tags = []    # Modified global variable!$/;"	v
 test_loader	fnn_model.py	/^        test_loader = torch.utils.data.DataLoader(dataset=test_sets, batch_size=batch_size, shuffle=False)$/;"	v

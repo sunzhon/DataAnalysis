@@ -28,7 +28,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=10
+    runs=20
 fi
 
 echo "run ${runs} times"
@@ -40,8 +40,8 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 
 
 
-for experiment_variable in 5 10 15 20 25 30 35 40 45 50 55 60
-#for experiment_variable in 60
+#for experiment_variable in 5 10 15 20 25 30 35 40 45 50 55 60
+for experiment_variable in 5 10 15 20 25 30 35
 do
     # modify ros rate
     $(set_param "RosRate:" $experiment_variable)
@@ -81,11 +81,11 @@ do
             eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
             eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
             if [ $control_method = "apnc" ]; then
-                sleep 20
+                sleep 30
             eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
                 sleep 40
             else
-                sleep 60 #22 #32 #55 
+                sleep 70 #22 #32 #55 
             fi
             rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
             data_path_temp=$(cat $data_log_file_path)
