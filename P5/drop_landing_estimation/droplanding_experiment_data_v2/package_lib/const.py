@@ -12,7 +12,7 @@ VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 #TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
 TRIAL_NUM=40
 TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]
-SESSIONS=['20210926_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon']
+SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon']
 #SESSIONS=['20211026_vicon']
 
 
@@ -20,15 +20,14 @@ SESSIONS=['20210926_vicon','20211015_vicon','20211022_vicon','20211025_vicon','2
 XSEN_IMU_ID={'MASTER':'0120092C','CHEST':'00B44914','WAIST':'00B44918','L_THIGH':'00B44915','L_SHANK':'00B44909','L_FOOT':'00B44907','R_THIGH':'00B4490C','R_SHANK':'00B4490E','R_FOOT':'00B44911'}
 
 
-SUBJECTS = [#'P_01_suntao',
-            #'P_02_dongxuan',
-            #,'P_03_liyan',
-            #'P_04_kezhe'
+SUBJECTS = [
+            #'P_05_shuicheng',
+            'P_06_tianyi',
             'P_08_zhangboyuan',
             'P_09_libang',
             'P_10_dongxuan',
             'P_11_liuchunyu',
-            #'P_12_fuzijun'
+            'P_12_fuzijun',
             'P_13_xulibang',
             'P_14_hunan',
             'P_15_liuzhaoyu',
@@ -179,6 +178,11 @@ BASIC_COP_DATA_FIELDS=['COP']
 LEFT_RIGHT=['L_','R_']
 DIRECTIONS=['_X','_Y','_Z']
 KNEE_VALUES=['KneeAngle','KneeMoment']
+HIP_VALUES=['HipAngle','HipMoment']
+ANKLE_VALUES=['AnkleAngle','AnkleMoment']
+FPA_VALUES=['FPA']
+PELVIS_VALUES=['PelvisAngle']
+THORAX_VALUES=['ThoraxAngle']
 
 FORCE_PLATE_DATA_FIELDS = ['plate_' + num + '_' + data_type + '_' + axis for num in ['1', '2']
                      for data_type in ['force', 'cop'] for axis in ['x', 'y', 'z']]
@@ -192,9 +196,15 @@ import pdb
 
 
 # This one got from v3d output file (csv), this should match the file
-V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'FP1', 'FP1.1','FP1.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'FP2','FP2.1','FP2.2']
 
-V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'RIGHT_GRF', 'RIGHT_GRF.1','RIGHT_GRF.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'LEFT_GRF','LEFT_GRF.1','LEFT_GRF.2']
+#V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'FP1', 'FP1.1','FP1.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'FP2','FP2.1','FP2.2']
+
+
+BIOMECHANICS_VARIABLES=['GRF','FPA','ANKLE_ANGLE','ANKLE_MOMENT','KNEE_ANGLE','KNEE_MOMENT','HIP_ANGLE','HIP_MOMENT']
+BASIC_V3D_DATA_FIELDS=[variable+direction for variable in BIOMECHANICS_VARIABLES for direction in ['','.1','.2']]  
+V3D_DATA_FIELDS=['LON','RON'] + ['LEFT_'+ temp for temp in BASIC_V3D_DATA_FIELDS] + ['RIGHT_'+temp for temp in BASIC_V3D_DATA_FIELDS] + ['PELVIS_ANGLE','PELVIS_ANGLE.1','PELVIS_ANGLE.2','THORAX_ANGLE','THORAX_ANGLE.1','THORAX_ANGLE.2']
+
+
 
 
 DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验的时间范围
@@ -204,7 +214,18 @@ DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验�
 """
 DATA_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/D drop landing"
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
-V3D_LABELS_FIELDS=['LON','RON']+['R_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['R_Force'+dire for dire in DIRECTIONS] + ['L_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['L_Force'+dire for dire in DIRECTIONS] 
+
+
+#V3D_LABELS_FIELDS=['LON','RON']+['R_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS]+['R_Force'+dire for dire in DIRECTIONS] + ['L_'+knee + dire for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]+['L_Force'+dire for dire in DIRECTIONS] 
+
+
+V3D_LABELS_FIELDS = ['LON','RON']+['L_'+ temp + dire for temp in BIOMECHANICS_VARIABLES for dire in DIRECTIONS] + ['R_'+temp + dire for temp in BIOMECHANICS_VARIABLES for dire in DIRECTIONS] + [temp + dire for temp in ['PELVIS_ANGLE','THORAX_ANGLE'] for dire in DIRECTIONS]
+
+
+print(V3D_DATA_FIELDS)
+print(V3D_LABELS_FIELDS)
+
+
 
 # experimental results are stored at this path
 EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/Experimental_Results"

@@ -95,18 +95,18 @@ class Visual3dCsvReader:
         # extrect data specified by V3D_DATA_FIELDS
         actual_v3d_data_fields=[ss for ss in self.data.columns]
         try:
-            if actual_v3d_data_fields==V3D_DATA_FIELDS:
+            if actual_v3d_data_fields==V3D_DATA_FIELDS: # data fields in v3d are complete
                 self.data=self.data[V3D_DATA_FIELDS]
                 self.data.columns=V3D_LABELS_FIELDS
-            else:
+            else:# data fields in v3d file are not complete
                 exist_fields, unexist_fields = [],[]
-                for fields in V3D_DATA_FIELDS:
+                for fields in V3D_DATA_FIELDS:# find the exist and nonexist data fileds
                     if(fields in actual_v3d_data_fields):
                         exist_fields.append(fields)
                     else:
                         unexist_fields.append(fields)
                         print(termcolor.colored("V3D export data has less data feilds:",'yellow'),fields)
-                        self.data.insert(self.data.shape[1],fields,0)
+                        self.data.insert(self.data.shape[1],fields,0) # insert the nonexist data fields in the data fields
                 self.data=self.data.reindex(columns=V3D_DATA_FIELDS)
                 self.data.columns=V3D_LABELS_FIELDS
         except ValueError:
@@ -131,7 +131,7 @@ class Visual3dCsvReader:
 
     def crop(self, start_index=0, end_index=None):
         '''
-        Get valid experiment data, this should be excuted before extract_droplanding_perio()
+        Get valid experiment data to find the effective start and end experiment period, this should be excuted before extract_droplanding_perio()
 
         '''
         if end_index==None:
@@ -151,27 +151,36 @@ class Visual3dCsvReader:
         print('v3d croped data frame shape:', self.data_frame.shape)
 
     def extract_droplanding_period(self):
-        #- extract drop landing period
+        '''
+        #- Get necessary drop landing period
         #-- get touch moment, this is determined by the foot who touchs ground first
+        '''
         left_touch_moment=self.data['LON'][0]
         right_touch_moment=self.data['RON'][0]
+
+        #- if left and right foot touch on ground at quite different moment in double-leg drop landing
+        if(int(self.trial)<30): # double-leg drop landing trials
+            if(abs(left_touch_moment-right_touch_moment)>10):
+                print(termcolor.colored("Two legs touch on ground at quite different moment in D drop landing",'green'))
+                pdb.set_trace()
+
 
         # if there is no touch moment, then set it to a big value , eg. 1000000
         left_touch_moment=left_touch_moment if left_touch_moment >1 else 1000000
         right_touch_moment=right_touch_moment if right_touch_moment >1 else 1000000
         try:
-            combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
-            if(combined_touch_moment==0) or (combined_touch_moment==1000000):
+            self.combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+            if(self.combined_touch_moment==0) or (self.combined_touch_moment==1000000):
                 print(termcolor.colored("The trial has no right touch moment",'red'))
         except Exception as e:
             print(e)
             pdb.set_trace()
 
-        print('v3d touch moment: {}'.format(combined_touch_moment))
+        print('v3d touch moment: {}'.format(self.combined_touch_moment))
 
         #-- determine start_index and end_index, the drop landing
-        start_index=combined_touch_moment-DROPLANDING_PERIOD/4
-        end_index=combined_touch_moment+DROPLANDING_PERIOD/4*3-1
+        start_index=self.combined_touch_moment-DROPLANDING_PERIOD/4
+        end_index=self.combined_touch_moment+DROPLANDING_PERIOD/4*3-1
 
 
         #-- check row_range is in start_index and end_index
@@ -338,6 +347,10 @@ class XsenTxtReader():
 
 
     def extract_droplanding_period(self):
+        '''
+        get teh necessary drop landing period
+
+        '''
         
         #-v3d file in a same session
         list_v3d_files=os.listdir(re.sub('xsen','v3d',self.folder_path))
@@ -348,8 +361,16 @@ class XsenTxtReader():
         v3d_data = v3d_data.fillna(0)
 
         #- extract drop landing period
-        left_touch_moment=v3d_data['LON'][0]
-        right_touch_moment=v3d_data['RON'][0]
+        if('LON' in v3d_data.columns):
+            left_touch_moment=v3d_data['LON'][0]
+        else:
+            left_touch_moment=0
+
+        if('RON' in v3d_data.columns):
+            right_touch_moment=v3d_data['RON'][0]
+        else:
+            right_touch_moment=0
+
         #-- get touch moment, this is determined by the foot who touchs ground first
         # NOTE: left_touch_moment and right_touch_moment are global variables, which are write by Visaul3D CsvReader,
         # So this class should be instanlizated after Visual3DCsvReader

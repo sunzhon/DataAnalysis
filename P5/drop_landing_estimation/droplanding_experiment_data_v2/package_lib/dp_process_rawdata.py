@@ -41,6 +41,9 @@ import termcolor
 
 import datetime
 
+
+from statannotations.Annotator import Annotator
+
 if __name__=='__main__':
     from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 else:
@@ -48,6 +51,8 @@ else:
 
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import RobustScaler
 
 def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:
     """
@@ -61,27 +66,34 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
     
     """
     assert(type(col_names)==list)
+    #--  read h5 data file
     with h5py.File(raw_datasets_path, 'r') as fd:
-        # 1) The coloms of the features and labels
+        # all subject names
         subject_names=list(fd.keys())
+        # the data_filed (coloms) of the features and labels
         all_data_fields=fd[subject_names[0]].attrs.get('columns')
         col_idxs=[]
 
-        # suntao drop landing experiment data
+        #-- suntao drop landing experiment data
         if(isinstance(row_idx,list) and isinstance(row_idx[0],str)):
             all_datasets_list=[]
             trials=row_idx
+            #- specified subject name
             subject_name=args['subject_name']
             if(subject_name not in subject_names):
                 print("This subject:{subject_name} is not in datasets".format(subject_name))
                 exit()
+            #- feature data feilds
             feature_data_fields=[hyperparams['features_names']]
+
+            #-- get each trial data with specified columns
             for trial in trials:
                 try:
+                    #- get all column data of a trial of a subject into a dataframe
                     temp_pd_data=pd.DataFrame(data=np.array(fd[subject_name][trial]),columns=fd[subject_name].attrs['columns'])
                 except Exception as e:
                     print(e)
-                #-- read the specified columns
+                #-- read the specified columns by parameter: col_names
                 temp_necessary_data=temp_pd_data[col_names].values
                 all_datasets_list.append(temp_necessary_data)
 
@@ -191,19 +203,17 @@ def load_normalize_data(hyperparams,scaler=None,**args):
         series_temp=[]
         #-- extract the trials as the first dimension 
         if('assign_trials' in args.keys()):
-            for key,value in sub_idx.items():# sub_idx-> {sub_name:trials, sub_name:trials,...}
-                subject_name=key
-                assert(isinstance(value,list))
+            for subject_name,trials in sub_idx.items():# sub_idx-> {sub_name:trials, sub_name:trials,...}
+                assert(isinstance(trials,list))
                 # this output is list contain many three dimension array
-                series_temp.append(read_rawdata(value,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name, assign_trials=True))
+                series_temp.append(read_rawdata(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name, assign_trials=True))
 
             series=np.concatenate(series_temp,axis=0)
             print("Raw data of subject {:}".format(sub_idx))
         else: # - not extract drop landing period
-            for key,value in sub_idx.items():
-                subject_name=key
-                assert(isinstance(value,list))
-                series_temp.append(read_rawdata(value,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name))
+            for subject_name,trials in sub_idx.items():
+                assert(isinstance(trials,list))
+                series_temp.append(read_rawdata(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name))
             series=np.concatenate(series_temp,axis=0)
             print("Raw data of subject {:}".format(sub_idx))
 
@@ -213,15 +223,18 @@ def load_normalize_data(hyperparams,scaler=None,**args):
     print('Loaded dataset shape:',series.shape)
 
     #Normalization data
-    if scaler==None:
+    if (scaler==None) or (scaler=='standard'):
         scaler=StandardScaler()
-    
+    if scaler=='minmax':
+        scaler=MinMaxScaler()
+    if scaler=='robust':
+        scaler=RobustScaler()
 
     dim=series.shape
     reshape_series=series.reshape(-1,dim[-1])
     try:
         scaler.fit(reshape_series)
-        scaled_series=scaler.transform(reshape_series.astype(np.float32),copy=True)
+        scaled_series=scaler.transform(reshape_series.astype(np.float32))
     except Exception as e:
         print(e)
         pdb.set_trace()
@@ -622,10 +635,10 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
     #0) read datasets
     print(isinstance(datasets_ranges,np.ndarray))
 
-    # input datasets
-    if(isinstance(datasets_ranges, np.ndarray)):# load dataset
+    #-- input datasets
+    if(isinstance(datasets_ranges, np.ndarray)):# load dataset from a numpy array
         datasets=copy.deepcopy(datasets_ranges)
-    else:# load data from path
+    else:#-- load dataset from a h5 file 
         if('raw_datasets_path' in args.keys()):
             raw_datasets_path=args['raw_datasets_path']
         else:
@@ -635,7 +648,7 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
     #1) data process
     if datasets.ndim>=3:# 如果是三维，说明有多个trials, 将他们按行合并
         datasets=datasets.reshape(-1,datasets.shape[-1])
-    # normalize datasets
+    #-- normalize datasets if speified
     if(norm_type!=None):
         datasets_norm=norm_datasets(datasets,col_names,norm_type)
         pd_datasets=pd.DataFrame(data=datasets_norm,columns=col_names)
@@ -647,11 +660,10 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
     #2) plots
     figsize=(14,16)
     fig=plt.figure(figsize=figsize)
-    display_rows=args['display_rows']#绘制的行数
-    display_cols=args['display_cols']
-
     plot_method='seaborn'
-    if(plot_method=='matplotlib'):
+    if(plot_method=='matplotlib'):#绘制的方法
+        display_rows=args['display_rows']#绘制的行数
+        display_cols=args['display_cols']#绘制的列数
         gs1=gridspec.GridSpec(2*len(display_rows),len(display_cols))#13
         gs1.update(hspace=0.1,wspace=0.15,top=0.95,bottom=0.05,left=0.04,right=0.98)
         axs=[]
@@ -695,12 +707,12 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
             axs[plot_idx,plot_col].set_xlabel("Time [s]")
 
     if(plot_method=='seaborn'):
-        g=sns.FacetGrid(pd_datasets)
-        g.map_dataframe(x='',y='',)
-    #plt.show()
-    #reshape_pd_datasets=pd_datasets.melt('Time_vicon', var_name='cols',value_name='vals')
-    #reshape_pd_datasets.head()
-    #sns.lineplot(data=reshape_pd_datasets,x='Time_vicon', y='vals',hue='cols')
+        pd_datasets['time']=np.linspace(0,DROPLANDING_PERIOD/100,DROPLANDING_PERIOD)
+        reshape_pd_datasets=pd_datasets.melt(id_vars=['time'],var_name='cols',value_name='vals')
+        #sns.lineplot(data=reshape_pd_datasets,x='time',y='vals',hue='cols')
+        g=sns.FacetGrid(reshape_pd_datasets,col='cols',col_wrap=4,height=2)
+        g.map_dataframe(sns.lineplot,'time','vals')
+
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
     plt.show()
@@ -788,11 +800,10 @@ def drop_landing_range():
 
 
 
-def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name, subjects: list, subject_heights,plot_type='catbox'):
+def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name, subjects: list, categories,plot_type='catbox'):
 
     phi={}
-    experiment_categories=['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05','single']
-    for cat_idx, category in enumerate(experiment_categories):# trial types
+    for cat_idx, category in enumerate(categories):# trial types
         phi[category]={}
         for sub_idx, subject in enumerate(subjects):# subjects
             phi[category][subject]=[]
@@ -801,11 +812,10 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
                 pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
                 temp_left=pd_temp_data[display_name[0]]
                 temp_right=pd_temp_data[display_name[1]]
-                phi[category][subject].append(max([max(temp_right),max(temp_left)])/subject_heights[sub_idx])
+                phi[category][subject].append(max([max(temp_right),max(temp_left)]))
                 print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,phi[category][subject][-1]))
 
     
-    pdb.set_trace()
     #2) plot
     figsize=(8,4)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -814,21 +824,21 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
-    FPA=[ str(ll) for ll in experiment_categories]
+    FPA=[ str(ll) for ll in categories]
     print(FPA)
-    ind= np.arange(len(experiment_categories))
+    ind= np.arange(len(categories))
 
 
     #3.1) plot 
     phi_values=[]
     pd_phi_values_list=[]
-    subject_names=list(phi[experiment_categories[0]].keys())
+    subject_names=list(phi[categories[0]].keys())
     for idx,subject_name in enumerate(subject_names):
         phi_values.append([])
-        for category in experiment_categories:
+        for category in categories:
             phi_values[idx].append(phi[category][subject_name])
             temp=pd.DataFrame(data=phi[category][subject_name],columns=["values"])
-            temp.insert(1,'experiment_categories',category)
+            temp.insert(1,'categories',category)
             temp.insert(2,'subject_names',subject_name)
             pd_phi_values_list.append(temp)
     
@@ -864,8 +874,14 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
     else:
         idx=0
         sns.set_theme(style='whitegrid')
-        g=sns.catplot(x='experiment_categories',y='values',hue='subject_names',data=pd_phi_values,kind='point')
-        #g=sns.catplot(x='experiment_categories',y='values',data=pd_phi_values,kind='point')
+        pdb.set_trace()
+        g=sns.catplot(x='categories',y='values',hue='subject_names',data=pd_phi_values,kind='point')
+        #g=sns.catplot(x='categories',y='values',data=pd_phi_values,kind='point')
+
+
+        
+        g=sns.FacetGrid(pd_phi_values,col='subject_names',col_wrap=4,sharex=False,sharey=False)
+        g.map(sgs.catplot,'categories','values')
 
         g.ax.grid(which='both',axis='x',color='k',linestyle=':')
         g.ax.grid(which='both',axis='y',color='k',linestyle=':')
@@ -884,6 +900,333 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
     plt.show()
+
+
+
+def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, subjects: list, categories,plot_type='catbox'):
+    '''
+    Description: Plot peak values of various biomechanic variables for different trials, subjects under various foot progression angles (FPA)
+    Parameters: data, a numpy array with three dimensions
+
+    '''
+
+    biomechanic_variables={}
+    for sub_idx, subject in enumerate(subjects):# subjects
+        biomechanic_variables[subject]={}
+        for cat_idx, category in enumerate(categories):# trial types
+            biomechanic_variables[subject][category]=[]
+            one_subject_data=data[sub_idx]
+            for idx in range(5*cat_idx,5*(cat_idx+1)):# trials number
+                pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
+                peak_temp = {}
+                touch_moment_index=int(DROPLANDING_PERIOD/4) #- check wearable_toolkit, line 173, which define the formula of tocuh_moment 
+                for display in display_name: # biomechanic variables 
+                    #-- calculate peak values
+                    if(re.search('FPA',display)):
+                        peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
+                    elif(re.search('PELVIS',display)):
+                        peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
+                    elif(re.search('THORAX',display)):
+                        peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
+                    else:
+                        peak_temp['PEAK_'+display]=max(pd_temp_data[display])
+                peak_temp['trial_type']=category
+                peak_temp['TOUCH_LR_FPA_Z']=round((abs(peak_temp['TOUCH_L_FPA_Z'])+abs(peak_temp['TOUCH_R_FPA_Z']))/2.0,2)
+                peak_temp['PEAK_LR_KNEE_MOMENT_X']=max([peak_temp['PEAK_L_KNEE_MOMENT_X'],peak_temp['PEAK_R_KNEE_MOMENT_X']])
+                peak_temp['subjects']=subject
+                biomechanic_variables[subject][category].append(peak_temp)
+                print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,biomechanic_variables[subject][category][-1]))
+
+
+
+    
+
+    # 2)  Tansfer the dict data into pandas dataframe
+    pd_biomechanic_variables_list=[]
+    for idx,subject in enumerate(subjects):
+        for category in categories:
+            temp=pd.DataFrame(data=biomechanic_variables[subject][category])
+            pd_biomechanic_variables_list.append(temp)
+    
+    pd_biomechanic_variables=pd.concat(pd_biomechanic_variables_list)
+    pd_biomechanic_variables.reset_index(inplace=True)# index from 0 to few hundreds
+
+    #-- TOUCH_LR_FPA - average baseline fpa, self-selected 
+    ss=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']=='baseline'].groupby('subjects').mean()
+    pd_temp2=[]
+    for subject in subjects:
+        pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']=pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']-ss['TOUCH_LR_FPA_Z'][subject] # subtract mean FPA
+        pd_temp=pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject].sort_values(by='TOUCH_LR_FPA_Z') # sorted by FPA
+        pd_temp['re_trial_type']=np.array([5*[temp] for temp in ['FPA_01','FPA_02','FPA_03','FPA_04','FPA_05','FPA_06']]).reshape(-1,)
+        pd_temp2.append(pd_temp)
+    
+    pd_biomechanic_variables=pd.concat(pd_temp2)
+
+
+    #2) plot
+    #figsize=(8,4)
+    #fig = plt.figure(figsize=figsize,constrained_layout=False)
+
+    FPA=[ str(ll) for ll in categories]
+    print(FPA)
+    ind= np.arange(len(categories))
+
+    #3.1) plot 
+    if(plot_type=='catbox'):
+        gs1=gridspec.GridSpec(6,1)#13
+        gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+        axs=[]
+        axs.append(fig.add_subplot(gs1[0:6,0]))
+
+        idx=0
+        boxwidth=0.05
+        box=[]
+        for box_idx in range(len(subject_names)):
+            box.append(axs[idx].boxplot(biomechanic_variables_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
+           # fill with colors
+        colors = ['lightblue', 'lightgreen','wheat']
+        import matplotlib._color_data as mcd
+        overlap = {name for name in mcd.CSS4_COLORS if "xkcd:" + name in mcd.XKCD_COLORS}
+        colors=[mcd.CSS4_COLORS[color_name] for color_name in overlap]
+
+        for bplot, color in zip(box,colors[0:len(box)]):
+            for patch in bplot['boxes']:
+                patch.set_facecolor(color)
+
+        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+        #axs[idx].set_yticks([0,0.1,0.2,0.3])
+        #axs[idx].set(ylim=[-0.01,0.3])
+        legend_names=[name for name in subject_names]
+        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
+        axs[idx].set_xticks(ind)
+        axs[idx].set_xticklabels(FPA)
+        axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
+        axs[idx].set_xlabel(r'FPA')
+    else:
+        idx=0
+        sns.set_theme(style='whitegrid')
+        #figsize=(4,4)
+        #fig = plt.figure(figsize=figsize,constrained_layout=False)
+
+
+        # 计算类别 箱线图和差异性假设检验     **不同FPA 条件下的对比**
+        x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Y'
+        pairs=[('FPA_01','FPA_02'),('FPA_02','FPA_03'),('FPA_03','FPA_04'),('FPA_04','FPA_05'),('FPA_05','FPA_06')]
+        test_method= 'Mann-Whitney'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"Knee abduction angle [deg]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAA.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Z'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"Knee ratation angle [deg]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRA.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Y'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"Knee adbuction moment [BW $\cdot$ BH]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAM.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Z'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"KRM [BW $\cdot$ BH]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRM.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='re_trial_type';y='TOUCH_L_FPA_X'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"Foot heading angle [deg]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_FPA_X.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='re_trial_type';y='TOUCH_PELVIS_ANGLE_X'
+        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
+        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+        annotator.configure(test=test_method, text_format='star', loc='outside')
+        annotator.apply_and_annotate()
+        g.set_axis_labels("FPA", r"Trunk pitch angle [deg]")
+        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_Pelvis_X.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+
+
+        # 高阶回归分析和检验    **不同FPA和其他变量的因果关系，cause-effect关系**
+        # 数据中不要包含self-selected trials
+
+        figsize=(6.5,3)
+        fig = plt.figure(figsize=figsize,constrained_layout=False)
+        pd_biomechanic_variables=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']!='baseline']
+
+        id_vars= pd_biomechanic_variables.columns.tolist()
+        id_vars.remove('PEAK_L_KNEE_ANGLE_Y')
+        id_vars.remove('PEAK_L_KNEE_ANGLE_Z')
+        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+        x='TOUCH_LR_FPA_Z';y='vals'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+        g.set_axis_labels("FPA [deg]", r"Knee joint angles [deg]")
+        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        plt.legend(title='', loc='upper left', labels=['Peak abduction angle', 'Peak internal rotation angle'])
+        g.fig.set_figwidth(5.5)
+        g.fig.set_figheight(3)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_NKJA.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+
+        id_vars= pd_biomechanic_variables.columns.tolist()
+        id_vars.remove('PEAK_L_KNEE_MOMENT_Y')
+        id_vars.remove('PEAK_L_KNEE_MOMENT_Z')
+        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+        x='TOUCH_LR_FPA_Z';y='vals'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+        g.set_axis_labels("FPA [deg]", r"Knee joint moments [BM$\cdot$BH]")
+        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+        g.fig.set_figwidth(5.5)
+        g.fig.set_figheight(3)
+        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_NKJM.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+        id_vars= pd_biomechanic_variables.columns.tolist()
+        id_vars.remove('PEAK_L_KNEE_MOMENT_X')
+        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+        x='TOUCH_LR_FPA_Z';y='vals'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+        g.set_axis_labels("FPA [deg]", r"Knee flexion moments [BM$\cdot$BH]")
+        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+        g.fig.set_figwidth(5.5)
+        g.fig.set_figheight(3)
+        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFM.svg")
+        plt.savefig(datasets_visulization_path)
+
+        id_vars= pd_biomechanic_variables.columns.tolist()
+        id_vars.remove('PEAK_L_KNEE_ANGLE_X')
+        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+        x='TOUCH_LR_FPA_Z';y='vals'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+        g.set_axis_labels("FPA [deg]", r"Knee flexion angle [deg]")
+        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+        g.fig.set_figwidth(5.5)
+        g.fig.set_figheight(3)
+        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFA.svg")
+        plt.savefig(datasets_visulization_path)
+
+        #pdb.set_trace()
+
+        # 回归分析
+        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_ANGLE_Y'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
+        g.set_axis_labels("FPA [deg]", r"Knee abduction angle [deg]")
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAA.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='TOUCH_LR_FPA_Z'; y='PEAK_L_KNEE_ANGLE_Z'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
+        g.set_axis_labels("FPA [deg]", r"Knee ratation angle [deg]")
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRA.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Y'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
+        g.set_axis_labels("FPA [deg]", r"Knee adbuction moment [BW $\cdot$ BH]")
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAM.svg")
+        plt.savefig(datasets_visulization_path)
+
+        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Z'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
+        g.set_axis_labels("FPA [deg]", r"KRM [BW $\cdot$ BH]")
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRM.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+
+
+        x='TOUCH_LR_FPA_Z';y='TOUCH_PELVIS_ANGLE_X'
+        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
+        g.set_axis_labels("FPA [deg]", r"TFA [deg]")
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_TFA.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+
+        ## 计算相关系数矩阵，热力图
+        figsize=(5.5*1.2,4*1.2)
+        fig = plt.figure(figsize=figsize,constrained_layout=False)
+        #cormat=round(pd_biomechanic_variables[['TOUCH_LR_FPA_Z','TOUCH_PELVIS_ANGLE_X','TOUCH_L_FPA_X']].corr(),2)
+        columns=['TOUCH_LR_FPA_Z','TOUCH_L_FPA_X', 'TOUCH_PELVIS_ANGLE_X', 'PEAK_L_KNEE_ANGLE_Z','PEAK_L_KNEE_ANGLE_Y','PEAK_L_KNEE_MOMENT_Z','PEAK_L_KNEE_MOMENT_Y','PEAK_L_KNEE_ANGLE_X','PEAK_L_KNEE_MOMENT_X']
+        cormat=round(pd_biomechanic_variables[columns].corr(method='spearman'),2)
+        mask=np.zeros_like(cormat)
+        mask[np.triu_indices_from(mask)] = True
+        g=sns.heatmap(cormat,mask=mask,annot=True,square=True)
+
+        g.set_xticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+        g.set_yticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_heatmap.svg")
+        plt.savefig(datasets_visulization_path)
+
+
+
+
+        #g=sns.catplot(x='re_trial_type',y='TOUCH_THORAX_ANGLE_X',height=4,data=pd_biomechanic_variables,kind='box');plt.ylabel('Thorax_X');
+        #g.set_axis_labels("FPA", r"$Pelvis pitch angle [deg]$")
+        #g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
+        #plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
+        #datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_Thorax_X.svg")
+        #plt.savefig(datasets_visulization_path)
+        #pdb.set_trace()
+
+
+
+
 
 
 #- set hyperparaams: sub_idx. subject_name: trial
@@ -936,11 +1279,12 @@ setHyperparams_subject(hyperparams)
 if __name__=='__main__':
     multi_subject_data=[]
 
+    #-- list subject names
     subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
     subject_names_column=[ss for ss in subject_infos.index]
 
-    
+    #-- define subject names and load subject dataset
     subject_names=[]
     for subject_idx in subjects_list:
         for subject_name in subject_names_column:
@@ -949,23 +1293,50 @@ if __name__=='__main__':
                 break
         print(subject_idx_name)
         subject_names.append(subject_idx_name)
+        #-- define hyperparams values: subject, columns_names
         hyperparams['sub_idx']={subject_idx_name:TRIALS}
-        hyperparams['columns_names']=['L_KneeMoment_X','L_KneeMoment_Y','R_KneeMoment_X','R_KneeMoment_Y']
-        series, scaled_series,scaler=load_normalize_data(sub_idx={subject_idx_name:TRIALS},hyperparams=hyperparams,assign_trials=True)
+        #hyperparams['columns_names']=['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y','L_FPA_Z','R_FPA_Z']
+        hyperparams['columns_names']=['L_FPA_Z','R_FPA_Z','L_FPA_X','R_FPA_X',
+                            'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
+                            'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
+                            'L_ANKLE_MOMENT_X','R_ANKLE_MOMENT_X', 'L_ANKLE_MOMENT_Y','R_ANKLE_MOMENT_Y', 'L_ANKLE_MOMENT_Z','R_ANKLE_MOMENT_Z',
+                            'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X', 'L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y', 'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z',
+                            'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
+                            'PELVIS_ANGLE_X','THORAX_ANGLE_X'
+                           ]
+        #-- load multiple subject data, the output series columns with indicated sequences
+        series, scaled_series,scaler=load_normalize_data(sub_idx={subject_idx_name:TRIALS},scaler='minmax',hyperparams=hyperparams,assign_trials=True)
         multi_subject_data.append(series)
-
+    
+    #-- subject height
     subject_heights=[float(subject_infos['Unnamed: 3'][sub_name]) for sub_name in subject_names]
-    plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],['L_KneeMoment_Y','R_KneeMoment_Y'],subjects_list,subject_heights,  plot_type="s")
+    #-- subject mass
+    subject_masses=[float(subject_infos['Unnamed: 2'][sub_name]) for sub_name in subject_names]
 
-    # display datasets
-    #display_rows=['KneeAngle_X', 'KneeAngle_Y','KneeAngle_Z','KneeForce_X','KneeForce_Y', 'KneeForce_Z', 'KneeMoment_X','KneeMoment_Y','KneeMoment_Z','Force_X','Force_Y','Force_Z']
-    #display_rows=['KneeMoment_X', 'KneeMoment_Y','KneeMoment_Z','Cop_X','Cop_Y','Cop_Z']
-    #display_rows=display_rows
-    #display_rows=['Up_Acc_X', 'Up_Acc_Y','Up_Acc_Z','Up_Gyr_X','Up_Gyr_Y','Up_Gyr_Z','Lower_Acc_X','Lower_Acc_Y','Lower_Acc_Z', 'Lower_Gyr_X','Lower_Gyr_Y','Lower_Gyr_Z']
-    #display_rows=['SHANK_Accel_X']
-    display_rows=['KneeMoment_X','KneeMoment_Y']
-    #datasets_ranges=(dp_lib.all_datasets_ranges['sub_'+str(sub_idx-1)],dp_lib.all_datasets_ranges['sub_'+str(sub_idx)])
-    #display_rawdatase(series[0,0:150,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title=sub_name, display_rows=display_rows,display_cols=[''])
+
+    #-- plot statistic knee moment under various fpa
+    categories=['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    display_names=['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
+    #plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],display_names,subjects_list,categories,plot_type="s")
+
+
+
+    #-- display time-based curves of the dataset
+    #display_rawdatase(series[0,:,:], hyperparams['columns_names'], norm_type=None)
+
+
+    #-- display statistic peak value under various fpa
+    categories=['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    display_bio_variables= ['L_FPA_Z','R_FPA_Z',
+                            'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
+                            'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
+                            'L_ANKLE_MOMENT_X','R_ANKLE_MOMENT_X', 'L_ANKLE_MOMENT_Y','R_ANKLE_MOMENT_Y', 'L_ANKLE_MOMENT_Z','R_ANKLE_MOMENT_Z',
+                            'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X', 'L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y', 'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z',
+                            'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
+                           ]
+    display_bio_variables= ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
+    plot_statistic_value_under_fpa(multi_subject_data,hyperparams['columns_names'],display_bio_variables, subjects_list,categories,plot_type="s")
+
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
     #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)
     #dp_lib.display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')
