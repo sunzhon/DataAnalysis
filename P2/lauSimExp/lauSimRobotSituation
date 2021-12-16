@@ -32,16 +32,16 @@ else
 fi
 
 echo "run ${runs} times"
-# files
+# define files
 data_log_file_path=$HOME/workspace/experiment_data/datapath.log
 data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
 echo "" > $data_log_file #create a experiment data log file 
 rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # initialize the roughness to be zero
 
-
-for experiment_variable in 0.0
+# three robot situations
+for experiment_variable in "carrying_payload" #"noisy_feedback" "leg_damage" "carrying_payload"
 do
-    # modify ros rate
+    # set ros rate
     $(set_param "RosRate:" 60)
     for control_method in "phase_modulation" "phase_reset" "apnc";
     do
@@ -63,18 +63,32 @@ do
             echo "CONTROL METHOD IS WRONG"
         fi
 
-        experiment_class=$experiment_variable  # 0 roughness test, 1 walking speed test
-        rougness_value=0.0
-        roughness="\"data: $rougness_value\"" # 地面粗超度
+        #- simulation environments
+        roughness_value="\"data: 0\""
+        inclination_value="\"data: 0\""
         cpg_mi=0.08   # Modulation input, MI
-        cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${experiment_variable}"
-        cmd="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 0"
-        #cmd="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 0"
 
+        if [ $experiment_variable = "carrying_payload" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: true" # enable the payload
+        fi
+
+        if [ $experiment_variable = "noisy_feedback" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: flase" # enable the payload
+            $(set_param "USER_MACRO:" 1) # add noisy sensory information into GRF for CPG modulation
+        fi
+
+        if [ $experiment_variable = "leg_damage" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: flase" # enable the payload
+            $(set_param "USER_MACRO:" 2) # set joint commands of right front leg to be a fixed zero
+        fi
+
+        cmd1="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${inclination_value}" #floorInclination
+        cmd2="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness_value}" #ground roughness
+        #- repeat this trial $run times
         for i in $(seq 1 $runs); do
-            eval $cmd                            #publishing the roughness or the floor slope
-            echo "Control method is $control_method, experiment category is : $experiment_class"
-            #eval "rosparam set /RosRate ${experiment_class}"
+            eval $cmd1                         #publishing the roughness or the floor slope
+            eval $cmd2                         #publishing the roughness or the floor slope
+            echo "Control method is $control_method, experiment category is : $experiment_variable"
             rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
             eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
             eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
@@ -87,9 +101,9 @@ do
             else
                 sleep 70 #22 #32 #55 
             fi
-            rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true"
+            rostopic pub --once /sim_control/stopSimulation std_msgs/Bool "data: true" # start simulation
             data_path_temp=$(cat $data_log_file_path)
-            echo "$control_method\t$data_path_temp\t$experiment_class">> $data_log_file
+            echo "$control_method\t$data_path_temp\t$experiment_variable">> $data_log_file
         done
         sleep 4
     done
