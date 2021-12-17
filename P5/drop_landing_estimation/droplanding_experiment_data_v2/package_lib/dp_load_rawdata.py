@@ -177,8 +177,10 @@ Save each subject experiment data into two h5 data fromat (features and labels)
 def transfer_rawdata_to_h5():
     for subject in SUBJECTS: # subjects
         for session in SESSIONS:# trial types
+            #- load subject information
             print("Subject {}, Session {}".format(subject,session))
             subject_info = subject_infos.loc[subject, :]
+
             #- read vicon data
             vicon=ViconReader(subject_info,session)
 
@@ -188,19 +190,22 @@ def transfer_rawdata_to_h5():
             #- process IMU data
             xsen=XsenReader(subject_info,re.sub('vicon','xsen',session))
 
-            ## crop xsen data and extract drop landing data of v3d, vicon and xsen
+            #-- 1) Assign v3d and xsen data by crop v3d and xsen data. 
+            #-- 2) Extract drop landing data of v3d, vicon and xsen. Because their effective periods
+            #-- are not same, the vicon data waw croped when process it in Nexus. The v3d data and vicon data has same 
+            #--  frame start and end
             for trial in TRIALS:
-                #crop xsen to assign with vicon and v3d dataset
                 if(vicon.session_trial_exists):
                     frame_start=vicon.vicon_data[trial].frame_start
                     frame_end=vicon.vicon_data[trial].frame_end
+                    #-- crop xsen to assign it with vicon and v3d dataset
                     v3d.v3d_data[trial].crop()
                     xsen.xsen_data[trial].crop(frame_start,frame_end)
-                    #extract drop landing period
+                    #-- extract drop landing period
                     v3d.v3d_data[trial].extract_droplanding_period()
                     xsen.xsen_data[trial].extract_droplanding_period()
 
-            
+            #-- save their data into a h5 file
             if(xsen.session_trial_exists):
                 xsen.get_data_to_h5()
             if(v3d.session_trial_exists):
