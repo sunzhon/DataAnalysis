@@ -1,7 +1,7 @@
 #! /bin/zsh
 # sim start
 
-# 1) Define a function to change MNC (modular neural controller) rate in stbot.yaml
+#- Define a function to change MNC (modular neural controller) rate in stbot.yaml
  function set_param()
  {
 
@@ -20,15 +20,14 @@
 
 
 
-
-
- # 2) Main routine
+ 
+#- Main routine
 
 # running times
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=1
+    runs=5
 fi
 
 echo "run ${runs} times"
@@ -36,16 +35,16 @@ echo "run ${runs} times"
 data_log_file_path=$HOME/workspace/experiment_data/datapath.log
 data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
 echo "" > $data_log_file #create a experiment data log file 
-rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # initialize the roughness to be zero
 
 # three robot situations
-for experiment_variable in "carrying_payload" #"noisy_feedback" "leg_damage" "carrying_payload"
+for experiment_variable in "noisy_feedback" "leg_damage" "carrying_payload"
 do
     # set ros rate
     $(set_param "RosRate:" 60)
     for control_method in "phase_modulation" "phase_reset" "apnc";
     do
-
+        #-- controller parameter values setting via ROS pramaeter server
+        cpg_mi=0.08   # Modulation input, MI
         if [ $control_method = "phase_reset" ]; then
             cpg_type=8 # phase reset
             threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
@@ -64,21 +63,21 @@ do
         fi
 
         #- simulation environments
-        roughness_value="\"data: 0\""
-        inclination_value="\"data: 0\""
-        cpg_mi=0.08   # Modulation input, MI
+        roughness_value="\"data: 0.0\""
+        inclination_value="\"data: 0.0\""
 
         if [ $experiment_variable = "carrying_payload" ]; then
             rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: true" # enable the payload
+            $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation
         fi
 
         if [ $experiment_variable = "noisy_feedback" ]; then
-            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: flase" # enable the payload
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # enable the payload
             $(set_param "USER_MACRO:" 1) # add noisy sensory information into GRF for CPG modulation
         fi
 
         if [ $experiment_variable = "leg_damage" ]; then
-            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: flase" # enable the payload
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # enable the payload
             $(set_param "USER_MACRO:" 2) # set joint commands of right front leg to be a fixed zero
         fi
 

@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+
+'''
+This module was developed to analyze and plot experimental data for P2 paper
+
+This module depends on a user package CRCF (Custmization robot control framework) package
+
+Author: suntao
+Email: suntao.hn@gmail.com
+Created Date: probably on 1-1-2019
+'''
+
 import sys
 import matplotlib
 import matplotlib.pyplot as plt
@@ -28,20 +39,14 @@ import warnings
 from matplotlib.animation import FuncAnimation
 import matplotlib.font_manager
 
+# import customization robot control framework
+BASE_DIR=os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR+"/../")
+from CRCF.metrics import *
+
 warnings.simplefilter('always', UserWarning)
 
-# 使用Savitzky-Golay 滤波器后得到平滑图线
-from scipy.signal import savgol_filter
 
-'''
-###############################
-Data loading and preprocessing functions
-
-loadData()
-read_data()
-load_data_log()
-
-'''
 
 '''
 Global parameters:
@@ -50,8 +55,6 @@ Robot configurations and parameters of Lilibot
 
 '''
 
-Mass=2.5 # Kg
-Gravity=9.8 # On earth
 
 class neuralprocessing:
     '''
@@ -99,136 +102,6 @@ def test_neuralprocessing():
     plt.plot(source,'g')
     plt.plot(filtered,'r')
     plt.show()
-
-def load_data_log(data_file_dic):
-    '''
-    Load data log that stores data file names,
-    Group data by experiment_categories/categories and output the categories (experiemnt classes)
-
-    '''
-    def is_number(s):
-        try:
-            float(s)
-            return True
-        except ValueError:
-            pass
-
-        try:
-            import unicodedata
-            unicodedata.numeric(s)
-            return True
-        except (TypeError, ValueError):
-            pass
-
-        return False
-
-    #1.1) load file list 
-    data_file_log = os.path.join(data_file_dic,"ExperimentDataLog.csv")
-    data_files = pd.read_csv(data_file_log, sep='\t',delimiter=r'\t',skiprows=1,header=None, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str)
-    #data_files = pd.read_csv(data_file_log, skiprows=1, names=['titles', 'data_files','categories'], skip_blank_lines=True, dtype=str)
-
-    data_files_categories=data_files.groupby('categories')
-    keys = data_files_categories.groups.keys() # categories should be a list of number
-    categories=[]
-    for ll in keys: #drop off the non-number categories
-        if is_number(ll):
-            categories.append(ll)
-    
-    temp_dic={}
-    for idx, value in enumerate(categories):
-        temp_dic[str(float(categories[idx]))]=value
-
-    temp_dic_keys =[str(ll) for ll in sorted([ float(ll) for ll in temp_dic.keys()])]
-
-    for idx,value in enumerate(temp_dic_keys):
-        categories[idx]=temp_dic[value]
-
-    print(categories)
-    return data_files_categories
-
-def loadData(fileName,columnsName,folderName="/home/suntao/workspace/experiment_data/0127113800"):
-    '''
-    load data from a file
-    fileName: the name of file that you want to read
-    columnsName: it the column name of the file
-    Note: the args of sys is file_id and date of the file
-    '''
-        
-    #1) load data from file
-    data_file = os.path.join(folderName,fileName + ".csv")
-    resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=None, names=columnsName, skip_blank_lines=True, dtype=str)
-
-    read_rows=resource_data.shape[0]-1
-    fine_data = resource_data.iloc[0:read_rows,:].astype(float)# 数据行对齐
-    return fine_data
-
-def read_data(freq,start_time,end_time,folder_name):
-    '''
-    read data from file cut a range data
-
-    '''
-    #1) Load data
-    fileName_CPGs="controlfile_CPGs"
-    fileName_commands='controlfile_commands'
-    fileName_modules='controlfile_modules'
-    fileName_parameters='parameterfile_rosparameters'
-    fileName_joints='sensorfile_joints'
-
-    columnsName_CPGs=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2']
-    columnsName_GRFs=['RF','RH','LF','LH']
-    columnsName_POSEs=['roll','picth','yaw', 'x','y','z','vx','vy','vz']
-    columnsName_jointPositions=['p1','p2','p3','p4','p5','p6', 'p7','p8','p9','p10','p11','p12']
-    columnsName_jointVelocities=['v1','v2','v3','v4','v5','v6', 'v7','v8','v9','v10','v11','v12']
-    columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
-    columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
-    columnsName_modules=['ANC_stability', 'adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','phi_12','phi_13','phi_14']
-    columnsName_rosparameters=['CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
-                            'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
-                            'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
-                            'LF_PSN','LF_VRN_Hip','LF_VRN_Knee','LF_MN1','LF_MN2','LF_MN3',\
-                            'LH_PSN','LH_VRN_Hip','LH_VRN_Knee','LH_MN1','LH_MN2','LH_MN3'
-                           ]
-    columnsName_commands=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
-
-
-    columnsName_joints = columnsName_jointPositions + columnsName_jointVelocities + columnsName_jointCurrents + columnsName_jointVoltages + columnsName_POSEs + columnsName_GRFs
-    
-    #CPG
-    cpg_data=loadData(fileName_CPGs,columnsName_CPGs,folder_name)    
-    cpg_data=cpg_data.values
-
-    #commands
-    command_data=loadData(fileName_commands,columnsName_commands,folder_name)    
-    command_data=command_data.values
-
-    #ANC stability value
-    module_data=loadData(fileName_modules,columnsName_modules,folder_name)    
-    module_data=module_data.values
-
-    #parameter
-    parameter_data=loadData(fileName_parameters,columnsName_rosparameters,folder_name)    
-    parameter_data=parameter_data.values
-
-    #joint sensory data
-    jointsensory_data=loadData(fileName_joints,columnsName_joints,folder_name)    
-    grf_data=jointsensory_data[columnsName_GRFs].values
-    pose_data=jointsensory_data[columnsName_POSEs].values
-    position_data=jointsensory_data[columnsName_jointPositions].values
-    velocity_data=jointsensory_data[columnsName_jointVelocities].values
-    current_data=jointsensory_data[columnsName_jointCurrents].values
-    voltage_data=jointsensory_data[columnsName_jointVoltages].values
-
-
-    #2) postprecessing 
-    read_rows=min([4000000,jointsensory_data.shape[0], cpg_data.shape[0], command_data.shape[0], parameter_data.shape[0], module_data.shape[0]])
-    start_point=int(start_time*freq)
-    end_point=int(end_time*freq)
-    if end_point>read_rows:
-        print(termcolor.colored("Warning:end_point out the data bound, please use a small one","yellow"),"end_point :{}, read_rows :{}".format(end_point,read_rows))
-    time = np.linspace(start_time,end_time,end_point-start_point)
-    #time = np.linspace(0,int(end_time/freq)-int(start_time/freq),end_time-start_time)
-    return cpg_data[start_point:end_point,:], command_data[start_point:end_point,:], module_data[start_point:end_point,:], parameter_data[start_point:end_point,:], grf_data[start_point:end_point,:], pose_data[start_point:end_point,:], position_data[start_point:end_point,:],velocity_data[start_point:end_point,:],current_data[start_point:end_point,:],voltage_data[start_point:end_point,:], time
-
 
 
 
@@ -370,189 +243,6 @@ def lowPassFilter(data,gamma):
 
     return np.array(filterData)
 
-def calculate_energy_cost(U,I,Fre):
-    '''
-    U is also means joint toruqe
-    I is also means joint velocity
-    '''
-    if ((type(U) is np.ndarray) and (type(I) is np.ndarray)):
-        E=sum(sum(np.fabs(U)*np.fabs(I)*1/Fre))
-    else:
-        print("input data type is wrong, please use numpy array")
-    return E
-
-def calculate_COT(U,I,Fre,D):
-    if(D>0.0): # the robot should walking a distance
-        return calculate_energy_cost(U,I,Fre)/(Mass*Gravity*D)
-    else:
-        return 0.0;
-
-def calculate_phase_diff(CPGs_output,time):
-    '''
-    Calculating phase difference bewteen  C12, C13, C14
-    @param: CPGs_output, numpy darray n*8
-    @return phi, DataFrame N*4, [time, phi_12, phi_13, phi_14]
-    NOTE: This algorithm assume that the center of the orbit is in origin (0, 0)
-
-    '''
-    # Arrange CPG data
-    phi=pd.DataFrame(columns=['time','phi_12','phi_13','phi_14'])
-    C1=CPGs_output[:,0:2]
-    C2=CPGs_output[:,2:4]
-    C3=CPGs_output[:,4:6]
-    C4=CPGs_output[:,6:8]
-        
-    # Checking wheather the center of the orbit in in orgin
-    start=500;end=800 # 选取一段做评估, 建立极限环的圆心和半径
-    C1_center=np.sum(C1[start:end,:], axis=0) # 轨迹圆心坐标
-    C1_center_norm=np.linalg.norm(C1_center) #轨迹圆心到坐标原点的距离
-
-    C2_center=np.sum(C2[start:end,:], axis=0) # 轨迹圆心坐标
-    C2_center_norm=np.linalg.norm(C2_center) #轨迹圆心到坐标原点的距离
-
-    C3_center=np.sum(C3[start:end,:], axis=0) # 轨迹圆心坐标
-    C3_center_norm=np.linalg.norm(C3_center) #轨迹圆心到坐标原点的距离
-
-    C4_center=np.sum(C4[start:end,:], axis=0) # 轨迹圆心坐标
-    C4_center_norm=np.linalg.norm(C4_center) #轨迹圆心到坐标原点的距离
-
-    threshold_dis=98 # CPG 极限环 圆心到坐标原点的距离的阈值
-    if (C1_center_norm < threshold_dis) and (C2_center_norm < threshold_dis) and (C3_center_norm < threshold_dis) and (C4_center_norm < threshold_dis):
-        # phi_12
-        temp1=np.sum(C1*C2,axis=1)
-        temp2=np.sqrt(np.sum(C1**2,axis=1))*np.sqrt(np.sum(C2**2,axis=1))
-        cos=temp1/temp2
-        cos = np.clip(cos, -1, 1) # set the cos in range [-1,1]
-        phi_12=np.arccos(cos)
-
-        # phi_13
-        temp1=np.sum(C1*C3,axis=1)
-        temp2=np.sqrt(np.sum(C1**2,axis=1))*np.sqrt(np.sum(C3**2,axis=1))
-        cos=temp1/temp2
-        cos = np.clip(cos, -1, 1) # set the cos in range [-1,1]
-        phi_13=np.arccos(cos)
-
-        # phi_14
-        temp1=np.sum(C1*C4,axis=1)
-        temp2=np.sqrt(np.sum(C1**2,axis=1))*np.sqrt(np.sum(C4**2,axis=1))
-        cos=temp1/temp2
-        cos = np.clip(cos, -1, 1) # set the cos in range [-1,1]
-        phi_14=np.arccos(cos)
-        
-        data=np.concatenate((time.reshape((-1,1)),phi_12.reshape((-1,1)),phi_13.reshape((-1,1)),phi_14.reshape((-1,1))),axis=1)
-        data=pd.DataFrame(data,columns=['time','phi_12','phi_13','phi_14'])
-        phi=pd.concat([phi,data])
-    else:
-        warnings.warn('The CPG dynamic property changes, thus phi is set to 0')
-        phi_12=np.zeros(len(C2))
-        phi_13=np.zeros(len(C3))
-        phi_14=np.zeros(len(C4))
-        data=np.concatenate((time.reshape((-1,1)),phi_12.reshape((-1,1)),phi_13.reshape((-1,1)),phi_14.reshape((-1,1))),axis=1)
-        data=pd.DataFrame(data,columns=['time','phi_12','phi_13','phi_14'])
-        phi=pd.concat([phi,data])
-
-    return phi
-
-def calculate_phase_diff_std(cpg_data,time,method_option=1):
-    '''
-    There are two methods
-
-    M1: Calculation the standard derivation of the phase diffs
-
-    M2: Calculation the distance of the phase diff state variable to the (3.14,3.14,0)
-    '''
-    if method_option==1:
-        phi = calculate_phase_diff(cpg_data,time)
-        filter_width=50# the roll_out width
-        phi_stability=[]
-        phi['phi_12']=savgol_filter(phi['phi_12'],91,2,mode='nearest')
-        phi['phi_13']=savgol_filter(phi['phi_13'],91,2,mode='nearest')
-        phi['phi_14']=savgol_filter(phi['phi_14'],91,2,mode='nearest')
-        for idx in range(phi.shape[0]):
-            if idx>=filter_width:
-                temp= filter_width 
-            else:
-                temp=idx
-                
-            std_phi=np.std(phi.loc[idx-temp:idx]) # standard derivation of the phi
-            phi_stability.append(sum(std_phi[1:])) # the sum of three phis, phi_12, phi_13, phi_14
-
-        return np.array(phi_stability)
-
-    if method_option==2:
-        phi = calculate_phase_diff(cpg_data,time)
-        #phi['phi_12']=savgol_filter(phi['phi_12'],91,2,mode='nearest')
-        #phi['phi_13']=savgol_filter(phi['phi_13'],91,2,mode='nearest')
-        #phi['phi_14']=savgol_filter(phi['phi_14'],91,2,mode='nearest')
-        desired_point=np.array([3.14, 3.14, 0])
-        distances=np.sqrt(np.sum((phi[['phi_12','phi_13','phi_14']]-desired_point)**2,axis=1))
-
-        return savgol_filter(distances,91,2,mode="nearest")
-
-
-def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_option=2):
-    '''
-    There are two methods, the first one is based on phi standard deviation, the second is based on distance between PHI and (3.14, 3.14, 0)
-    Claculate phase convergnece idx and touch idx
-    '''
-    if method_option==1: # using the deviation of the phi sum 
-        grf_stance = grf_data > Mass*Gravity/5.0# GRF is bigger than 7, we see the robot starts to interact weith the ground
-        grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
-        if(grf_stance_index[0].size!=0):#机器人落地了
-            touch_moment_idx= grf_stance_index[0][0]# 落地时刻
-            phi_stability=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=1) # 相位差的标准差
-            phi_stability_threshold=0.7# empirically set 0.7
-            for idx, value in enumerate(phi_stability): #serach the idx of the convergence moment/time
-                if idx>=len(phi_stability)-1: # Not converge happen
-                    #convergence_idx=len(phi_stability) # 仿真时间
-                    convergence_idx=-1 #-1
-                    print("CPG phase do not converge", convergence_idx)
-                    break
-                    # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
-                if (value > phi_stability_threshold) and (phi_stability[idx+1] <= phi_stability_threshold) and (max(phi_stability) > 0.8):
-                    convergence_idx=idx
-                    break
-        else:#机器人没有放在地面
-            convergenTime=0
-            warnings.warn('The robot may be not dropped on the ground!')
-
-        return touch_moment_idx, convergence_idx
-    if method_option==2:# using the distance in 3D phase space
-        grf_stance = grf_data > Mass*Gravity/5.0# GRF is bigger than 7, we see the robot starts to interact weith the ground
-        grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
-        if(grf_stance_index[0].size!=0):#机器人落地了 robot on the ground
-            touch_moment_idx= grf_stance_index[0][0]# 落地时刻 the touch momnet $n_0$
-            phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # 相位差的标准差, start from touch moment
-            #phi_distances=calculate_phase_diff_std(cpg_data,time,method_option=2) # 相位差的标准差, start from start_time
-            phi_distances_threshold=1.4# empirically set 1.4
-            for idx, value in enumerate(phi_distances): #serach the idx of the convergence moment/time
-                if idx>=len(phi_distances)-1: # Not converge happen
-                    #convergence_idx=len(phi_distances)
-                    convergence_idx=-1
-                    print("CPG phase do not converge", convergence_idx)
-                    break
-                    # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
-                if (value > phi_distances_threshold) and (phi_distances[idx+1]<=phi_distances_threshold):# the state variable converge to the desired fixed point (3.14, 3.14, 0)
-                    convergence_idx=idx # start from touch moment
-                    #convergence_idx=idx-touch_moment_idx # start from start_time
-                    break
-        else:#机器人没有放在地面
-            convergenTime=0
-            warnings.warn('The robot may be not dropped on the ground!')
-    
-
-        #print("touch_time: {}, convergence_time: {}".format(1.0*touch_moment_idx,1.0*convergence_idx))
-        
-        #NOTE: the touch_moment _idx is based on (counted from) the start_time that is specified at the main function.
-        return touch_moment_idx, convergence_idx
-
-
-def calculate_phase_convergence_time(time,grf_data, cpg_data,freq):
-    '''
-    Claculate phase convergnece time
-    '''
-    touch_idx,convergence_idx=calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data)
-    return convergence_idx/freq
 
 def touch_convergence_moment_identification(grf_data,cpg_data,time):
     '''
@@ -562,133 +252,6 @@ def touch_convergence_moment_identification(grf_data,cpg_data,time):
     phi_std=calculate_phase_diff_std(cpg_data[touch_idx:,:],time[touch_idx:]) # 相位差的标准差
     return touch_idx, convergence_idx, phi_std
 
-def calculate_phase_diff_stability(grf_data,cpg_data,time):
-    touch_idx, convergence_idx, phi_std =touch_convergence_moment_identification(grf_data,cpg_data,time)
-    formed_phase_std=np.mean(phi_std[convergence_idx:]) # consider the phase diff standard derivation after the self-organzied locomotion formed or interlimb formed
-    phase_stability=1.0/formed_phase_std 
-    return phase_stability
-
-def calculate_displacement(pose_data):
-    '''
-    Displacemnt on level ground
-    '''
-    d=np.sqrt(pow(pose_data[-1,3]-pose_data[0,3],2)+pow(pose_data[-1,4]-pose_data[0,4],2)) #Displacement
-    return d
-
-def calculate_body_balance(pose_data):
-    '''
-    Try to find a better metrix for descibel locomotion performance
-
-    '''
-
-    stability= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
-    return stability
-
-def calculate_distance(pose_data):
-    distance=0
-    for step_index in range(pose_data.shape[0]-1):
-        distance+=np.sqrt(pow(pose_data[step_index+1,3]-pose_data[step_index,3],2)+pow(pose_data[step_index+1,4]-pose_data[step_index,4],2))
-    return distance
-
-def calculate_joint_velocity(position_data, freq):
-    velocity_data=(position_data[1:,:]-position_data[0:-1,:])*freq
-    initial_velocity=[0,0,0, 0,0,0, 0,0,0, 0,0,0]
-    velocity_data=np.vstack([initial_velocity,velocity_data])
-    return velocity_data
-
-def COG_distribution(grf_data):
-    '''
-    division should have a large value, it indicates the foot on the ground.
-    '''
-    f_front=grf_data[:,0]+grf_data[:,2]
-    f_hind=grf_data[:,1]+grf_data[:,3]
-    sum_f=np.column_stack([f_front,f_hind])
-    #sum_f=sum_f[sum_f[:,0]>0.1] # the front legs shoulb be on stance phase
-    #sum_f=sum_f[sum_f[:,1]>0.1] # the hind legs shoulb be on stance phase
-    if(len(sum_f)==0):
-        print("robot fail down or no stance phase during the period")
-        print("simulation is wrong, please redo this simulation")
-        gamma=[0]
-    else:
-        sum_f=sum_f+0.00001 # in case the Divisor is zero
-        gamma=np.true_divide(sum_f[:,0],sum_f[:,1])
-    # set the gamma to zero when robot is fixed in the air
-    temp=pd.DataFrame(np.column_stack([sum_f,gamma]),columns=['front','hind','gamma'])
-    temp.loc[temp['hind']<Mass*Gravity/5.0,'gamma']=0.0
-    gamma=temp['gamma'].to_numpy().reshape((-1,1))
-    if(len(grf_data)!=len(gamma)):
-        print("COG distribution remove the no stance data")
-    return gamma
-
-def Average_COG_distribution(grf_data):
-    '''
-    calculate the average value of the gamma of during the robot walking
-    '''
-    data=COG_distribution(grf_data)
-    return np.mean(data)
-
-def calculate_stability(grf_data,pose_data):
-    ''' simple ZMP amplitude changes '''
-    return 1.0/(Average_COG_distribution(grf_data)-1.1)
-
-def gait(data):
-    ''' Calculating the gait information including touch states and duty factor'''
-    # binary the GRF value 
-    threshold = 0.1*max(data[:,0])
-    state=np.zeros(data.shape,int)
-    for i in range(data.shape[1]):
-        for j in range(data.shape[0]):
-            if data[j,i] < threshold:
-                state[j,i] = 0
-            else:
-                state[j,i]=1
-    
-    # get gait info, count the touch and lift number steps
-    gait_info=[]
-    beta=[]
-    state=np.vstack([state,abs(state[-1,:]-1)])
-    for i in range(state.shape[1]): #each leg
-        count_stance=0;
-        count_swing=0;
-        number_stance=0
-        number_swing=0
-        duty_info = {}
-                
-        for j in range(state.shape[0]-1): #every count
-            if state[j,i] ==1:# stance 
-                count_stance+=1
-            else:#swing
-                count_swing+=1
-
-            if (state[j,i]==0) and (state[j+1,i]==1):
-                duty_info[str(number_swing)+ "swing"]= count_swing
-                count_swing=0
-                number_swing+=1
-            if (state[j,i]==1) and (state[j+1,i]==0):
-                duty_info[str(number_stance) + "stance"]= count_stance
-                count_stance=0
-                number_stance+=1
-            
-        gait_info.append(duty_info)
-    # calculate the duty factors of all legs
-    for i in range(len(gait_info)): # each leg
-        beta_singleleg=[]
-        for j in range(len(gait_info[i])): # each step, ignore the first stance or swing
-            if (gait_info[i].__contains__(str(j)+'stance') and  gait_info[i].__contains__(str(j)+'swing')):
-                beta_singleleg.append(gait_info[i][str(j)+"stance"]/(gait_info[i][str(j)+"stance"] + gait_info[i][str(j) + "swing"]))
-            elif (gait_info[i].__contains__(str(j)+'stance') and  (not gait_info[i].__contains__(str(j)+'swing'))):
-                beta_singleleg.append(1.0)
-            elif ((not gait_info[i].__contains__(str(j)+'stance')) and  gait_info[i].__contains__(str(j)+'swing')):
-                beta_singleleg.append(0.0)
-        
-        # if the step more than theree, then remove the max and min beta of each legs during the whole locomotion
-        if(len(beta_singleleg)>3):
-            beta_singleleg.remove(max(beta_singleleg))
-        if(len(beta_singleleg)>3):
-            beta_singleleg.remove(min(beta_singleleg))
-        beta.append(beta_singleleg)
-
-    return state, beta
 
 def AvgerageGaitBeta(beta):
     '''
@@ -1067,7 +630,7 @@ def Phase_Gait(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_ca
             print(folder_category)
             gamma[category].append(COG_distribution(grf_data))
 
-            gait_diagram_data_temp, beta_temp=gait(grf_data)
+            gait_diagram_data_temp, beta_temp=calculate_gait(grf_data)
             gait_diagram_data[category].append(gait_diagram_data_temp); beta[category].append(beta_temp)
 
             pose[category].append(pose_data)
@@ -3760,6 +3323,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
     cpg={}
     noise={}
     rosparameter={}
+    metrics={}
     for category, files_name in titles_files_categories: #category is a files_name categorys
         if category in experiment_categories:
             gamma[category]=[]  #files_name is the table of the files_name category
@@ -3774,10 +3338,12 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             cpg[category]=[]
             noise[category]=[]
             rosparameter[category]=[]
+            metrics[category]={}
             #control_method=files_name['titles'].iat[0]
             for control_method, file_name in files_name.groupby('titles'): #control methods
                 if(control_method in control_methods): # which control methoid is to be display
                     print("The experiment category: ", category, "control method is: ", control_method)
+                    metrics[category][control_method]=[]
                     for idx in file_name.index: # trials for display  in below
                         if idx in np.array(file_name.index)[trial_ids]:# which one is to load
                             folder_category= os.path.join(data_file_dic,file_name['data_files'][idx])
@@ -3801,19 +3367,29 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
                             noise[category].append(module_data)
                             temp_1=min([len(bb) for bb in beta_temp]) #minimum steps of all legs
                             beta_temp2=np.array([beta_temp[0][:temp_1],beta_temp[1][:temp_1],beta_temp[2][:temp_1],beta_temp[3][0:temp_1]]) # transfer to np array
+                            #- metrics for evaluation the robot locomotion
                             if(beta_temp2.size==0):
-                                print("Coordination:",0.0)
+                                metric_coordination=0
                             else:
-                                print("Coordination:{:.2f} with shape: {}".format(1.0/max(np.std(beta_temp2, axis=0)), beta_temp2.shape))
+                                metric_coordination=1.0/max(np.std(beta_temp2, axis=0))
+                            metric_convergence_time= calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
+                            metric_stability= calculate_stability(pose_data,grf_data)
+                            metric_balance= calculate_body_balance(pose_data)
+                            metric_displacement= calculate_displacement(pose_data)
+                            metric_distance= calculate_distance(pose_data)
+                            metric_energy_cost= calculate_energy_cost(velocity_data,current_data,freq)
+                            metric_COT= calculate_COT(velocity_data,current_data,freq,metric_displacement)
+                            metrics[category][control_method].append({'coordination': metric_coordination, 'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement,'distance': metric_distance,'energy_cost':metric_energy_cost,'COT': metric_COT})
 
-                            print("Convergence time:{:.2f}".format(calculate_phase_convergence_time(time,grf_data,cpg_data,freq)))
-                            print("Stability:{:.2f}".format(calculate_stability(pose_data,grf_data)))
-                            print("Balance:{:.2f}".format(calculate_body_balance(pose_data)))
-                            displacement= calculate_displacement(pose_data)
-                            print("Displacemment:{:.2f}".format(displacement)) #Displacement
-                            print("Distance:{:.2f}".format(calculate_distance(pose_data))) #Distance 
-                            print("Energy cost:{:.2f}".format(calculate_energy_cost(velocity_data,current_data,freq)))
-                            print("COT:{:.2f}".format(calculate_COT(velocity_data,current_data,freq,displacement)))
+                            print("METRICS DISPLAY AS FOLLOW:")
+                            print("Coordination:{:.2f} with shape: {}".format(metric_coordination, beta_temp2.shape))
+                            print("Convergence time:{:.2f}".format(metric_convergence_time))
+                            print("Stability:{:.2f}".format(metric_stability))
+                            print("Balance:{:.2f}".format(metric_balance))
+                            print("Displacemment:{:.2f}".format(metric_displacement)) #Displacement
+                            print("Distance:{:.2f}".format(metric_distance)) #Distance 
+                            print("Energy cost:{:.2f}".format(metric_energy_cost)) # enery cost
+                            print("COT:{:.2f}".format(metric_COT))
 
     #2) Whether get right data
     for exp_idx in range(len(experiment_categories)):
@@ -3844,7 +3420,6 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
 
             if investigation=="parameter investigation":
                 experiment_variables=['0.0','0.05','0.15','0.25','0.35','0.45','0.55']
-                
     
             c4_1color=(46/255.0, 77/255.0, 129/255.0)
             c4_2color=(0/255.0, 198/255.0, 156/255.0)
@@ -5577,6 +5152,43 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
     '''
 
 
+def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):
+    '''
+    Compare and Plot the metrics of different experiment catogries and experimental titles (i.e., control_methods)
+
+    '''
+    #1) calculate metrics
+    metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
+    
+    #2) tranfer metrics in dict into pandas Dataframe
+    pd_metrics_list=[]
+    for experiment_category_key, categories in metrics.items():
+        for control_method_key, metrics_value in categories.items():
+            temp=pd.DataFrame(metrics_value)
+            temp['experiment_categories']=experiment_category_key
+            temp['control_methods']=control_method_key
+            pd_metrics_list.append(temp)
+
+    pd_metrics=pd.concat(pd_metrics_list)
+
+
+    #3) plot
+    figsize=(6,4)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs1=gridspec.GridSpec(6,1)#13
+    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+    axs=[]
+    axs.append(fig.add_subplot(gs1[0:6,0]))
+
+    sns.barplot(ax=axs[0],x='experiment_categories', y='displacement',  hue='control_methods', data=pd_metrics)
+
+    # save figure
+    folder_fig = data_file_dic + 'data_visulization/'
+    if not os.path.exists(folder_fig):
+        os.makedirs(folder_fig)
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'metrics.svg'
+    plt.savefig(figPath)
+
 
 
 if __name__=="__main__":
@@ -5719,6 +5331,30 @@ if __name__=="__main__":
     #plot_cpg_phase_portrait(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
 
+
+
+    '''   Laikago test in real world  '''
+    #data_file_dic="/media/suntao/DATA/Research/P2_workspace/Experiments/laikago_real_robot_experiments/laikago_experiment_data/"
+    #experiment_categories=['1']
+    #trial_ids=[0]
+    #plot_single_details(data_file_dic,start_time=60*0,end_time=60*200,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, investigation="parameter investigation")
+
+
+    '''   Animate of g (neural coupings and phsyical communication)  '''
+    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #g_VideoText(data_file_dic,start_time=0,end_time=50*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+
+
+    ''' A complete figures to show the APC and ANC  '''
+    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #APC_ANC_plots(data_file_dic,start_time=10*60,end_time=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+
+
+
+
+
     '''   PLOT For P2 '''
 
     ''' Various roughness '''
@@ -5787,6 +5423,10 @@ if __name__=="__main__":
     #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=[2], control_methods=control_methods,investigation="paramater investigation")
 
 
+
+
+
+
     ##----- MI
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
@@ -5799,7 +5439,7 @@ if __name__=="__main__":
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     trial_ids=[0,1,2]
 
-    boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
     #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=10*60,end_time=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
 
 
@@ -5825,21 +5465,20 @@ if __name__=="__main__":
     trial_ids=[2]
     #plot_single_details(data_file_dic, start_time=5, end_time=50, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods,investigation="update_frequency")
 
-    '''   Laikago test in real world  '''
-    #data_file_dic="/media/suntao/DATA/Research/P2_workspace/Experiments/laikago_real_robot_experiments/laikago_experiment_data/"
-    #experiment_categories=['1']
-    #trial_ids=[0]
-    #plot_single_details(data_file_dic,start_time=60*0,end_time=60*200,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids, investigation="parameter investigation")
 
 
-    '''   Animate of g (neural coupings and phsyical communication)  '''
-    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
-    #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #g_VideoText(data_file_dic,start_time=0,end_time=50*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+    '''------------------------------------------------------------------------------------------------------------'''
+    ''' Various robot situations in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
+    ## various robot situations
 
+    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    #data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
 
-    ''' A complete figures to show the APC and ANC  '''
-    data_file_dic="/media/suntao/DATA/Research/P2_workspace/submission/Revision/revised_version/kdenlive/SourceMeidas/f_g_curves_simulation/"
-    #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #APC_ANC_plots(data_file_dic,start_time=10*60,end_time=45*60,freq=60.0,experiment_categories=['0.08'],trial_ids=[0])
+    control_methods=['apnc','phase_modulation','phase_reset']
+    experiment_categories=['noisy_feedback','leg_damage','carrying_payload']
+    trial_ids=[0]
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods,investigation="paramater investigation")
+    
+    plot_all_metrics(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
 
