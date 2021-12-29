@@ -27,7 +27,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=5
+    runs=3
 fi
 
 echo "run ${runs} times"
@@ -36,8 +36,8 @@ data_log_file_path=$HOME/workspace/experiment_data/datapath.log
 data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
 echo "" > $data_log_file #create a experiment data log file 
 
-# three robot situations
-for experiment_variable in "noisy_feedback" "leg_damage" "carrying_payload"
+# Three robot situations
+for experiment_variable in "normal_situation" "noisy_feedback" "leg_damage" "carrying_payload"
 do
     # set ros rate
     $(set_param "RosRate:" 60)
@@ -46,16 +46,16 @@ do
         #-- controller parameter values setting via ROS pramaeter server
         cpg_mi=0.08   # Modulation input, MI
         if [ $control_method = "phase_reset" ]; then
-            cpg_type=8 # phase reset
+            cpg_type=9 # phase reset
             threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
             echo "phase resetting"
         elif test $control_method = "phase_modulation" ; then
-            cpg_type=9  # phase modulation is tegotae
+            cpg_type=8  # phase modulation is tegotae
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
-            gain_value=0.03 #GRF feedback modulation gain
+            gain_value=0.3 #GRF feedback modulation gain
         elif [ $control_method = "apnc" ]; then
-            cpg_type=10 # adaptive physical and neural commnications
+            cpg_type=5 # 5 is APC, 7 is APNC (APC & ANC) adaptive physical and neural commnications
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
         else
@@ -66,36 +66,42 @@ do
         roughness_value="\"data: 0.0\""
         inclination_value="\"data: 0.0\""
 
+
+        if [ $experiment_variable = "normal_situation" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
+            $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation (i.e., no noise in GRF, no leg damage)
+        fi
+
         if [ $experiment_variable = "carrying_payload" ]; then
             rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: true" # enable the payload
             $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation
         fi
 
         if [ $experiment_variable = "noisy_feedback" ]; then
-            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # enable the payload
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
             $(set_param "USER_MACRO:" 1) # add noisy sensory information into GRF for CPG modulation
         fi
 
         if [ $experiment_variable = "leg_damage" ]; then
-            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # enable the payload
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
             $(set_param "USER_MACRO:" 2) # set joint commands of right front leg to be a fixed zero
         fi
 
-        cmd1="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${inclination_value}" #floorInclination
-        cmd2="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness_value}" #ground roughness
+        cmd1="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${inclination_value}" #set floorInclination
+        cmd2="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness_value}" #set terrain roughness
         #- repeat this trial $run times
         for i in $(seq 1 $runs); do
             eval $cmd1                         #publishing the roughness or the floor slope
             eval $cmd2                         #publishing the roughness or the floor slope
-            echo "Control method is $control_method, experiment category is : $experiment_variable"
+            echo "Control method is: $control_method, experiment category is: $experiment_variable"
             rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
             eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
             eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
             eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
-            eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
+            eval "rosparam set /CPGType ${cpg_type}" # 7 is  APNC (induce adaptive neural control input)
             if [ $control_method = "apnc" ]; then
                 sleep 30
-            eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
+            eval "rosparam set /CPGType 7" # 7 is  APNC (induce adaptive physical and neural control input)
                 sleep 40
             else
                 sleep 70 #22 #32 #55 
@@ -108,8 +114,5 @@ do
     done
 done 
 echo "Experiments Done!"
-
-
-
 
 

@@ -301,6 +301,10 @@ def calculate_stability(grf_data,pose_data):
     return 1.0/(Average_COG_distribution(grf_data)-1.1)
 
 
+def calculate_body_stability(grf_data,pose_data):
+    ''' body movement along with lateral direction '''
+    return pose_data[0];
+
 
 def calculate_distance(pose_data):
     distance=0

@@ -5171,16 +5171,34 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     pd_metrics=pd.concat(pd_metrics_list)
 
+    pd_metrics.loc[pd_metrics['experiment_categories']=='normal_situation','experiment_categories']='S1'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='noisy_feedback','experiment_categories']='S2'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
 
     #3) plot
-    figsize=(6,4)
+    figsize=(10,7)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
+    gs1=gridspec.GridSpec(4,2)#13
+    gs1.update(hspace=0.35,top=0.95,bottom=0.12,left=0.1,right=0.92)
     axs=[]
-    axs.append(fig.add_subplot(gs1[0:6,0]))
+    axs.append(fig.add_subplot(gs1[0:2,0]))
+    axs.append(fig.add_subplot(gs1[2:4,0]))
+    axs.append(fig.add_subplot(gs1[0:2,1]))
+    axs.append(fig.add_subplot(gs1[2:4,1]))
+    #axs.append(fig.add_subplot(gs1[0:2,2]))
+    #axs.append(fig.add_subplot(gs1[2:4,2]))
 
-    sns.barplot(ax=axs[0],x='experiment_categories', y='displacement',  hue='control_methods', data=pd_metrics)
+    sns.barplot(ax=axs[0],x='experiment_categories', y='displacement',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
+    axs[0].set_ylabel('Displacement [m]')
+    sns.barplot(ax=axs[1],x='experiment_categories', y='coordination',hue='control_methods', order=['S1','S2','S3','S4'], data=pd_metrics)
+    axs[1].set_ylabel('Coordination [XX]')
+    sns.barplot(ax=axs[2],x='experiment_categories', y='balance',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
+    axs[2].set_ylabel('Balance [XX]')
+    sns.barplot(ax=axs[3],x='experiment_categories', y='COT',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
+    axs[3].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
+    #sns.barplot(ax=axs[1],x='experiment_categories', y='distance',hue='control_methods', order=['S1','S2','S3','S4'],  data=pd_metrics)
+    #sns.barplot(ax=axs[4],x='experiment_categories', y='stability',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
 
     # save figure
     folder_fig = data_file_dic + 'data_visulization/'
@@ -5471,14 +5489,17 @@ if __name__=="__main__":
     ''' Various robot situations in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
     ## various robot situations
 
-    data_file_dic= "/home/suntao/workspace/experiment_data/"
-    #data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
+    data_file_dic= os.environ['EXPERIMENT_DATA_FOLDER']
 
     control_methods=['apnc','phase_modulation','phase_reset']
-    experiment_categories=['noisy_feedback','leg_damage','carrying_payload']
+    experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
+    trial_ids=[0,1,2]
+    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
+    plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    
+    control_methods=['apnc']
+    experiment_categories=['noisy_feedback']
     trial_ids=[0]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
     #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods,investigation="paramater investigation")
     
-    plot_all_metrics(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
 
