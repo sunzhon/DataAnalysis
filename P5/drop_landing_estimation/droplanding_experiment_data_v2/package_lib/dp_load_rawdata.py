@@ -30,13 +30,13 @@ if __name__ == "__main__":
     import wearable_math as wearable_math
     from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS
+            KNEE_DATA_FIELDS, WRONG_TRIALS
 else:
     import package_lib.wearable_toolkit as wearable_toolkit
     import package_lib.wearable_math as wearable_math
     from package_lib.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS
+            KNEE_DATA_FIELDS, WRONG_TRIALS
 
 subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
 
@@ -245,13 +245,14 @@ def transfer_allsubject_to_a_h5():
                         with h5py.File(features_path,'r') as ff:
                             with h5py.File(labels_path,'r') as fl:
                                 for trial in TRIALS:
-                                    # - combine features and labels along with columns
-                                    if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):
-                                        features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
-                                        sub.create_dataset(trial,data=features_labels)
-                                    else:
-                                        print(termcolor.colored("subject: {} in trial:{} features anad lables have different rows".format(subject,trial),"red"))
-                                        pdb.set_trace()
+                                    if(trial not in WRONG_TRIALS[subject]): #give up the trials with wrong data collect
+                                        # - combine features and labels along with columns
+                                        if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):# features and labels should have same row nummber
+                                            features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
+                                            sub.create_dataset(trial,data=features_labels)
+                                        else:
+                                            print(termcolor.colored("subject: {} in trial:{} features anad lables have different rows".format(subject,trial),"red"))
+                                            pdb.set_trace()
                                 # set columns as attributes of the hdf5 file dataset
                                 sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns'])
                     except Exception as e: 

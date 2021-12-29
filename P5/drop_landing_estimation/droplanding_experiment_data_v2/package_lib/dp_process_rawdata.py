@@ -911,35 +911,49 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     '''
 
     biomechanic_variables={}
+    static_calibration_value={}# the variable values in static phase in baseline trial
     for sub_idx, subject in enumerate(subjects):# subjects
         biomechanic_variables[subject]={}
+        static_calibration_value[subject]={}# the variable values in static phase in baseline trial
         for cat_idx, category in enumerate(categories):# trial types
             biomechanic_variables[subject][category]=[]
+            static_calibration_value[subject][category]=[]# the variable values in static phase in baseline trial
             one_subject_data=data[sub_idx]
             for idx in range(5*cat_idx,5*(cat_idx+1)):# trials number
                 pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
                 peak_temp = {}
+                static_temp = {}
                 touch_moment_index=int(DROPLANDING_PERIOD/4) #- check wearable_toolkit, line 173, which define the formula of tocuh_moment 
                 for display in display_name: # biomechanic variables 
                     #-- calculate peak values
-                    if(re.search('FPA',display)):
+                    if(re.search('FPA',display)): #FPA
                         peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
+                        #-- get static value
+                        static_temp['TOUCH_'+display]=pd_temp_data[display].iloc[-1]
                     elif(re.search('PELVIS',display)):
                         peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
+                        #-- get static value
+                        static_temp['TOUCH_'+display]=pd_temp_data[display].iloc[-1]
                     elif(re.search('THORAX',display)):
                         peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
-                    else:
-                        peak_temp['PEAK_'+display]=max(pd_temp_data[display])
+                        #-- get static value
+                        static_temp['TOUCH_'+display]=pd_temp_data[display].iloc[-1]
+                    else:#find the peak value at the short touch period
+                        border= [max(pd_temp_data[display][touch_moment_index:]), min(pd_temp_data[display][touch_moment_index:])] # find the max and min (nagetive) 
+                        peak_temp['PEAK_'+display]=max(border) if abs(max(border))>=abs(min(border)) else min(border)
+                        #-- get static value
+                        static_temp['PEAK_'+display]=pd_temp_data[display].iloc[-1]
+                # --------------------------- #
                 peak_temp['trial_type']=category
+                # The avarage of left and right leg
                 peak_temp['TOUCH_LR_FPA_Z']=round((abs(peak_temp['TOUCH_L_FPA_Z'])+abs(peak_temp['TOUCH_R_FPA_Z']))/2.0,2)
                 peak_temp['PEAK_LR_KNEE_MOMENT_X']=max([peak_temp['PEAK_L_KNEE_MOMENT_X'],peak_temp['PEAK_R_KNEE_MOMENT_X']])
                 peak_temp['subjects']=subject
                 biomechanic_variables[subject][category].append(peak_temp)
+                static_calibration_value[subject][category].append(static_temp)# the variable values in static phase in baseline trial
                 print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,biomechanic_variables[subject][category][-1]))
-
-
-
     
+
 
     # 2)  Tansfer the dict data into pandas dataframe
     pd_biomechanic_variables_list=[]
@@ -951,279 +965,358 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     pd_biomechanic_variables=pd.concat(pd_biomechanic_variables_list)
     pd_biomechanic_variables.reset_index(inplace=True)# index from 0 to few hundreds
 
-    #-- TOUCH_LR_FPA - average baseline fpa, self-selected 
-    ss=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']=='baseline'].groupby('subjects').mean()
+
+
+    # 2.1  Tansfer the static dict data into pandas dataframe
+    pd_static_value_list=[]
+    for idx,subject in enumerate(subjects):
+        for category in categories:
+            temp=pd.DataFrame(data=static_calibration_value[subject][category])
+            pd_static_value_list.append(temp)
+    
+    pd_static=pd.concat(pd_static_value_list)
+    pd_static.reset_index(inplace=True)# index from 0 to few hundreds
+
+    # retrive the varibale of joint angles
+    need_calibration_variables = [match for match in pd_biomechanic_variables.columns.tolist() if "ANGLE" in match]
+
+    #-- add TOUCH_LR_FPA - average baseline fpa, self-selected
+    baseline_trial_data_mean=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']=='baseline'].groupby('subjects').mean()
+
+    #-- reset the FPA class 
+    FPA_categories=['F1','F2','F3','F4']
+
     pd_temp2=[]
     for subject in subjects:
-        pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']=pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']-ss['TOUCH_LR_FPA_Z'][subject] # subtract mean FPA
+        pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z'] = pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']-baseline_trial_data_mean['TOUCH_LR_FPA_Z'][subject] # ALL FPA subtract mean FPA
+        for col in need_calibration_variables:
+            pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,col]=pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,col]-baseline_trial_data_mean[col][subject] #Angles subtract  static of the baseline trial
+
         pd_temp=pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject].sort_values(by='TOUCH_LR_FPA_Z') # sorted by FPA
-        pd_temp['re_trial_type']=np.array([5*[temp] for temp in ['FPA_01','FPA_02','FPA_03','FPA_04','FPA_05','FPA_06']]).reshape(-1,)
+
+        each_trial_num= pd_biomechanic_variables[pd_biomechanic_variables['subjects']==subject].shape[0]
+        re_trial_type=[int(each_trial_num/len(FPA_categories))*[temp] for temp in FPA_categories]
+        re_trial_type=np.array(re_trial_type).reshape(-1,) #add a new column named 'retrial_type'
+        while(len(re_trial_type)<each_trial_num):#make sure the reset trial FPA number is same with the original trial FPA number
+                re_trial_type=np.append(re_trial_type,FPA_categories[-1])
+
+        pd_temp['re_trial_type']=re_trial_type
         pd_temp2.append(pd_temp)
     
     pd_biomechanic_variables=pd.concat(pd_temp2)
+    
 
 
+    
     #2) plot
-    #figsize=(8,4)
-    #fig = plt.figure(figsize=figsize,constrained_layout=False)
+    
+    # paraemter setup for plot
+    test_method = 'Mann-Whitney'
+    figwidth=12.3;figheight=12.4
+    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
+    xticklabels=FPA_categories
+    sns.set_theme(style='whitegrid')
+    pairs=[('FPA_01','FPA_02'),('FPA_02','FPA_03'),('FPA_03','FPA_04'),('FPA_04','FPA_05'),('FPA_05','FPA_06')]
+    plot_kind='box'
 
-    FPA=[ str(ll) for ll in categories]
-    print(FPA)
-    ind= np.arange(len(categories))
+    
+    #每个实验对象的相关系数和拟合的R^2统计
+    fitting_R_square={}
+    correlation_value={}
 
-    #3.1) plot 
-    if(plot_type=='catbox'):
-        gs1=gridspec.GridSpec(6,1)#13
-        gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
-        axs=[]
-        axs.append(fig.add_subplot(gs1[0:6,0]))
+    # 计算类别 箱线图和差异性假设检验     **不同FPA 条件下的对比**
+    x='re_trial_type';y='PEAK_L_KNEE_ANGLE_X'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind,col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.axes[0],pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Knee flexion angle [deg]")
+    g.set_xticklabels(xticklabels)
+    plt.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFA.svg")
+    plt.savefig(datasets_visulization_path)
+   
+    x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Y'
+    #x='TOUCH_LR_FPA_Z'
+    ##g = sns.FacetGrid(data=pd_biomechanic_variables, height=4,col='subjects',  col_wrap=4,sharey=False,sharex=False)
+    ##g.map(sns.scatterplot,x, y)
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind,col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.axes[0],pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Knee abduction angle [deg]")
+    g.set_xticklabels(xticklabels)
+    plt.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAA.svg")
+    plt.savefig(datasets_visulization_path)
 
-        idx=0
-        boxwidth=0.05
-        box=[]
-        for box_idx in range(len(subject_names)):
-            box.append(axs[idx].boxplot(biomechanic_variables_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
-           # fill with colors
-        colors = ['lightblue', 'lightgreen','wheat']
-        import matplotlib._color_data as mcd
-        overlap = {name for name in mcd.CSS4_COLORS if "xkcd:" + name in mcd.XKCD_COLORS}
-        colors=[mcd.CSS4_COLORS[color_name] for color_name in overlap]
+    
+    x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Z'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind,col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.axes[0],pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Knee ratation angle [deg]")
+    g.set_xticklabels(xticklabels)
+    plt.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRA.svg")
+    plt.savefig(datasets_visulization_path)
 
-        for bplot, color in zip(box,colors[0:len(box)]):
-            for patch in bplot['boxes']:
-                patch.set_facecolor(color)
+    x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Y'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind, col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Knee adbuction moment [BW $\cdot$ BH]")
+    g.set_xticklabels(xticklabels)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAM.svg")
+    plt.savefig(datasets_visulization_path)
 
-        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-        #axs[idx].set_yticks([0,0.1,0.2,0.3])
-        #axs[idx].set(ylim=[-0.01,0.3])
-        legend_names=[name for name in subject_names]
-        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
-        axs[idx].set_xticks(ind)
-        axs[idx].set_xticklabels(FPA)
-        axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
-        axs[idx].set_xlabel(r'FPA')
-    else:
-        idx=0
-        sns.set_theme(style='whitegrid')
-        #figsize=(4,4)
-        #fig = plt.figure(figsize=figsize,constrained_layout=False)
+    x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Z'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind, col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"KRM [BW $\cdot$ BH]")
+    g.set_xticklabels(xticklabels)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRM.svg")
+    plt.savefig(datasets_visulization_path)
 
+    x='re_trial_type';y='TOUCH_L_FPA_X'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind, col='subjects',col_wrap=4,sharey=False,showfliers=False);
+    #annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Foot heading angle [deg]")
+    g.set_xticklabels(xticklabels)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_FPA_X.svg")
+    plt.savefig(datasets_visulization_path)
 
-        # 计算类别 箱线图和差异性假设检验     **不同FPA 条件下的对比**
-        x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Y'
-        pairs=[('FPA_01','FPA_02'),('FPA_02','FPA_03'),('FPA_03','FPA_04'),('FPA_04','FPA_05'),('FPA_05','FPA_06')]
-        test_method= 'Mann-Whitney'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"Knee abduction angle [deg]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAA.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='re_trial_type';y='PEAK_L_KNEE_ANGLE_Z'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"Knee ratation angle [deg]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRA.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Y'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"Knee adbuction moment [BW $\cdot$ BH]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAM.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='re_trial_type';y='PEAK_L_KNEE_MOMENT_Z'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"KRM [BW $\cdot$ BH]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRM.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='re_trial_type';y='TOUCH_L_FPA_X'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"Foot heading angle [deg]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_FPA_X.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='re_trial_type';y='TOUCH_PELVIS_ANGLE_X'
-        g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind='box');
-        annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
-        annotator.configure(test=test_method, text_format='star', loc='outside')
-        annotator.apply_and_annotate()
-        g.set_axis_labels("FPA", r"Trunk pitch angle [deg]")
-        g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_Pelvis_X.svg")
-        plt.savefig(datasets_visulization_path)
+    x='re_trial_type';y='TOUCH_PELVIS_ANGLE_X'
+    g=sns.catplot(x=x,y=y,height=4,data=pd_biomechanic_variables,kind=plot_kind, col='subjects', col_wrap=4, sharey=False,showfliers=False);
+    #annotator=Annotator(g.ax,pairs=pairs,data=pd_biomechanic_variables,x=x,y=y)
+    #annotator.configure(test=test_method, text_format='star', loc='outside')
+    #annotator.apply_and_annotate()
+    g.set_axis_labels("FPA", r"Trunk pitch angle [deg]")
+    g.set_xticklabels(xticklabels)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_Pelvis_X.svg")
+    plt.savefig(datasets_visulization_path)
 
 
+    ## 高阶回归分析和检验    **不同FPA和其他变量的因果关系，cause-effect关系**
 
+    ## 数据中不要包含self-selected trials (baseline), 因为baseline 的FPA和F_03的很接近，包含baseline 会导致 采样集中到F_03附近， 导致用于拟合的数据分布不均匀
+    pd_biomechanic_variables=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']!='baseline']
+    #-- preprocess data
 
-        # 高阶回归分析和检验    **不同FPA和其他变量的因果关系，cause-effect关系**
-        # 数据中不要包含self-selected trials
+    reg_order=1# regression model order, if bigger than 1, then use polyfit
 
-        figsize=(6.5,3)
-        fig = plt.figure(figsize=figsize,constrained_layout=False)
-        pd_biomechanic_variables=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']!='baseline']
-
-        id_vars= pd_biomechanic_variables.columns.tolist()
-        id_vars.remove('PEAK_L_KNEE_ANGLE_Y')
-        id_vars.remove('PEAK_L_KNEE_ANGLE_Z')
-        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
-        x='TOUCH_LR_FPA_Z';y='vals'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
-        g.set_axis_labels("FPA [deg]", r"Knee joint angles [deg]")
-        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
-        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        plt.legend(title='', loc='upper left', labels=['Peak abduction angle', 'Peak internal rotation angle'])
-        g.fig.set_figwidth(5.5)
-        g.fig.set_figheight(3)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_NKJA.svg")
-        plt.savefig(datasets_visulization_path)
+    # Each-subjects
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_ANGLE_Y')
+    id_vars.remove('PEAK_L_KNEE_ANGLE_Z')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False,col='subjects',col_wrap=4,sharey=False,sharex=False,x_ci='sd');
+    g.set_axis_labels("FPA [deg]", r"Knee joint angles [deg]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    plt.legend(title='', loc='best', labels=['Peak abduction angle', 'Peak internal rotation angle'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KARA.svg")
+    plt.savefig(datasets_visulization_path)
 
 
 
-        id_vars= pd_biomechanic_variables.columns.tolist()
-        id_vars.remove('PEAK_L_KNEE_MOMENT_Y')
-        id_vars.remove('PEAK_L_KNEE_MOMENT_Z')
-        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
-        x='TOUCH_LR_FPA_Z';y='vals'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
-        g.set_axis_labels("FPA [deg]", r"Knee joint moments [BM$\cdot$BH]")
-        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
-        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
-        g.fig.set_figwidth(5.5)
-        g.fig.set_figheight(3)
-        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_NKJM.svg")
-        plt.savefig(datasets_visulization_path)
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_ANGLE_X')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False,col='subjects',col_wrap=4,sharey=False,sharex=False);
+    g.set_axis_labels("FPA [deg]", r"Knee flexion angle [deg]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFA.svg")
+    plt.savefig(datasets_visulization_path)
+
+    #-- Knee Moment
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_MOMENT_X')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False,col='subjects',col_wrap=4,sharex=False,sharey=False);
+    g.set_axis_labels("FPA [deg]", r"Knee flexion moments [BM$\cdot$BH]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFM.svg")
+    plt.savefig(datasets_visulization_path)
 
 
-        id_vars= pd_biomechanic_variables.columns.tolist()
-        id_vars.remove('PEAK_L_KNEE_MOMENT_X')
-        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
-        x='TOUCH_LR_FPA_Z';y='vals'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
-        g.set_axis_labels("FPA [deg]", r"Knee flexion moments [BM$\cdot$BH]")
-        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
-        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
-        g.fig.set_figwidth(5.5)
-        g.fig.set_figheight(3)
-        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFM.svg")
-        plt.savefig(datasets_visulization_path)
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_MOMENT_Y')
+    id_vars.remove('PEAK_L_KNEE_MOMENT_Z')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False,col='subjects', col_wrap=4, sharey=False,sharex=False);
+    g.set_axis_labels("FPA [deg]", r"Knee joint moments [BM$\cdot$BH]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KARM.svg")
+    plt.savefig(datasets_visulization_path)
 
-        id_vars= pd_biomechanic_variables.columns.tolist()
-        id_vars.remove('PEAK_L_KNEE_ANGLE_X')
-        melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
-        x='TOUCH_LR_FPA_Z';y='vals'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
-        g.set_axis_labels("FPA [deg]", r"Knee flexion angle [deg]")
-        #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
-        #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
-        g.fig.set_figwidth(5.5)
-        g.fig.set_figheight(3)
-        g.fig.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFA.svg")
-        plt.savefig(datasets_visulization_path)
+    #pdb.set_trace()
+    # All-subject together 回归分析
+    #- plot_setup
 
+    subplot_left=0.12; subplot_right=0.9; subplot_top=0.9;subplot_bottom=0.12
+    figwidth=5;figheight=5
+
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_ANGLE_Y')
+    id_vars.remove('PEAK_L_KNEE_ANGLE_Z')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+    g.set_axis_labels("FPA [deg]", r"Knee joint angles [deg]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    plt.legend(title='', loc='best', labels=['Peak abduction angle', 'Peak internal rotation angle'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KARA.svg")
+    plt.savefig(datasets_visulization_path)
+
+
+    id_vars= pd_biomechanic_variables.columns.tolist()
+    id_vars.remove('PEAK_L_KNEE_MOMENT_Y')
+    id_vars.remove('PEAK_L_KNEE_MOMENT_Z')
+    melt_pd_biomechanic_variables=pd_biomechanic_variables.melt(id_vars=id_vars,var_name='cols',value_name='vals')
+    x='TOUCH_LR_FPA_Z';y='vals'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,hue='cols',data=melt_pd_biomechanic_variables,legend=False);
+    g.set_axis_labels("FPA [deg]", r"Knee joint moments [BM$\cdot$BH]")
+    #g.ax.set_xticks([-0.5,0,0.5,1.0,1.5,2.0,2.5])
+    #g.set_xticklabels(['-0.5','0','0.5','1.0','1.5','2.0','2.5'])
+    #g.ax.legend(title='', loc='upper left', labels=['Peak abduction moment', 'Peak internal rotation moment'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KARM.svg")
+    plt.savefig(datasets_visulization_path)
+
+
+    x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_ANGLE_Y'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,data=pd_biomechanic_variables);
+    g.set_axis_labels("FPA [deg]", r"Knee abduction angle [deg]")
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KAA.svg")
+    plt.savefig(datasets_visulization_path)
+
+    x='TOUCH_LR_FPA_Z'; y='PEAK_L_KNEE_ANGLE_Z'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,data=pd_biomechanic_variables);
+    g.set_axis_labels("FPA [deg]", r"Knee ratation angle [deg]")
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KRA.svg")
+    plt.savefig(datasets_visulization_path)
+
+    x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Y'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,data=pd_biomechanic_variables);
+    g.set_axis_labels("FPA [deg]", r"Knee adbuction moment [BW $\cdot$ BH]")
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KAM.svg")
+    plt.savefig(datasets_visulization_path)
+
+    x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Z'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,data=pd_biomechanic_variables);
+    g.set_axis_labels("FPA [deg]", r"KRM [BW $\cdot$ BH]")
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_KRM.svg")
+    plt.savefig(datasets_visulization_path)
+
+    x='TOUCH_LR_FPA_Z';y='TOUCH_PELVIS_ANGLE_X'
+    g=sns.lmplot(x=x,y=y,order=reg_order,height=4,data=pd_biomechanic_variables);
+    g.set_axis_labels("FPA [deg]", r"TFA [deg]")
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_TFA.svg")
+    plt.savefig(datasets_visulization_path)
+
+
+    ### 计算相关系数矩阵，热力图
+    #每个实验对象的热力图
+    figwidth=12.3;figheight=12.4
+    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
+    columns=['TOUCH_LR_FPA_Z','TOUCH_L_FPA_X', 'TOUCH_PELVIS_ANGLE_X', 'PEAK_L_KNEE_ANGLE_Z','PEAK_L_KNEE_ANGLE_Y','PEAK_L_KNEE_MOMENT_Z','PEAK_L_KNEE_MOMENT_Y','PEAK_L_KNEE_ANGLE_X','PEAK_L_KNEE_MOMENT_X']
+    cormat=round(pd_biomechanic_variables.groupby('subjects')[columns].corr(method='spearman'),2)
+    cormat=abs(cormat)# 取绝对值
+    def draw_heatmap(*args,**kwargs):
+        data=kwargs.pop('data')
         #pdb.set_trace()
-
-        # 回归分析
-        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_ANGLE_Y'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
-        g.set_axis_labels("FPA [deg]", r"Knee abduction angle [deg]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAA.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='TOUCH_LR_FPA_Z'; y='PEAK_L_KNEE_ANGLE_Z'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
-        g.set_axis_labels("FPA [deg]", r"Knee ratation angle [deg]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRA.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Y'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
-        g.set_axis_labels("FPA [deg]", r"Knee adbuction moment [BW $\cdot$ BH]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KAM.svg")
-        plt.savefig(datasets_visulization_path)
-
-        x='TOUCH_LR_FPA_Z';y='PEAK_L_KNEE_MOMENT_Z'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
-        g.set_axis_labels("FPA [deg]", r"KRM [BW $\cdot$ BH]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KRM.svg")
-        plt.savefig(datasets_visulization_path)
-
-
-
-
-        x='TOUCH_LR_FPA_Z';y='TOUCH_PELVIS_ANGLE_X'
-        g=sns.lmplot(x=x,y=y,order=3,height=4,data=pd_biomechanic_variables);
-        g.set_axis_labels("FPA [deg]", r"TFA [deg]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_TFA.svg")
-        plt.savefig(datasets_visulization_path)
-
-
-
-        ## 计算相关系数矩阵，热力图
-        figsize=(5.5*1.2,4*1.2)
-        fig = plt.figure(figsize=figsize,constrained_layout=False)
-        #cormat=round(pd_biomechanic_variables[['TOUCH_LR_FPA_Z','TOUCH_PELVIS_ANGLE_X','TOUCH_L_FPA_X']].corr(),2)
-        columns=['TOUCH_LR_FPA_Z','TOUCH_L_FPA_X', 'TOUCH_PELVIS_ANGLE_X', 'PEAK_L_KNEE_ANGLE_Z','PEAK_L_KNEE_ANGLE_Y','PEAK_L_KNEE_MOMENT_Z','PEAK_L_KNEE_MOMENT_Y','PEAK_L_KNEE_ANGLE_X','PEAK_L_KNEE_MOMENT_X']
-        cormat=round(pd_biomechanic_variables[columns].corr(method='spearman'),2)
-        mask=np.zeros_like(cormat)
+        dd=data.set_index('level_1').drop('subjects',axis=1)
+        mask=np.zeros_like(dd)
         mask[np.triu_indices_from(mask)] = True
-        g=sns.heatmap(cormat,mask=mask,annot=True,square=True)
+        mask[:,3:]=True
+        sns.heatmap(dd,mask=mask,annot=kwargs['annot'],square=kwargs['square'],cmap='YlGnBu')
+    g = sns.FacetGrid(data=cormat.reset_index(), height=4,col='subjects',  col_wrap=4,sharey=False,sharex=False)
+    g.map_dataframe(draw_heatmap,annot=False,square=True)
 
-        g.set_xticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
-        g.set_yticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_heatmap.svg")
-        plt.savefig(datasets_visulization_path)
+    g.set_xticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+    g.set_yticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=0.2,wspace=0.2)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    # adjust the titles of the subplots
+    for ax in g.axes:
+        ax.title.set_position([.5, 0.5])
+        ax.yaxis.labelpad = 25
 
+    g.fig.tight_layout()
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_each_heatmap.svg")
+    plt.savefig(datasets_visulization_path)
 
+    #-- save correlation parameter values
+    #pdb.set_trace()
 
+    #所有实验对象在一起的热力图
+    figsize=(5.5*1.2,4*1.2)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    #cormat=round(pd_biomechanic_variables[['TOUCH_LR_FPA_Z','TOUCH_PELVIS_ANGLE_X','TOUCH_L_FPA_X']].corr(),2)
+    columns=['TOUCH_LR_FPA_Z','TOUCH_L_FPA_X', 'TOUCH_PELVIS_ANGLE_X', 'PEAK_L_KNEE_ANGLE_Z','PEAK_L_KNEE_ANGLE_Y','PEAK_L_KNEE_MOMENT_Z','PEAK_L_KNEE_MOMENT_Y','PEAK_L_KNEE_ANGLE_X','PEAK_L_KNEE_MOMENT_X']
+    cormat=round(pd_biomechanic_variables[columns].corr(method='spearman'),2)
+    cormat=abs(cormat)# 取绝对值
+    mask=np.zeros_like(cormat)
+    mask[np.triu_indices_from(mask)] = True # mask 上三角
+    mask[:,3:]=True #mask 第三列之后的列
+    f=sns.heatmap(cormat,mask=mask,annot=True,square=True,cmap='YlGnBu')
 
-        #g=sns.catplot(x='re_trial_type',y='TOUCH_THORAX_ANGLE_X',height=4,data=pd_biomechanic_variables,kind='box');plt.ylabel('Thorax_X');
-        #g.set_axis_labels("FPA", r"$Pelvis pitch angle [deg]$")
-        #g.set_xticklabels(['F1','F2','F3','F4','F5','F6'])
-        #plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        #datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_Thorax_X.svg")
-        #plt.savefig(datasets_visulization_path)
-        #pdb.set_trace()
-
+    f.set_xticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+    f.set_yticklabels(['FPA','FFA','TFA','KRA','KAA','KRM','KAM','KFA','KFM'])
+    fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom+0.1)
+    #fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_all_heatmap.svg")
+    plt.savefig(datasets_visulization_path)
 
 
 
@@ -1326,16 +1419,16 @@ if __name__=='__main__':
 
 
     #-- display statistic peak value under various fpa
-    categories=['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
-    display_bio_variables= ['L_FPA_Z','R_FPA_Z',
+    categories = ['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    display_bio_variables = ['L_FPA_Z','R_FPA_Z',
                             'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
                             'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
                             'L_ANKLE_MOMENT_X','R_ANKLE_MOMENT_X', 'L_ANKLE_MOMENT_Y','R_ANKLE_MOMENT_Y', 'L_ANKLE_MOMENT_Z','R_ANKLE_MOMENT_Z',
                             'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X', 'L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y', 'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z',
                             'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
                            ]
-    display_bio_variables= ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
-    plot_statistic_value_under_fpa(multi_subject_data,hyperparams['columns_names'],display_bio_variables, subjects_list,categories,plot_type="s")
+    display_bio_variables = ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
+    plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, subjects_list, categories, plot_type="s")
 
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
     #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)
