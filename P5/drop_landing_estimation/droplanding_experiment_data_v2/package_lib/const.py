@@ -238,3 +238,6 @@ FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 LABELS_FIELDS= ['L_KneeMoment_Y','R_KneeMoment_Y']
 
 
+
+WRONG_TRIALS={subject:[] for subject in SUBJECTS}
+WRONG_TRIALS['P_09_libang']=['09']
