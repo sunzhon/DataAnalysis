@@ -47,6 +47,7 @@ from CRCF.metrics import *
 warnings.simplefilter('always', UserWarning)
 
 
+from statannotations.Annotator import Annotator
 
 '''
 Global parameters:
@@ -5176,6 +5177,7 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
     pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
 
+    pdb.set_trace()
     #3) plot
     figsize=(10,7)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -5189,14 +5191,72 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     #axs.append(fig.add_subplot(gs1[0:2,2]))
     #axs.append(fig.add_subplot(gs1[2:4,2]))
 
-    sns.barplot(ax=axs[0],x='experiment_categories', y='displacement',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
-    axs[0].set_ylabel('Displacement [m]')
-    sns.barplot(ax=axs[1],x='experiment_categories', y='coordination',hue='control_methods', order=['S1','S2','S3','S4'], data=pd_metrics)
-    axs[1].set_ylabel('Coordination [XX]')
-    sns.barplot(ax=axs[2],x='experiment_categories', y='balance',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
-    axs[2].set_ylabel('Balance [XX]')
-    sns.barplot(ax=axs[3],x='experiment_categories', y='COT',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
-    axs[3].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
+
+    test_method="Mann-Whitney"
+    order=['S1','S2','S3','S4']
+    hue_order=['apnc','phase_modulation','phase_reset']
+    pairs=(
+        [('S1','apnc'),('S1','phase_modulation')],
+        [('S1','apnc'),('S1','phase_reset')],
+
+        [('S2','apnc'),('S2','phase_modulation')],
+        [('S2','apnc'),('S2','phase_reset')],
+
+        [('S3','apnc'),('S3','phase_modulation')],
+        [('S3','apnc'),('S3','phase_reset')],
+
+        [('S4','apnc'),('S4','phase_modulation')],
+        [('S4','apnc'),('S4','phase_reset')]
+          )
+    axs_id=0
+
+    x='experiment_categories'; y='displacement'
+    states_palette = sns.color_palette("YlGnBu", n_colors=5)
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "control_methods",
+    "hue_order": hue_order
+    #"palette": states_palette
+    }
+
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+    axs[axs_id].set_ylabel('Displacement [m]')
+
+    annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+
+    axs_id=1
+    x='experiment_categories'; y='coordination'
+    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
+    axs[axs_id].set_ylabel('Coordination [XX]')
+
+    annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+
+    axs_id=2
+    x='experiment_categories'; y='balance'
+    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+    axs[axs_id].set_ylabel('Balance [XX]')
+
+
+    annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+
+    axs_id=3
+    x='experiment_categories'; y='COT'
+    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+    axs[axs_id].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
+
+    annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+
     #sns.barplot(ax=axs[1],x='experiment_categories', y='distance',hue='control_methods', order=['S1','S2','S3','S4'],  data=pd_metrics)
     #sns.barplot(ax=axs[4],x='experiment_categories', y='stability',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
 
@@ -5493,7 +5553,7 @@ if __name__=="__main__":
 
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
-    trial_ids=[0,1,2]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9]
     #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
     plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
