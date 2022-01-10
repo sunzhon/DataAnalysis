@@ -9,8 +9,8 @@ data of robot. It's operations includes: read log file of datasets, load dataset
 
 It has data loading and preprocessing functions:
 
-    loadData()
-    read_data()
+    load_csv_file()
+    load_a_trial_data()
     load_data_log()
 
 
@@ -33,6 +33,8 @@ import re
 import time as localtimepkg
 from brokenaxes import brokenaxes
 import warnings
+
+import metrics
 
 
 def load_data_log(data_file_dic):
@@ -83,7 +85,7 @@ def load_data_log(data_file_dic):
     print(categories)
     return data_files_categories
 
-def loadData(fileName,columnsName,folderName="/home/suntao/workspace/experiment_data/0127113800"):
+def load_csv_file(fileName,columnsName,folderName="/home/suntao/workspace/experiment_data/0127113800"):
     '''
     load data from a file
     fileName: the name of file that you want to read
@@ -99,9 +101,9 @@ def loadData(fileName,columnsName,folderName="/home/suntao/workspace/experiment_
     fine_data = resource_data.iloc[0:read_rows,:].astype(float)# 数据行对齐
     return fine_data
 
-def read_data(freq,start_time,end_time,folder_name):
+def load_a_trial_data(freq,start_time,end_time,folder_name):
     '''
-    read data from file cut a range data
+    read data from experiment files of a trial and retrieve a range of data [start_time, end_time]
 
     '''
     #1) Load data
@@ -131,23 +133,23 @@ def read_data(freq,start_time,end_time,folder_name):
     columnsName_joints = columnsName_jointPositions + columnsName_jointVelocities + columnsName_jointCurrents + columnsName_jointVoltages + columnsName_POSEs + columnsName_GRFs
     
     #read CPG output
-    cpg_data=loadData(fileName_CPGs,columnsName_CPGs,folder_name)    
+    cpg_data=load_csv_file(fileName_CPGs,columnsName_CPGs,folder_name)    
     cpg_data=cpg_data.values
 
     #read commands
-    command_data=loadData(fileName_commands,columnsName_commands,folder_name)    
+    command_data=load_csv_file(fileName_commands,columnsName_commands,folder_name)    
     command_data=command_data.values
 
     #read ANC stability value
-    module_data=loadData(fileName_modules,columnsName_modules,folder_name)    
+    module_data=load_csv_file(fileName_modules,columnsName_modules,folder_name)    
     module_data=module_data.values
 
     #read ROS parameter value
-    parameter_data=loadData(fileName_parameters,columnsName_rosparameters,folder_name)    
+    parameter_data=load_csv_file(fileName_parameters,columnsName_rosparameters,folder_name)    
     parameter_data=parameter_data.values
 
     #read joint sensory data
-    jointsensory_data=loadData(fileName_joints,columnsName_joints,folder_name)    
+    jointsensory_data=load_csv_file(fileName_joints,columnsName_joints,folder_name)    
     grf_data=jointsensory_data[columnsName_GRFs].values
     pose_data=jointsensory_data[columnsName_POSEs].values
     position_data=jointsensory_data[columnsName_jointPositions].values
@@ -165,5 +167,8 @@ def read_data(freq,start_time,end_time,folder_name):
     time = np.linspace(start_time,end_time,end_point-start_point)
     #time = np.linspace(0,int(end_time/freq)-int(start_time/freq),end_time-start_time)
     return cpg_data[start_point:end_point,:], command_data[start_point:end_point,:], module_data[start_point:end_point,:], parameter_data[start_point:end_point,:], grf_data[start_point:end_point,:], pose_data[start_point:end_point,:], position_data[start_point:end_point,:],velocity_data[start_point:end_point,:],current_data[start_point:end_point,:],voltage_data[start_point:end_point,:], time
+
+
+
 
 

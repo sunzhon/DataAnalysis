@@ -31,7 +31,7 @@ from scipy.signal import savgol_filter
 Data loading and preprocessing functions
 
 loadData()
-read_data()
+load_a_trial_data()
 load_data_log()
 
 '''
@@ -155,7 +155,7 @@ def loadData(fileName,columnsName,folderName="/home/suntao/workspace/experiment_
     fine_data = resource_data.iloc[0:read_rows,:].astype(float)# 数据行对齐
     return fine_data
 
-def read_data(freq,start_point,end_point,folder_name):
+def load_a_trial_data(freq,start_point,end_point,folder_name):
     '''
     read data from file cut a range data
 
@@ -742,7 +742,7 @@ def plot_phase_transition_animation(data_file_dic,start_point=90,end_point=1200,
             for idx in files_name.index:
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     print(folder_category)
                     cpg[category].append(cpg_data)
@@ -765,7 +765,7 @@ def PhaseAnalysis(data_file_dic,start_point=90,end_point=1200,freq=60.0,experime
         print(category)
         for idx in files_name.index:
             folder_category= data_file_dic + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
             # 2)  data process
             print(folder_category)
             cpg[category].append(cpg_data)
@@ -987,7 +987,7 @@ def Phase_Gait(data_file_dic,start_point=90,end_point=1200,freq=60.0,experiment_
         print(category)
         for idx in files_name.index:
             folder_category= data_file_dic + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
             # 2)  data process
             print(folder_category)
             gamma[category].append(COG_distribution(grf_data))
@@ -1088,7 +1088,7 @@ def Phase_Gait_ForNoiseFeedback(data_file_dic,start_point=90,end_point=1200,freq
         print(category)
         for idx in files_name.index:
             folder_category = data_file_dic + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
             # 2)  data process
             print(folder_category)
             gamma[category].append(COG_distribution(grf_data-module_data[:,1:]))
@@ -1250,7 +1250,7 @@ def getTouchData(data_file_dic,start_point=900,end_point=1200,freq=60,experiment
         print(category)
         for idx in files_name.index:
             folder_category= data_file_dic + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
             # 2)  data process
             print(folder_category)
             Te_temp=touch_difference(cpg_data[:,[0,2,4,6]], grf_data)
@@ -1342,7 +1342,7 @@ def plot_phase_diff(data_file_dic,start_point=90,end_point=1200,freq=60.0,experi
             print(category)
             for idx in files_name.index:
                 folder_category= data_file_dic + files_name['data_files'][idx]
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
         # 2)  data process
                 print(folder_category)
                 cpg[category].append(cpg_data)
@@ -1390,7 +1390,7 @@ def plot_actual_grf_all_leg(data_file_dic,start_point=600,end_point=1200,freq=60
             grf[category]=[]
             for idx in files_name.index:
                 folder_category= data_file_dic + files_name['data_files'][idx]
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                 # 2)  data process
                 grf[category].append(grf_data)
                 print(folder_category)
@@ -1451,7 +1451,7 @@ def GeneralDisplay(data_file_dic,start_point=90,end_point=1200,freq=60.0,experim
             print(category)
             for idx in files_name.index:
                 folder_category= data_file_dic + files_name['data_files'][idx]
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                 # 2)  data process
                 print(folder_category)
                 gamma[category].append(COG_distribution(grf_data))
@@ -1609,7 +1609,7 @@ def plot_runningSuccess_statistic(data_file_dic,start_point=10,end_point=400,fre
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
             pose_phaseModulation[category].append(stability_temp)
@@ -1625,7 +1625,7 @@ def plot_runningSuccess_statistic(data_file_dic,start_point=10,end_point=400,fre
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) + 1.0/np.std(pose_data[:,5])
             pose_phaseReset[category].append(stability_temp)
@@ -1687,7 +1687,7 @@ def percentage_plot_runningSuccess_statistic(data_file_dic,start_point=10,end_po
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
             pose_phaseModulation[category].append(stability_temp)
@@ -1703,7 +1703,7 @@ def percentage_plot_runningSuccess_statistic(data_file_dic,start_point=10,end_po
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) + 1.0/np.std(pose_data[:,5])
             pose_phaseReset[category].append(stability_temp)
@@ -1766,7 +1766,7 @@ def plot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=60,
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
                 pose_phaseModulation[category].append(stability_temp)
@@ -1783,7 +1783,7 @@ def plot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=60,
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) + 1.0/np.std(pose_data[:,5])
                 pose_phaseReset[category].append(stability_temp)
@@ -1858,7 +1858,7 @@ def plot_coordination_statistic(data_file_dic,start_point=60,end_point=900,freq=
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             gait_diagram_data, beta=gait(grf_data)
@@ -1883,7 +1883,7 @@ def plot_coordination_statistic(data_file_dic,start_point=60,end_point=900,freq=
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             gait_diagram_data, beta=gait(grf_data)
@@ -1964,7 +1964,7 @@ def plot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,expe
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=(position_data[1:,:]-position_data[0:-1,:])*freq
@@ -1986,7 +1986,7 @@ def plot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,expe
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=(position_data[1:,:]-position_data[0:-1,:])*freq
@@ -2064,7 +2064,7 @@ def plot_energyCost_statistic(data_file_dic,start_point=60,end_point=900,freq=60
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=(position_data[1:,:]-position_data[0:-1,:])*freq
@@ -2083,7 +2083,7 @@ def plot_energyCost_statistic(data_file_dic,start_point=60,end_point=900,freq=60
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=(position_data[1:,:]-position_data[0:-1,:])*freq
@@ -2160,7 +2160,7 @@ def plot_slipping_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             expected_actual_motion_states=touch_difference(cpg_data[:,[0,2,4,6]], grf_data)
@@ -2180,7 +2180,7 @@ def plot_slipping_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             expected_actual_motion_states=touch_difference(cpg_data[:,[0,2,4,6]], grf_data)
@@ -2253,7 +2253,7 @@ def plot_distance_statistic(data_file_dic,start_point=10,end_point=400,freq=60,e
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             d=0
             for step_index in range(pose_data.shape[0]-1):
@@ -2271,7 +2271,7 @@ def plot_distance_statistic(data_file_dic,start_point=10,end_point=400,freq=60,e
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             d=0
             for step_index in range(pose_data.shape[0]-1):
@@ -2344,7 +2344,7 @@ def plot_displacement_statistic(data_file_dic,start_point=10,end_point=400,freq=
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             disp=np.sqrt(pow(pose_data[-1,3]-pose_data[0,3],2)+pow(pose_data[-1,4]-pose_data[0,4],2))#Displacement
             pose_phaseModulation[category].append(disp) #Displacement on slopes 
@@ -2361,7 +2361,7 @@ def plot_displacement_statistic(data_file_dic,start_point=10,end_point=400,freq=
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             disp=np.sqrt(pow(pose_data[-1,3]-pose_data[0,3],2)+pow(pose_data[-1,4]-pose_data[0,4],2))#Displacement
             pose_phaseReset[category].append(disp) #Displacement on slopes 
@@ -2432,7 +2432,7 @@ def phase_formTime_statistic(data_file_dic,start_point=1200,end_point=1200+900,f
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 touch, covergence_idx, phi_std = touch_convergence_moment_identification(grf_data,cpg_data,time)
                 convergenTime=convergence_idx/freq
@@ -2451,7 +2451,7 @@ def phase_formTime_statistic(data_file_dic,start_point=1200,end_point=1200+900,f
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 touch, covergence_idx, phi_std = touch_convergence_moment_identification(grf_data,cpg_data,time)
                 convergenTime=convergence_idx/freq
@@ -2525,7 +2525,7 @@ def phase_stability_statistic(data_file_dic,start_point=1200,end_point=1200+900,
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 touch_idx, convergence_idx, phi_stability =touch_convergence_moment_identification(grf_data,cpg_data,time)
                 formedphase_stability=np.mean(phi_stability[convergence_idx:])
@@ -2544,7 +2544,7 @@ def phase_stability_statistic(data_file_dic,start_point=1200,end_point=1200+900,
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 touch_idx, convergence_idx, phi_stability =touch_convergence_moment_identification(grf_data,cpg_data,time)
                 formedphase_stability=np.mean(phi_stability[convergence_idx:])
@@ -2614,7 +2614,7 @@ def percentage_plot_runningSuccess_statistic_2(data_file_dic,start_point=10,end_
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
             pose_phaseModulation[category].append(stability_temp)
@@ -2630,7 +2630,7 @@ def percentage_plot_runningSuccess_statistic_2(data_file_dic,start_point=10,end_
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) + 1.0/np.std(pose_data[:,5])
             pose_phaseReset[category].append(stability_temp)
@@ -2725,7 +2725,7 @@ def GeneralDisplay_All(data_file_dic,start_point=90,end_point=1200,freq=60.0,exp
             print(category)
             for idx in files_name.index:
                 folder_category= data_file_dic + files_name['data_files'][idx]
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                 # 2)  data process
                 print(folder_category)
                 gait_diagram_data_temp, beta_temp = gait(grf_data)
@@ -2947,7 +2947,7 @@ def barplot_GRFs_patterns_statistic(data_file_dic,start_point=1200,end_point=120
         print(category)
         for idx in files_name.index:
             folder_category= data_file_dic + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
             # 2)  data process
             print(folder_category)
             if category=='1': # has noise 
@@ -3037,7 +3037,7 @@ def phaseModulation_parameter_investigation_statistic(data_file_dic,start_point=
             for idx in files_name.index: # the number of trials in a category
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic_phaseModulation + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     phi_phaseModulation[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
                     print("The number of trials:{idx}".format(idx=idx))
@@ -3121,7 +3121,7 @@ def phaseReset_parameter_investigation_statistic(data_file_dic,start_point=1200,
             for idx in files_name.index: # the number of trials in a category
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic_phaseReset + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     phi_phaseReset[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
                     print("The number of trials:{idx}".format(idx=idx))
@@ -3201,7 +3201,7 @@ def boxplot_phase_formTime_statistic(data_file_dic,start_point=1200,end_point=12
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 phi_phaseModulation[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
                 print(phi_phaseModulation[category][-1])
@@ -3217,7 +3217,7 @@ def boxplot_phase_formTime_statistic(data_file_dic,start_point=1200,end_point=12
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 phi_phaseReset[category].append(calculate_phase_convergence_time(time,grf_data,cpg_data,freq))
                 print(phi_phaseReset[category][-1])
@@ -3294,7 +3294,7 @@ def boxplot_phase_stability_statistic(data_file_dic,start_point=1200,end_point=1
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 phase_stability=calculate_phase_diff_stability(grf_data,cpg_data,time)
                 phi_phaseModulation[category].append(phase_stability) #phase stability of the formed phase diff, inverse of the std
@@ -3312,7 +3312,7 @@ def boxplot_phase_stability_statistic(data_file_dic,start_point=1200,end_point=1
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 phase_stability=calculate_phase_diff_stability(grf_data,cpg_data,time)
                 phi_phaseReset[category].append(phase_stability) #phase stability of the formed phase diff, inverse of the std
@@ -3387,7 +3387,7 @@ def boxplot_displacement_statistic(data_file_dic,start_point=10,end_point=400,fr
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             disp=calculate_displacement(pose_data)
             pose_phaseModulation[category].append(disp) #Displacement on slopes 
@@ -3404,7 +3404,7 @@ def boxplot_displacement_statistic(data_file_dic,start_point=10,end_point=400,fr
         for idx in files_name.index: # how many time experiments one inclination
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
             print(folder_name)
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             disp=calculate_displacement(pose_data)
             pose_phaseReset[category].append(disp) #Displacement on slopes 
@@ -3481,7 +3481,7 @@ def boxplot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 stability_temp=calculate_stability(pose_data,grf_data)
                 pose_phaseModulation[category].append(stability_temp)
@@ -3498,7 +3498,7 @@ def boxplot_stability_statistic(data_file_dic,start_point=10,end_point=400,freq=
             for idx in files_name.index: # how many time experiments one inclination
                 folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
                 print(folder_name)
-                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
                 # 2)  data process
                 stability_temp=calculate_stability(pose_data,grf_data)
                 pose_phaseReset[category].append(stability_temp)
@@ -3579,7 +3579,7 @@ def boxplot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,e
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseModulation + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=calculate_joint_velocity(position_data,freq)
@@ -3599,7 +3599,7 @@ def boxplot_COT_statistic(data_file_dic,start_point=60,end_point=900,freq=60.0,e
         print(category)
         for idx in files_name.index:
             folder_name= data_file_dic_phaseReset + files_name['data_files'][idx]
-            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_name)
+            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_name)
             # 2)  data process
             print(folder_name)
             velocity_data=calculate_joint_velocity(position_data,freq)
@@ -3709,7 +3709,7 @@ def plot_single_details(data_file_dic,start_point=90,end_point=1200,freq=60.0,ex
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic + files_name['data_files'][idx]
                     print(folder_category)
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     print("Convergence time:{:.2f}".format(calculate_phase_convergence_time(time,grf_data,cpg_data,freq)))
                     rosparameter[category].append(parameter_data)
@@ -3931,7 +3931,7 @@ def plot_phase_shift_dynamics(data_file_dic,start_point=90,end_point=1200,freq=6
             for idx in files_name.index:
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     print(folder_category)
                     cpg[category].append(cpg_data)
@@ -4052,7 +4052,7 @@ def plot_cpg_phase_portrait(data_file_dic,start_point=90,end_point=1200,freq=60.
             for idx in files_name.index:
                 if idx in np.array(files_name.index)[trial_ids]:# which one is to load
                     folder_category= data_file_dic + files_name['data_files'][idx]
-                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_point,end_point,folder_category)
+                    cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = load_a_trial_data(freq,start_point,end_point,folder_category)
                     # 2)  data process
                     print(folder_category)
                     cpg[category].append(cpg_data)
