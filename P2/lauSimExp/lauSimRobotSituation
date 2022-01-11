@@ -27,7 +27,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=3
+    runs=1
 fi
 
 echo "run ${runs} times"

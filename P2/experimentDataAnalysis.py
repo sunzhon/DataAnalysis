@@ -5098,6 +5098,7 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     sns.barplot(ax=axs[axs_id],**hue_plot_params)
     axs[axs_id].set_ylabel('Displacement [m]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
@@ -5108,15 +5109,18 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     x='experiment_categories'; y='balance'
     sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
     axs[axs_id].set_ylabel('Balance [$rad^{-1}$]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
 
+
     axs_id=2
     x='experiment_categories'; y='coordination'
     sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
     axs[axs_id].set_ylabel('Coordination')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
@@ -5126,6 +5130,7 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     x='experiment_categories'; y='COT'
     sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
     axs[axs_id].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
@@ -5427,13 +5432,13 @@ if __name__=="__main__":
 
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
-    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
-    #plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
     control_methods=['apnc']
     experiment_categories=['carrying_payload']
     trial_ids=[0]
-    plot_single_details(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
+    #plot_single_details(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
     
 
