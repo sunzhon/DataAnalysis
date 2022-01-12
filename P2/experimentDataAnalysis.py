@@ -43,6 +43,7 @@ import matplotlib.font_manager
 BASE_DIR=os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR+"/../")
 from CRCF.metrics import *
+from CRCF.data_manager import *
 
 warnings.simplefilter('always', UserWarning)
 
@@ -55,54 +56,6 @@ Global parameters:
 Robot configurations and parameters of Lilibot
 
 '''
-
-
-class neuralprocessing:
-    '''
-    Neral processing unit for filter GRFs signals
-    '''
-    w_i= 20.0
-    w_r= 7.2
-    bias= -6.0
-
-    def __init__(self):
-        self.input=0.0
-        self.output=0.0
-        self.output_old=0.0
-
-    def step(self, input_signal):
-        self.input = input_signal 
-        self.output_old = self.output;
-        activity = self.w_i*self.input+self.w_r*self.output_old+self.bias
-        self.output = 1.0/(1.0+math.exp(-activity))
-        return self.output
-
-def NP(data):
-    neural_process= neuralprocessing()
-
-    filter_output=[]
-    for idx in range(len(data)):
-        filter_output.append(neural_process.step(data[idx]))
-
-    return np.array(filter_output)
-
-def test_neuralprocessing():
-    '''
-    It is a test for the class of the neuralprocessing  and its function implementation
-    '''
-
-    np = neuralprocessing()
-    filtered=[]
-    source=[]
-    for idx in range(100):
-        source.append(0.15 * math.sin(idx/20*3.14))
-        filtered.append(np.step(source[-1]))
-
-    
-    filtered=NP(source)
-    plt.plot(source,'g')
-    plt.plot(filtered,'r')
-    plt.show()
 
 
 
@@ -3310,96 +3263,19 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
     @return: show and save a data figure.
     '''
     # 1) read data
-    titles_files_categories=load_data_log(data_file_dic)
-    gamma={}
-    beta={}
-    gait_diagram_data={}
-    pitch={}
-    pose={}
-    jmc={}
-    jmp={}
-    jmv={}
-    jmf={}
-    grf={}
-    cpg={}
-    noise={}
-    rosparameter={}
-    metrics={}
-    for category, files_name in titles_files_categories: #category is a files_name categorys
-        if category in experiment_categories:
-            gamma[category]=[]  #files_name is the table of the files_name category
-            gait_diagram_data[category]=[]
-            beta[category]=[]
-            pose[category]=[]
-            jmc[category]=[]
-            jmp[category]=[]
-            jmv[category]=[]
-            jmf[category]=[]
-            grf[category]=[]
-            cpg[category]=[]
-            noise[category]=[]
-            rosparameter[category]=[]
-            metrics[category]={}
-            #control_method=files_name['titles'].iat[0]
-            for control_method, file_name in files_name.groupby('titles'): #control methods
-                if(control_method in control_methods): # which control methoid is to be display
-                    print("The experiment category: ", category, "control method is: ", control_method)
-                    metrics[category][control_method]=[]
-                    for idx in file_name.index: # trials for display  in below
-                        if idx in np.array(file_name.index)[trial_ids]:# which one is to load
-                            folder_category= os.path.join(data_file_dic,file_name['data_files'][idx])
-                            print(folder_category)
-                            if investigation=='update_frequency':
-                                freq=int(category) # the category is the frequency
-                            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_time,end_time,folder_category)
+    experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
 
-                            # 2)  data process
-                            rosparameter[category].append(parameter_data)
-                            cpg[category].append(cpg_data)
-                            jmc[category].append(command_data)
-                            pose[category].append(pose_data)
-                            jmp[category].append(position_data)
-                            velocity_data=calculate_joint_velocity(position_data,freq)
-                            jmv[category].append(velocity_data)
-                            jmf[category].append(current_data)
-                            grf[category].append(grf_data)
-                            gait_diagram_data_temp, beta_temp = gait(grf_data)
-                            gait_diagram_data[category].append(gait_diagram_data_temp); beta[category].append(beta_temp)
-                            noise[category].append(module_data)
-                            temp_1=min([len(bb) for bb in beta_temp]) #minimum steps of all legs
-                            beta_temp2=np.array([beta_temp[0][:temp_1],beta_temp[1][:temp_1],beta_temp[2][:temp_1],beta_temp[3][0:temp_1]]) # transfer to np array
-                            #- metrics for evaluation the robot locomotion
-                            if(beta_temp2.size==0):
-                                metric_coordination=0
-                            else:
-                                metric_coordination=1.0/max(np.std(beta_temp2, axis=0))
-                            metric_convergence_time= calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
-                            metric_stability= calculate_stability(pose_data,grf_data)
-                            metric_balance= calculate_body_balance(pose_data)
-                            metric_displacement= calculate_displacement(pose_data)
-                            metric_distance= calculate_distance(pose_data)
-                            metric_energy_cost= calculate_energy_cost(velocity_data,current_data,freq)
-                            metric_COT= calculate_COT(velocity_data,current_data,freq,metric_displacement)
-                            metrics[category][control_method].append({'coordination': metric_coordination, 'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement,'distance': metric_distance,'energy_cost':metric_energy_cost,'COT': metric_COT})
-
-                            print("METRICS DISPLAY AS FOLLOW:")
-                            print("Coordination:{:.2f} with shape: {}".format(metric_coordination, beta_temp2.shape))
-                            print("Convergence time:{:.2f}".format(metric_convergence_time))
-                            print("Stability:{:.2f}".format(metric_stability))
-                            print("Balance:{:.2f}".format(metric_balance))
-                            print("Displacemment:{:.2f}".format(metric_displacement)) #Displacement
-                            print("Distance:{:.2f}".format(metric_distance)) #Distance 
-                            print("Energy cost:{:.2f}".format(metric_energy_cost)) # enery cost
-                            print("COT:{:.2f}".format(metric_COT))
 
     #2) Whether get right data
     for exp_idx in range(len(experiment_categories)):
         for trial_id in range(len(trial_ids)):
             experiment_category=experiment_categories[exp_idx]# The first category of the input parameters (arg)
-            if not cpg[experiment_category]:
-                warnings.warn('Without proper data was read')
-            # set control_method which for displat in this function
             control_method=control_methods[0]
+            cpg=experiment_data[experiment_category][control_method][trial_id]['cpg']
+            grf=experiment_data[experiment_category][control_method][trial_id]['grf']
+            time=experiment_data[experiment_category][control_method][trial_id]['time']
+            gait_diagram_data=experiment_data[experiment_category][control_method][trial_id]['gait_diagram_data']
+
             #3) plot
             figsize=(6,6.5)
             fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -3430,10 +3306,10 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
 
 
             idx=0
-            axs[idx].plot(time,cpg[experiment_category][trial_id][:,1], color=c4_1color)
-            axs[idx].plot(time,cpg[experiment_category][trial_id][:,3], color=c4_2color)
-            axs[idx].plot(time,cpg[experiment_category][trial_id][:,5], color=c4_3color)
-            axs[idx].plot(time,cpg[experiment_category][trial_id][:,7], color=c4_4color)
+            axs[idx].plot(time,cpg[:,1], color=c4_1color)
+            axs[idx].plot(time,cpg[:,3], color=c4_2color)
+            axs[idx].plot(time,cpg[:,5], color=c4_3color)
+            axs[idx].plot(time,cpg[:,7], color=c4_4color)
             axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
             axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
             axs[idx].set_ylabel(u'CPGs')
@@ -3448,8 +3324,8 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             plt.subplots_adjust(hspace=0.4)
             idx=1
             axs[idx].set_ylabel(u'Phase diff. [rad]')
-            phi=calculate_phase_diff(cpg[experiment_category][trial_id],time)
-            phi_std=calculate_phase_diff_std(cpg[experiment_category][trial_id],time,method_option=1); 
+            phi=calculate_phase_diff(cpg,time)
+            phi_std=calculate_phase_diff_std(cpg,time,method_option=1); 
             axs[idx].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
             axs[idx].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
             axs[idx].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
@@ -3474,12 +3350,12 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             idx=2
             axs[idx].set_ylabel(u'GRFs')
             if experiment_category == "1": # noisy situation
-                grf_feedback_rf = grf[experiment_category][trial_id][:,0] + noise[experiment_category][trial_id][:,1]
-                grf_feedback_rh = grf[experiment_category][trial_id][:,1] + noise[experiment_category][trial_id][:,2]
+                grf_feedback_rf = grf[:,0] + noise[experiment_category][trial_id][:,1]
+                grf_feedback_rh = grf[:,1] + noise[experiment_category][trial_id][:,2]
                 axs[idx].set(ylim=[-1,20.1])
             else:
-                grf_feedback_rf = grf[experiment_category][trial_id][:,0]
-                grf_feedback_rh = grf[experiment_category][trial_id][:,1]
+                grf_feedback_rf = grf[:,0]
+                grf_feedback_rh = grf[:,1]
                 axs[idx].set(ylim=[-1,20.1])
 
             if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
@@ -3494,7 +3370,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             if  control_method in ["PhaseReset", "phase_reset"]:
                 axs[idx].plot(time,grf_feedback_rf, color=c4_1color)
                 axs[idx].plot(time,grf_feedback_rh, color=c4_2color)
-                GRF_threshold=rosparameter[experiment_category][trial_id][-1,3]*25/4*np.ones(len(time))
+                GRF_threshold=experiment_data[experiment_category][control_method][trial_id]['rosparameter'][-1,3]*25/4*np.ones(len(time))
                 axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
                 axs[idx].set_yticks([0,GRF_threshold[0],10,20])
                 axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
@@ -3508,12 +3384,12 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             idx=3
             axs[idx].set_ylabel(u'GRFs')
             if experiment_category == "1": #noisy situation
-                grf_feedback_lf = grf[experiment_category][trial_id][:,2] + noise[experiment_category][trial_id][:,3]
-                grf_feedback_lh = grf[experiment_category][trial_id][:,3] + noise[experiment_category][trial_id][:,4]
+                grf_feedback_lf = grf[:,2] + noise[experiment_category][trial_id][:,3]
+                grf_feedback_lh = grf[:,3] + noise[experiment_category][trial_id][:,4]
                 axs[idx].set(ylim=[-1,20.1])
             else:
-                grf_feedback_lf = grf[experiment_category][trial_id][:,2]
-                grf_feedback_lh = grf[experiment_category][trial_id][:,3]
+                grf_feedback_lf = grf[:,2]
+                grf_feedback_lh = grf[:,3]
                 axs[idx].set(ylim=[-1,20.1])
 
             if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
@@ -3528,7 +3404,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             if  control_method in ["PhaseReset", "phase_reset"]:
                 axs[idx].plot(time,grf_feedback_lf, color=c4_3color)
                 axs[idx].plot(time,grf_feedback_lh, color=c4_4color)
-                GRF_threshold=rosparameter[experiment_category][trial_id][-1,3]*25/4*np.ones(len(time))
+                GRF_threshold=experiment_data[experiment_category][control_method][trial_id]['rosparameter'][-1,3]*25/4*np.ones(len(time))
                 axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
                 axs[idx].set_yticks([0,GRF_threshold[0],10,20])
                 axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
@@ -3540,7 +3416,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
                 axs[idx].set(xlim=[min(time),max(time)])
             idx=4
             axs[idx].set_ylabel(r'Gait')
-            gait_diagram(fig,axs[idx],gs1,gait_diagram_data[experiment_category][trial_id])
+            gait_diagram(fig,axs[idx],gs1,gait_diagram_data)
             axs[idx].set_xlabel(u'Time [s]')
             xticks=np.arange(int(min(time)),int(max(time))+1,1)
             axs[idx].set_xticks(xticks)
@@ -3552,7 +3428,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
             if not os.path.exists(folder_fig):
                 os.makedirs(folder_fig)
 
-            figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + 'general_display.svg'
+            figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + experiment_category+"_"+control_method+'_general_display.svg'
             plt.savefig(figPath)
             plt.show()
             plt.close()
@@ -3975,7 +3851,6 @@ def scatter_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,exp
                     COT_temp=calculate_COT(velocity_data,current_data,freq,d)
                     COT[category].append(COT_temp)# 
                     print(COT[category][-1])
-                    stability_temp= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
                     
         
     pd_COT=pd.DataFrame(COT)
@@ -5159,7 +5034,7 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     '''
     #1) calculate metrics
-    metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
+    experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
     
     #2) tranfer metrics in dict into pandas Dataframe
     pd_metrics_list=[]
@@ -5177,7 +5052,6 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
     pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
 
-    pdb.set_trace()
     #3) plot
     figsize=(10,7)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -5224,25 +5098,29 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     sns.barplot(ax=axs[axs_id],**hue_plot_params)
     axs[axs_id].set_ylabel('Displacement [m]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
+
 
     axs_id=1
-    x='experiment_categories'; y='coordination'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
-    axs[axs_id].set_ylabel('Coordination [XX]')
+    x='experiment_categories'; y='balance'
+    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+    axs[axs_id].set_ylabel('Balance [$rad^{-1}$]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
 
-    axs_id=2
-    x='experiment_categories'; y='balance'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
-    axs[axs_id].set_ylabel('Balance [XX]')
 
+    axs_id=2
+    x='experiment_categories'; y='coordination'
+    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
+    axs[axs_id].set_ylabel('Coordination')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
@@ -5252,6 +5130,7 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     x='experiment_categories'; y='COT'
     sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
     axs[axs_id].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
+    axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
@@ -5553,13 +5432,13 @@ if __name__=="__main__":
 
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
-    trial_ids=[0,1,2,3,4,5,6,7,8,9]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
     plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
     control_methods=['apnc']
-    experiment_categories=['noisy_feedback']
+    experiment_categories=['carrying_payload']
     trial_ids=[0]
-    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods,investigation="paramater investigation")
+    #plot_single_details(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
     
 
