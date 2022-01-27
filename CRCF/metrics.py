@@ -289,6 +289,7 @@ def calculate_coordination(duty_factor):
     
     @return: the reciprocal of the max standard derivation of the duty factor
     '''
+
     if(isinstance(duty_factor,list)):
         min_step_num=min([len(bb) for bb in duty_factor]) #minimum steps of all legs
         duty_fatcor_array=np.array([duty_factor[0][:min_step_num],duty_factor[1][:min_step_num],duty_factor[2][:min_step_num],duty_factor[3][0:min_step_num]]) # transfer four legs' duty factors
@@ -328,8 +329,8 @@ def calculate_body_balance(pose_data):
 
     '''
     
-    stability= 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
-    return stability
+    balance = 1.0/np.std(pose_data[:,0],axis=0) + 1.0/np.std(pose_data[:,1],axis=0) #+ 1.0/np.std(pose_data[:,2]) +1.0/np.std(pose_data[:,5])
+    return balance
 
 
 
@@ -497,6 +498,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
     jmf={}
     grf={}
     cpg={}
+    phi={}# cpgs phase difference
     noise={}
     rosparameter={}
     metrics={}
@@ -513,6 +515,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
             jmf[category]=[]
             grf[category]=[]
             cpg[category]=[]
+            phi[category]=[]
             noise[category]=[]
             rosparameter[category]=[]
             metrics[category]={}
@@ -544,6 +547,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                             grf[category].append(grf_data)
                             noise[category].append(module_data)
                             #----Metrics
+                            metric_phase_diff=calculate_phase_diff(cpg_data,time)
                             gait_diagram_data_temp, duty_factor_data = calculate_gait(grf_data)
                             gait_diagram_data[category].append(gait_diagram_data_temp); 
                             duty_factor[category].append(duty_factor_data)
@@ -555,7 +559,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                             metric_distance = calculate_distance(pose_data)
                             metric_energy_cost = calculate_energy_cost(velocity_data,current_data,freq)
                             metric_COT = calculate_COT(velocity_data,current_data,freq,metric_displacement)
-                            metrics[category][control_method].append({'coordination': metric_coordination, 'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement, 'distance': metric_distance, 'energy_cost':metric_energy_cost, 'COT': metric_COT})
+                            metrics[category][control_method].append({'phase_diff':metric_phase_diff,'coordination': metric_coordination, 'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement, 'distance': metric_distance, 'energy_cost':metric_energy_cost, 'COT': metric_COT})
                             experiment_data[category][control_method].append({'cpg': cpg_data, 'grf': grf_data, 'jmp': position_data, 'pose': pose_data, 'jmf':current_data,'jmc': command_data,'jmv':velocity_data,'time':time,'gait_diagram_data':gait_diagram_data_temp,'rosparameter':parameter_data})
 
                             print("METRICS DISPLAY AS FOLLOW:")

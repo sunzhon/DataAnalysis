@@ -4902,41 +4902,21 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
     '''
 
     # 1) read data
-    freq=freq
-    titles_files_categories=load_data_log(data_file_dic)
-    cpg={}
-    phi={}
-    phi_std={}
-    for category, files_name in titles_files_categories: #category is a files_name categorys
-        if category in experiment_categories:
-            cpg[category]=[]
-            phi[category]=[]
-            phi_std[category]=[]
-            for control_method, file_name in files_name.groupby('titles'): #control methods
-                if(control_method in control_methods): # which control methoid is to be display
-                    print("The experiment category: ", category, "control method is: ", control_method)
-                    for idx in files_name.index: # trials for display here
-                        if idx in np.array(files_name.index)[trial_ids]:# which one is to load
-                            folder_category= data_file_dic + files_name['data_files'][idx]
-                            if investigation=='update_frequency':
-                                freq=int(category) # the category is the frequency
-                            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = read_data(freq,start_time,end_time,folder_category)
-                            # 2)  data process
-                            print(folder_category)
-                            print("Convergence time:{:.2f}".format(calculate_phase_convergence_time(time,grf_data,cpg_data,freq)))
-                            cpg[category].append(cpg_data)
-                            phi[category].append(calculate_phase_diff(cpg_data,time))
-                            phi_std[category].append(calculate_phase_diff_std(cpg_data,time)) 
+    experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation=investigation)
 
-    #2) plot
-    if investigation=='update_frequency':
-        figsize=(len(experiment_categories),3)
-        fig = plt.figure(figsize=figsize,constrained_layout=False)
 
-        gridspec_column=int(math.ceil(len(experiment_categories)/2))
-        gridspec_row=2
-        gs1=gridspec.GridSpec(gridspec_row,gridspec_column)#2 per column, experiment_category should be even
-        gs1.update(hspace=0.01,wspace=0.01,top=0.9,bottom=0.11,left=0.02,right=0.94)
+
+    #2) plot setup
+    figsize=(len(experiment_categories),3)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+
+    gridspec_column=int(math.ceil(len(experiment_categories)/2))
+    gridspec_row=2
+    gs1=gridspec.GridSpec(gridspec_row,gridspec_column)#2 per column, experiment_category should be even
+    gs1.update(hspace=0.01,wspace=0.01,top=0.9,bottom=0.11,left=0.02,right=0.94)
+
+
+    # specify axs and its grids
     axs=[]
     for row_idx in range(gridspec_row):
         for col_idx in range(gridspec_column):
@@ -4944,22 +4924,22 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
 
     markers=['g*','g*','g*','g*','g*','g*']*3
     titles=experiment_categories
-    control_method=control_methods[0]
 
-    for exp_idx, category in enumerate(experiment_categories):
-        for trial_idx in range(len(trial_ids)):
+
+    #3) plot data
+    for exp_idx, experiment_category in enumerate(experiment_categories):
+        for trial_id in range(len(trial_ids)):
+            control_method=control_methods[0]
+            phi=metrics[experiment_category][control_method][trial_id]['phase_diff']
             plot_idx=exp_idx
-            if not cpg[category]:
-                warnings.warn('Without proper data was read')
-    
             #3.1) draw
-            axs[plot_idx].plot([0],[0],[0],color='red',marker='X')
-            axs[plot_idx].plot([3.14],[3.14],[0],color='blue',marker="D")
-            axs[plot_idx].plot(phi[category][trial_idx]['phi_12'], phi[category][trial_idx]['phi_13'], phi[category][trial_idx]['phi_14'],markers[exp_idx],markersize='3')
+            axs[plot_idx].plot([0],[0],[0],color='red',marker='X') # plot original point
+            axs[plot_idx].plot([3.14],[3.14],[0],color='blue',marker="D") # plot destination point
+            axs[plot_idx].plot(phi['phi_12'], phi['phi_13'],phi['phi_14'],markers[exp_idx],markersize='3')
             axs[plot_idx].view_init(12,-62)
-            axs[plot_idx].set_xlabel(u'$\phi_{12}$[rad]')
-            axs[plot_idx].set_ylabel(u'$\phi_{13}$[rad]')
-            axs[plot_idx].set_zlabel(u'$\phi_{14}$[rad]')# specifying the distance betwwen the label and the axis
+            axs[plot_idx].set_xlabel(u'$\phi_{12}$[rad]',fontsize=9)
+            axs[plot_idx].set_ylabel(u'$\phi_{13}$[rad]',fontsize=9)
+            axs[plot_idx].set_zlabel(u'$\phi_{14}$[rad]',fontsize=9) # specifying the distance betwwen the label and the axis
             #axs[plot_idx].xaxis._axinfo['label']['space_factor'] = 1
             #axs[plot_idx].yaxis._axinfo['label']['space_factor'] = 1
             axs[plot_idx].dist=15
@@ -4969,24 +4949,26 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
             axs[plot_idx].set_xticks([0,1,2,3])
             axs[plot_idx].set_yticks([0,1,2,3])
             axs[plot_idx].set_zticks([0,1,2])
-            axs[plot_idx].grid(which='both',axis='x',color='k',linestyle=':')
-            axs[plot_idx].grid(which='both',axis='y',color='k',linestyle=':')
-            axs[plot_idx].grid(which='both',axis='z',color='k',linestyle=':')
-            axs[plot_idx].tick_params(axis='x', which='major', pad=-3)# reduce the distance between ticklabels and the axis
-            axs[plot_idx].tick_params(axis='y', which='major', pad=-3)# reduce the distance between ticklabels and the axis
-            axs[plot_idx].tick_params(axis='z', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].grid( which='both', axis='x', color='k', linestyle=':')
+            axs[plot_idx].grid( which='both', axis='y', color='k', linestyle=':')
+            axs[plot_idx].grid( which='both', axis='z', color='k', linestyle=':')
+            axs[plot_idx].tick_params( axis='x', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].tick_params( axis='y', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].tick_params( axis='z', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+            axs[plot_idx].set_xticklabels(labels=['0','1','2','3'],fontsize=8)
+            axs[plot_idx].set_yticklabels(labels=['0','1','2','3'],fontsize=8)
+            axs[plot_idx].set_zticklabels(labels=['0','1','2'],fontsize=8)
+            #plt.xticks(fontsize=9)
             
             
             if investigation == "update_frequency":
-                axs[plot_idx].set_title(u"$f=$"+titles[plot_idx]+" Hz",y=0.8)
+                axs[plot_idx].set_title(u"$f=$"+titles[plot_idx]+" Hz",y=0.8,fontsize=11)
             elif investigation in ["PhaseReset","phase_reset"]:
-                axs[plot_idx].set_title(u"$F_t=$"+titles[plot_idx],y=0.8)
+                axs[plot_idx].set_title(u"$F_t=$"+titles[plot_idx],y=0.8,fontsize=11)
             elif investigation in ["PhaseModulation","phase_modulation",'apnc']:
-                axs[plot_idx].set_title(u"R="+str(int(float(titles[plot_idx])*100))+r"%",y=0.8)
+                axs[plot_idx].set_title(u"R="+str(int(float(titles[plot_idx])*100))+r"%",y=0.8,fontsize=11)
                 #axs[plot_idx].set_title(u"MI="+titles[plot_idx])
 
-
-    
     #axs[plot_idx].legend(experiment_categories)
 
 
@@ -4994,38 +4976,12 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
     folder_fig = data_file_dic + 'data_visulization/'
     if not os.path.exists(folder_fig):
         os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + 'phase_shift_dynamics.svg'
+    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + control_methods[0]+'phase_shift_dynamics.svg'
     plt.savefig(figPath)
     plt.show()
-    '''
-    # save figure
-    folder_fig = data_file_dic + 'data_visulization/'
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'general_display.svg'
-    #plt.savefig(figPath)
-    
 
-    figsize=(6,6)
-    fig = plt.figure(figsize=figsize,constrained_layout=False)
-    x=phi_std
-    y=np.gradient(phi_std,1.0/freq)
-    plt.plot(0,0,'bo')
-    plt.plot(x,y,'ro',markersize=1.5)
 
-    figsize=(6,6)
-    fig1 = plt.figure(figsize=figsize,constrained_layout=False)
-    x=phi_std
-    y=np.gradient(phi_std,1.0/freq)
-    dx=2*np.sign(np.gradient(x,1.0/freq))
-    dy=2*np.sign(np.gradient(y,1.0/freq))
 
-    plt.plot(0,0,'bo')
-    plt.quiver(x,y,dx,dy,angles='xy',color='r')
-    plt.xlim([-0.1,4])
-    plt.ylim([-0.1,4])
-    plt.show()
-    '''
 
 
 def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):
@@ -5359,9 +5315,12 @@ if __name__=="__main__":
     #trial_ids=[0]
     #WalkingSpeed_GaitDiagram(data_file_dic,start_time=60*30,end_time=60*35,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
 
+
+
+
     '''------------------------------------------------------------------------------------------------------------'''
     ''' Various roughness in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
-    ##------- Roughness 
+    ##------- Various Roughness 
 
     data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/3M_roughness_data/"
     data_file_dic="/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
@@ -5384,11 +5343,12 @@ if __name__=="__main__":
 
 
 
-    ##----- MI
+    ##----- Various MI
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic="/media/suntao/DATA/MI_3M/"
     data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
+    data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
     #experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     experiment_categories=['0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
@@ -5397,15 +5357,17 @@ if __name__=="__main__":
     trial_ids=[0,1,2]
 
     #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
-    #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=10*60,end_time=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
+   # plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=10*60,end_time=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
 
 
-    ##----- Update frequency
+    ##----- various Update frequency
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
     data_file_dic= "/media/sun/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
     data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
+    data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
+
 
     #data_file_dic="/media/suntao/DATA/UpdateFrequency_3M/"
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
@@ -5415,7 +5377,7 @@ if __name__=="__main__":
     #boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=50,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='barplot')
 
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
-    #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods=['apnc'],investigation='update_frequency')
+    plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods=['apnc'],investigation='update_frequency')
 
     experiment_categories=['15']
     control_methods=['phase_reset']
@@ -5434,7 +5396,7 @@ if __name__=="__main__":
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
-    plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    #plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
     control_methods=['apnc']
     experiment_categories=['carrying_payload']

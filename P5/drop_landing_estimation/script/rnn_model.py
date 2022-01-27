@@ -1,27 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
+'''
+ Import necessary packages
 
-# # <centr>Description of this project </center>
-# ## There are 14 subjects attending the experiments, they are indexed by following keys:
-# #['sub_0','sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'，'sub_10', 'sub_11', 'sub_12', 'sub_13',sub_13]
-# 
-# 
-# 
-# 
-# '''
-# all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671, 
-#                    'sub_6': 7600, 'sub_7': 5583, 'sub_8': 6032, 'sub_9': 6508, 'sub_10': 6348, 'sub_11': 7010, 'sub_12': 8049, 'sub_13': 6248}
-# all_datasets_ranges={'sub_-1':0, sub_0': 6951, 'sub_1': 14390, 'sub_2': 22076, 'sub_3': 30754, 'sub_4': 36934, 'sub_5': 43605,
-#                       'sub_6': 51205, 'sub_7': 56788, 'sub_8': 62820, 'sub_9': 69328, 'sub_10': 75676, 'sub_11':82686, 'sub_12': 90735, 'sub_13': 96983}
-# '''
-# 
-
-# # 1. Hyper parametes
-
-# In[1]:
-
-
-## import necessary packages
+'''
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,6 +17,8 @@ print("tensorflow version:",tf.__version__)
 import package_lib.dp_process_rawdata as dp_lib
 
 import seaborn as sns
+import copy
+import re
 
 from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 from package_lib.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
@@ -50,6 +34,10 @@ gpus=tf.config.list_logical_devices(device_type='GPU')
 
 print(cpus,gpus)
 
+'''
+Set hyper parameters
+
+'''
 def initParameters():
     # hyper parameters
     hyperparams=dp_lib.hyperparams
@@ -66,32 +54,12 @@ def initParameters():
     hyperparams['batch_size']=4
     hyperparams['window_size']=DROPLANDING_PERIOD
     hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=5
+    hyperparams['epochs']=10
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
     
     return hyperparams
 
-
-# # 2. Prepare dataset for training and evaluation
-# ## 2.1 Read raw subject data and normalization
-
-# In[2]:
-
-
-
-
-
-if __name__=='__main__':
-    pass
-    #scaled_series,scaler=load_normalize_data(sub_idx='sub_1','sub_2','sub_4'])
-    #series, scaled_series,scaler=dp_lib.load_normalize_data(sub_idx={'P_02_dongxuan':TRIALS},hyperparams=hyperparams)
-
-
-
-# ## 2.2 Split datasets into train, valid and test data
-
-# In[3]:
 
 
 '''
@@ -145,19 +113,13 @@ def split_dataset(scaled_series,sub_idx):
     return xy_train, xy_valid,xy_test
     
     
-if __name__=='__main__':
-    pass
-    #xy_train, xy_valid, xy_test = split_dataset(scaled_series,sub_idx=hyperparams['sub_idx'])
-    #hyperparams['train_sub_idx']=[1,2,4]
+
+'''
+Packing data into windows 
 
 
-# ## 2.3 Transfer data into dataset for feeding to neural network
+'''
 
-# In[4]:
-
-
-
-# packing data into windows 
 def windowed_dataset(series, hyperparams,shuffle_buffer):
     window_size=hyperparams['window_size']
     batch_size=hyperparams['batch_size']
@@ -191,25 +153,9 @@ def model_forecast(model, series, hyperparams):
     return forecast
 
 
-if __name__=='__main__':
-    # transfer the data into dataset for feeding to neural network
-    pass
-    #train_set = windowed_dataset(xy_train, hyperparams,shuffle_buffer=1000)
-    #valid_set = windowed_dataset(xy_valid, hyperparams, shuffle_buffer=1000)
-    #train_set_init = tf.data.Dataset.from_tensor_slices(xy_train_init).batch(1).map(lambda x: (x[:,:-6],x[:,-6:]))
-    #valid_set_init = tf.data.Dataset.from_tensor_slices(xy_valid_init).batch(1).map(lambda x: (x[:,:-6],x[:,-6:]))
-    #test_set_init = windowed_dataset(xy_test_init,window_size,batch_size,shuffle_buffer_size)
-
-    
-
-
-# # 3. Model definition
-# ## 3.1 Model v1
-
-# In[5]:
-
-
-# Model definne
+'''
+Model_V1 definition
+'''
 def model_v1(hyperparams):
     model = tf.keras.models.Sequential([
       tf.keras.layers.Conv1D(filters=60, kernel_size=5,
@@ -220,13 +166,16 @@ def model_v1(hyperparams):
       tf.keras.layers.LSTM(60, return_sequences=True),
       #tf.keras.layers.Flatten(),
       tf.keras.layers.Dense(60, activation="relu"),
-      tf.keras.layers.Dense(30),
+      tf.keras.layers.Dense(30, activation="relu"),
       tf.keras.layers.Dense(hyperparams['labels_num'])
       #tf.keras.layers.Lambda(lambda x: x *180)
     ])
     return model
 
-# Callback class
+'''
+Define callback class
+
+'''
 class myCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epcoh, logs={}):
         if(logs.get('loss')<0.003):
@@ -235,21 +184,11 @@ class myCallback(tf.keras.callbacks.Callback):
 
 
     
-#training_folder=dp_lib.create_training_files(hyperparams=dp_lib.hyperparams)
-#model summary
+'''
 
+Model_V2 definition
 
-# ## 3.2 Model V2
-
-# In[6]:
-
-
-# 定义组合神经网络，多个子网络
-
-import tensorflow as tf
-from tensorflow.keras.layers import Dense
-from tensorflow.keras import Model
-
+'''
 def model_v2():
     print(tf.__version__)
     ####定义一个方便构造常规 Sequential() 网络的函数
@@ -310,34 +249,11 @@ def model_v2():
     return model_v2
 
 
-# # find optimal lr
-# 
-# tf.keras.backend.clear_session()
-# tf.random.set_seed(51)
-# np.random.seed(51)
-# 
-# lr_schedule = tf.keras.callbacks.LearningRateScheduler(
-#     lambda epoch: 1e-8 * 10**(epoch / 20))
-# optimizer = tf.keras.optimizers.SGD(learning_rate=1e-8, momentum=0.9)
-# model.compile(loss=tf.keras.losses.Huber(),
-#               optimizer=optimizer,
-#               metrics=["mae"])
-# history = model.fit(train_set, epochs=150, callbacks=[lr_schedule])
-# 
 
-# plt.semilogx(history.history["lr"], history.history["loss"])
-# plt.axis([1e-8, 1, 0, 2])
-# 
+'''
+Model training
 
-# plt.plot(history.history['loss'])
-
-# # 4. Train model
-# ## 4.1 Train model V1
-
-# In[7]:
-
-
-
+'''
 def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative_way'):
     # train model_v1
     tf.keras.backend.clear_session()
@@ -389,7 +305,13 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
     save_trainedModel(model,history_dict,training_folder)
     return model, history_dict, training_folder
 
-# Save trained model
+
+
+'''
+ Save trained model
+
+
+'''
 def save_trainedModel(trained_model,history_dict,training_folder,**args):
     # Load hyperparameters 
     hyperparams_file=training_folder+"/hyperparams.yaml"
@@ -438,16 +360,10 @@ def save_trainedModel(trained_model,history_dict,training_folder,**args):
     
     
     
-if __name__=='__main__':
-    pass
-    #trained_model,history, training_folder=train_model(model,hyperparams,train_set,valid_set)
+'''
+Training model_v2
 
-
-# ## 4.2 Train model V2
-
-# In[8]:
-
-
+'''
 def train_model_v2():
     # train model_v2
     tf.keras.backend.clear_session()
@@ -458,11 +374,10 @@ def train_model_v2():
     return history
 
 
-# ## 4.3 Plot training process
+'''
+Plot the history metrics in training process
 
-# In[9]:
-
-
+'''
 def plot_history(history_dict):
     print(history_dict.keys())
     plt.plot(history_dict['loss'],'r')
@@ -474,12 +389,10 @@ def plot_history(history_dict):
     print('max train MAE: {:.4f} and max val MAE: {:.4f}'.format(max(history_dict['mae']),max(history_dict['val_mae'])))
 
 
-# # 5. Test model
 
-# In[10]:
-
-
-import copy
+'''
+Testing model
+'''
 def test_model(training_folder, xy_test,scaler,**args):
     
     #1) Crerate test results folder
@@ -528,7 +441,9 @@ def test_model(training_folder, xy_test,scaler,**args):
     
     return features,labels,predictions,testing_folder
 
-# save test results
+'''
+save test results
+'''
 def save_testResult(features,labels,predictions,testing_folder):
     saved_test_results_file=testing_folder+"/test_results"+'.h5'
     with h5py.File(saved_test_results_file,'w') as fd:
@@ -536,40 +451,27 @@ def save_testResult(features,labels,predictions,testing_folder):
         fd.create_dataset('labels',data=labels)
         fd.create_dataset('predictions',data=predictions)
 
-if __name__=='__main__':
-    pass
-    #features, labels, predictions,testing_folder = test_model(training_folder,xy_test,scaler)
-    #print("labels shape",labels.shape)
-    #print("features shape",features.shape)
-    #print("Prediction shape",predictions.shape)
 
 
-# # 6. Plot results for paper
-# ## 6.1 Estimation accuracy 
-
-# In[11]:
-
-
-import re
-
-testing_folder='./model/test_2020'
-training_folder=testing_folder+"/../training_"+re.search(r"\d+$",testing_folder).group()
-print(training_folder)
+#testing_folder='./model/test_2020'
+#training_folder=testing_folder+"/../training_"+re.search(r"\d+$",testing_folder).group()
+#print(training_folder)
 
 
-# In[12]:
+'''
+Plot the estimation results
 
-
+'''
 def plot_prediction(features,labels,predictions,testing_folder):
     
-    # Evaluate using two metrics, mae and mse
+    #1) evaluate using two metrics, mae and mse
     mae=tf.keras.metrics.mean_absolute_error(labels, predictions).numpy()
-    
     mse=tf.keras.metrics.mean_squared_error(labels, predictions).numpy()
     print('MAE: {:.3f}, RMSE:{:.3f} in a period'.format(np.mean(mae),np.mean(np.sqrt(mse))))
     
-    pdb.set_trace()
-    # Load hyperparameters, Note the values in hyperparams become string type
+    #2) preparation
+
+    #i) load hyperparameters, Note: the values in hyperparams become string type
     if(re.search('test_\d',testing_folder)!=None):
         testing_folder=os.path.dirname(testing_folder) # 父目录
 
@@ -580,12 +482,12 @@ def plot_prediction(features,labels,predictions,testing_folder):
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
         fr.close()
     
-    # hyper parameters    
+    #ii) read features and label names from hyper parameters    
     features_names=hyperparams['features_names']
     labels_names=hyperparams['labels_names']
     
     
-    # Save plot results
+    #iii) create file name to save plot results
     test_sub_idx=hyperparams['test_sub_idx']
     test_sub_idx_str=''
     for ii in test_sub_idx:
@@ -595,8 +497,7 @@ def plot_prediction(features,labels,predictions,testing_folder):
     prediction_error_file=testing_folder+'/sub'+test_sub_idx_str+'_estimation_error.svg'
     
     
-    # Plot the estimation results and errors
-
+    #iv) plot the estimation results and errors
     dp_lib.plot_test_results(features, labels, predictions, features_names, labels_names,testing_folder,
                                    prediction_file=prediction_file,prediction_error_file=prediction_error_file)
 
@@ -669,11 +570,6 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     
 
 
-# # Main function 1 --- training and testing model
-
-# In[ ]:
-
-
 import numpy as np
 from sklearn.model_selection import LeaveOneOut
 import time as localtimepkg
@@ -681,7 +577,10 @@ import time as localtimepkg
 
 
 
-# normalize all subject data
+'''
+Normalize all subject data
+
+'''
 def normalize_subjects_data(hyperparams):
     sub_idxs=hyperparams['sub_idx']
     if(isinstance(sub_idxs,list)):
@@ -711,11 +610,16 @@ def normalize_subjects_data(hyperparams):
         return norm_trials_data, scaler
 
 
+
+'''
+Main rountine for developing ANN model for biomechanic variable estimations
+
+'''
 def main():
-    # Setup hyperparameters
+    #1) Setup hyper parameters
     hyperparams=initParameters()
     
-    # Create a list of training and testing files
+    #2) Create a list of training and testing files
     train_test_folder= os.path.join(EXPERIMENT_RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
     if(os.path.exists(train_test_folder)==False):
         os.makedirs(train_test_folder)    
@@ -724,17 +628,15 @@ def main():
         os.remove(train_test_folder_log)
     log_dict={'training_folder':[],'testing_folder':[]}
     
-    # load and normalize datasets for training and testing
+    #3) Load and normalize datasets for training and testing
     norm_trials_data,scaler=normalize_subjects_data(hyperparams)
 
-    # leave-one-out cross-validation
-    loo = LeaveOneOut()
-    #subject_name='P_16_zhangjinduo'
-    #applied_dataset_trials = hyperparams['sub_idx'][subject_name][:29]
 
+    #4) leave-one-out cross-validation
+    loo = LeaveOneOut()
     applied_dataset_trials = range(len(norm_trials_data.keys()))
     for train_index, test_index in loo.split(applied_dataset_trials):
-        #0) train and test subject dataset 
+        #i) decide train and test subject dataset 
         print("train set:", train_index, "test set:", test_index)
         hyperparams['train_sub_idx']=[str(ii) for ii in  train_index] # the values of params should be str or int types
         hyperparams['test_sub_idx']=[str(ii) for ii in test_index]
@@ -745,7 +647,7 @@ def main():
         xy_test=np.concatenate(xy_test,axis=0)
         xy_valid=xy_test
         
-        #1) load dataset
+        #ii) load train and test dataset
         train_set = windowed_dataset(xy_train, hyperparams,   shuffle_buffer=1000)
         valid_set = windowed_dataset(xy_valid, hyperparams,   shuffle_buffer=1000)
         print("Train set shape",xy_train.shape)
@@ -754,22 +656,24 @@ def main():
         #print("X Shape for a iteration train",list(train_set.as_numpy_iterator())[0][0].shape)
         #print("Y Shape for a iteration train",list(train_set.as_numpy_iterator())[0][1].shape)
 
-        #2) declare model
+        #iii) declare model
         model=model_v1(hyperparams)
-        #3) train model
+
+        #iv) train model
         trained_model,history_dict,training_folder=train_model(model,hyperparams,train_set,valid_set)
         
-        #4) test model
+        #v) test model
         features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
         log_dict['training_folder'].append(training_folder)
         log_dict['testing_folder'].append(testing_folder)
          
-        #5) Plot
+        #vi) Plot estimation results
         #plot_prediction(features,labels,predictions,testing_folder)
         #plot_prediction_statistic(features, labels, predictions,testing_folder)
+        break;# only run a leave-one-out a time
     
     
-    #6) save train and test folder path
+    #5) save train and test folder path
     with open(train_test_folder_log,'w') as fd:
         yaml.dump(log_dict,fd)
 
@@ -779,24 +683,16 @@ def main():
 
 if __name__=='__main__':
 
-    #0) Train and test model
+    #0) Train and test model or testing existing model
+    if(True):#retrain model
+        training_folder, testing_folder, xy_test, scaler =  main()
+    else:# plot existing model
+        hyperparams=initParameters()
+        if(not testing_folder in locals().keys()):
+            testing_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/test_115856/test_1')
+            training_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/training_115856/')
 
-    #training_folder, testing_folder, xy_test, scaler =  main()
-    hyperparams=initParameters()
-
-    #model=model_v1(hyperparams)
-    #print(model.summary())
-
-
-    #1) test model and visualize testing results
-    if(not testing_folder in locals().keys()):
-        testing_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-11-14/test_002015/test_1')
-        training_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2021-11-14/training_002015/')
-        #features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
-        #log_dict['training_folder'].append(training_folder)
-        #log_dict['testing_folder'].append(testing_folder)
-
-
+    #1) load testing results
     testing_results=os.path.join(testing_folder,'test_results.h5')
     #print(testing_results)
     with h5py.File(testing_results,'r') as fd:
@@ -804,7 +700,10 @@ if __name__=='__main__':
         predictions=fd['predictions'][:,:]
         labels=fd['labels'][:,:]
     
+    #2) visulize estimation results
+    #i) plot curves
     plot_prediction(features,labels,predictions,testing_folder)
+    #ii) statistical estimation results
     plot_prediction_statistic(features, labels, predictions,testing_folder)
     
     

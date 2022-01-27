@@ -34,7 +34,7 @@ import time as localtimepkg
 from brokenaxes import brokenaxes
 import warnings
 
-import metrics
+#import metrics
 
 
 def load_data_log(data_file_dic):

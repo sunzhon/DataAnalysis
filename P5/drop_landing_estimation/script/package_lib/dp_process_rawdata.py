@@ -42,6 +42,17 @@ import termcolor
 import datetime
 
 
+from scipy.stats import normaltest 
+from scipy.stats import kstest
+from scipy.stats import shapiro
+from scipy.stats import levene
+from scipy import stats
+
+
+
+
+
+
 from statannotations.Annotator import Annotator
 
 if __name__=='__main__':
@@ -508,35 +519,35 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     # predictions
     #predictions=np.squeeze(np.array(predictions))
     
-    # Pandas DataFrame of the above datasets
+    #1) load dataset
+    #i) Pandas DataFrame of the above datasets
     pd_features = pd.DataFrame(features,columns=features_names)
     pd_labels = pd.DataFrame(labels,columns=labels_names)
     pd_predictions = pd.DataFrame(data=predictions,columns=labels_names)
 
+
+    #ii) add time and legends to pd_labels and pd_predictions
     freq=100.0;
+    print("NOTE: Sampe frequency is 100 Hz in default")
     Time=np.linspace(0,labels.shape[0]/freq,num=labels.shape[0])
 
+    pd_labels['time']=Time
+    pd_predictions['time']=Time
 
-    # ---  Plots ------
-    num_pred=predictions.shape[1]
-    if(num_pred>3):
-        subplots_rows=num_pred//2
-    else:
-        subplots_rows=num_pred
+    pd_labels['legends']='Actual'
+    pd_predictions['legends']='Prediction'
 
-    figsize=(12,3*subplots_rows)
-    fig=plt.figure(figsize=figsize)
-    axs=fig.subplots(subplots_rows,2).reshape(-1,2)
-    # -- plot labels and predictions
-    for plot_idx, label_name in enumerate(labels_names):
-        axs[plot_idx%3,plot_idx//3].plot(Time,pd_labels[label_name],'g')
-        axs[plot_idx%3,plot_idx//3].plot(Time,pd_predictions[label_name],'r')
-        axs[plot_idx%3,plot_idx//3].legend(['Measured value','Estimated value'])
-        axs[plot_idx%3,plot_idx//3].set_ylabel(label_name+" [*]")
-        axs[plot_idx%3,plot_idx//3].grid(which='both',axis='x',color='k',linestyle=':')
-        axs[plot_idx%3,plot_idx//3].grid(which='both',axis='y',color='k',linestyle=':')
-    axs[plot_idx%3,plot_idx//3].set_xlabel("Time [s]")
-    # save figure
+    #iii) organize labels and predictions into a pandas dataframe
+    pd_labels_predictions=pd.concat([pd_labels,pd_predictions],axis=0)
+    pd_labels_predictions=pd_labels_predictions.melt(id_vars=['time','legends'],var_name='GRF [BW]',value_name='vals')
+    
+    #2) plot dataset and save figures
+    #i) plot estimation results
+    g=sns.FacetGrid(data=pd_labels_predictions,col='GRF [BW]',hue='legends',sharey=False)
+    g.map_dataframe(sns.lineplot,'time','vals')
+    g.add_legend()
+
+    #ii) save figure
     if(fig_save_folder!=None):
         folder_fig = fig_save_folder+"/"
     else:
@@ -551,63 +562,49 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     plt.savefig(figPath)
 
 
-    # statisrical estimation errors
+    #3) plot and save statisrical estimation errors
+    #i) calculate estimation errors statistically: rmse. It is an average value
     pred_error=predictions-labels
     pred_mean=np.mean(pred_error,axis=0)
     pred_std=np.std(pred_error,axis=0)
     pred_rmse=np.sqrt(np.sum(np.power(pred_error,2),axis=0)/pred_error.shape[0])
-    print("mean: {:.2f}, std: {:.2f}, rsme: {:.2f} of the errors between estimation and ground truth", pred_mean, pred_std, pred_rmse)
+    pred_rrmse=pred_rmse/np.mean(labels,axis=0)*100.0
+    print("mean of ground-truth:",np.mean(labels))
+    print("mean: {.2f}, std: {.2f}, RMSE: {.2f}, rRMSE: {.2f} of the errors between estimation and ground truth",pred_mean, pred_std, pred_rmse, pred_rrmse)
 
-    # these are matplotlib.patch.Patch properties
-    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    pdb.set_trace()
+
+    #ii) calculate estimation errors realtime: normalized_absolute_error (nae)= abs(labels-prediction)/labels, along the time, each column indicates a labels
+    nae = np.abs(pred_error)#/labels
+    pd_nae=pd.DataFrame(data=nae,columns=labels_names);pd_nae['time']=Time
+    pd_nae=pd_nae.melt(id_vars=['time'],var_name='GRF error [BW]',value_name='vals')
 
 
-    #plot absolute error and noramlized error (error-percentage)
-    # error= labels-prediction, along the time, each column indicates a labels
-    error=np.subtract(pd_labels.values,pd_predictions.values)
-    AE = np.abs(error)
-    figsize=(12,3*subplots_rows)
-    fig=plt.figure(figsize=figsize)
-    axs=fig.subplots(subplots_rows,2).reshape(-1,2)
-    #plot_idx=0
-    #axs[plot_idx].
-    colors=['r','g','b','y']*5
-    for plot_idx in range(AE.shape[1]):
-        axs[plot_idx%3,plot_idx//3].plot(Time,AE[:,plot_idx],colors[plot_idx])
-        axs[plot_idx%3,plot_idx//3].plot(Time,AE[:,plot_idx]/np.abs(pd_labels.values[:,plot_idx]),colors[plot_idx+1])
-        axs[plot_idx%3,plot_idx//3].legend(['Absolute '+labels_names[plot_idx], 'Relative ' +labels_names[plot_idx]  ] )
-        axs[plot_idx%3,plot_idx//3].set_ylabel("Absolute and relative error [*]")
-        axs[plot_idx%3,plot_idx//3].grid(which='both',axis='x',color='k',linestyle=':')
-        axs[plot_idx%3,plot_idx//3].grid(which='both',axis='y',color='k',linestyle=':')
-        # place a text box in upper left in axes coords
-        #textstr = '\n'.join((r'$mean \pm std=%.2f \pm %.2f$' % (pred_mean[plot_idx], pred_std[plot_idx],),r'$RMSE=%.2f$' % (pred_rmse[plot_idx], )))
-        #axs[plot_idx%3,plot_idx//3].text(0.05, 0.95, textstr, transform=axs[plot_idx%3,plot_idx//3].transAxes, fontsize=14,verticalalignment='top', bbox=props)
-    
-    axs[plot_idx%3,plot_idx//3].set_xlabel('Time [s]')
-    # save figure
+    #iii) plot absolute error and noramlized error (error-percentage)
+    g=sns.FacetGrid(data=pd_nae,col='GRF error [BW]',col_wrap=3,sharey=False)
+    g.map_dataframe(sns.lineplot,'time','vals')
+    plt.show()
+
+    #ii) save figure
     if(fig_save_folder!=None):
         folder_fig = fig_save_folder+"/"
     else:
         folder_fig="./"
+
     if not os.path.exists(folder_fig):
         os.makedirs(folder_fig)
+
     # figure save file
     if('prediction_error_file' in args.keys()):
         figPath=args['prediction_error_file']
     else:
         figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + '_test_mes.svg'
+
     plt.savefig(figPath)
 
 
 
 
-    plt.show()
-    """
-    print("Actual labels:\n",pd_labels.head())
-    print("Predictions:\n",pd_predictions.head())
-    print("Error:\n",R_IE_error.head())
-
-    """
 
 def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.ndarray:
     '''
@@ -712,6 +709,7 @@ def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
         #sns.lineplot(data=reshape_pd_datasets,x='time',y='vals',hue='cols')
         g=sns.FacetGrid(reshape_pd_datasets,col='cols',col_wrap=4,height=2)
         g.map_dataframe(sns.lineplot,'time','vals')
+
 
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
@@ -983,6 +981,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     #-- add TOUCH_LR_FPA - average baseline fpa, self-selected
     baseline_trial_data_mean=pd_biomechanic_variables[pd_biomechanic_variables['trial_type']=='baseline'].groupby('subjects').mean()
 
+
     #-- reset the FPA class 
     FPA_categories=['F1','F2','F3','F4']
 
@@ -1006,7 +1005,47 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     pd_biomechanic_variables=pd.concat(pd_temp2)
     
 
+    #1.1) Statistically analysis
 
+    # i) norm distribution test for each subject's each FPA class ('re_trial_type')
+    x='re_trial_type';y='PEAK_L_KNEE_ANGLE_X'
+    var='PEAK_L_KNEE_ANGLE_X'
+    variables=['PEAK_L_KNEE_ANGLE_X','PEAK_L_KNEE_ANGLE_Y','PEAK_L_KNEE_ANGLE_Z', 'PEAK_L_KNEE_MOMENT_X','PEAK_L_KNEE_MOMENT_Y','PEAK_L_KNEE_MOMENT_Z','TOUCH_L_FPA_X','TOUCH_PELVIS_ANGLE_X']
+    for var in variables:
+        norm_distr=pd_biomechanic_variables.groupby(['subjects','re_trial_type']).apply(lambda x: kstest(x[var],'norm',(x[var].mean(),x[var].std()))[1])
+        print('variable: ',var, 'of :',norm_distr[norm_distr<0.05].index.to_list())
+
+
+
+    # ii) homogeneous analysis of variance, to test the samples of different group from populations with equal variances
+    subjects_data=pd_biomechanic_variables.groupby('subjects')
+    subjects_name=[nn for nn in subjects_data.groups.keys()]
+
+
+    for var in variables:
+        for sub_idx_1 in range(len(subjects_name)):
+            for sub_idx_2 in range(len(subjects_name)):
+                for FPA in FPA_categories:
+                    sub_idx_1=0
+                    x=subjects_data.get_group(subjects_name[sub_idx_1]).groupby('re_trial_type').get_group(FPA)[var]
+                    y=subjects_data.get_group(subjects_name[sub_idx_2]).groupby('re_trial_type').get_group(FPA)[var]
+                    lv_test=levene(x,y)# 不同对象的同一变量 分组之间 方差齐次
+                    if(lv_test.pvalue<0.05):
+                        my_equal_var=False
+                        print('Not homogenous',lv_test.pvalue,', variable is ',var, ', FPA is ', FPA, ' between subjects: ', subjects_name[sub_idx_1],' and ', subjects_name[sub_idx_2])
+                    else:# 方差其次
+                        my_equal_var=True
+                
+                    # iii) Differences analysis, T test
+                    ci=0.05
+                    t_test_p=stats.ttest_ind(x,y,equal_var=my_equal_var).pvalue
+                    if t_test_p < ci:
+                        pass
+                        print('Significant difference',t_test_p,', variable is ',var, ', FPA is ', FPA, ' between subjects: ', subjects_name[sub_idx_1],' and ', subjects_name[sub_idx_2])
+
+
+
+        pdb.set_trace()
     
     #2) plot
     
@@ -1428,6 +1467,8 @@ if __name__=='__main__':
                             'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
                            ]
     display_bio_variables = ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
+
+
     plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, subjects_list, categories, plot_type="s")
 
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))

@@ -235,7 +235,8 @@ DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','da
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
-LABELS_FIELDS= ['L_KneeMoment_Y','R_KneeMoment_Y']
+#LABELS_FIELDS= ['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
+LABELS_FIELDS= ['L_GRF_X','L_GRF_Y','L_GRF_Z']
 
 
 
