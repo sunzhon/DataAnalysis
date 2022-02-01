@@ -527,51 +527,53 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                     metrics[category][control_method]=[]
                     experiment_data[category][control_method]=[]
                     for idx in file_name.index: # trials for display  in below
-                        if idx in np.array(file_name.index)[trial_ids]:# which one is to load
-                            folder_category= os.path.join(data_file_dic,file_name['data_files'][idx])
-                            print(folder_category)
-                            if('investigation' in args): # check  unnamed args
-                                if args['investigation']=='update_frequency':
-                                    freq=int(category) # the category is the frequency
-                            cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = data_manager.load_a_trial_data(freq,start_time,end_time,folder_category)
+                        try:
+                            if idx in np.array(file_name.index)[trial_ids]:# which one is to load
+                                folder_category= os.path.join(data_file_dic,file_name['data_files'][idx])
+                                print(folder_category)
+                                if('investigation' in args): # check  unnamed args
+                                    if args['investigation']=='update_frequency':
+                                        freq=int(category) # the category is the frequency
+                                cpg_data, command_data, module_data, parameter_data, grf_data, pose_data, position_data, velocity_data, current_data,voltage_data, time = data_manager.load_a_trial_data(freq,start_time,end_time,folder_category)
 
-                            # 2)  data process
-                            rosparameter[category].append(parameter_data)
-                            cpg[category].append(cpg_data)
-                            jmc[category].append(command_data)
-                            pose[category].append(pose_data)
-                            jmp[category].append(position_data)
-                            velocity_data = calculate_joint_velocity(position_data,freq)
-                            jmv[category].append(velocity_data)
-                            jmf[category].append(current_data)
-                            grf[category].append(grf_data)
-                            noise[category].append(module_data)
-                            #----Metrics
-                            metric_phase_diff=calculate_phase_diff(cpg_data,time)
-                            gait_diagram_data_temp, duty_factor_data = calculate_gait(grf_data)
-                            gait_diagram_data[category].append(gait_diagram_data_temp); 
-                            duty_factor[category].append(duty_factor_data)
-                            metric_coordination = calculate_coordination(duty_factor_data)
-                            metric_convergence_time = calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
-                            metric_stability = calculate_ZMP_stability(pose_data,grf_data)
-                            metric_balance = calculate_body_balance(pose_data)
-                            metric_displacement = calculate_displacement(pose_data)
-                            metric_distance = calculate_distance(pose_data)
-                            metric_energy_cost = calculate_energy_cost(velocity_data,current_data,freq)
-                            metric_COT = calculate_COT(velocity_data,current_data,freq,metric_displacement)
-                            metrics[category][control_method].append({'phase_diff':metric_phase_diff,'coordination': metric_coordination, 'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement, 'distance': metric_distance, 'energy_cost':metric_energy_cost, 'COT': metric_COT})
-                            experiment_data[category][control_method].append({'cpg': cpg_data, 'grf': grf_data, 'jmp': position_data, 'pose': pose_data, 'jmf':current_data,'jmc': command_data,'jmv':velocity_data,'time':time,'gait_diagram_data':gait_diagram_data_temp,'rosparameter':parameter_data})
+                                # 2)  data process
+                                rosparameter[category].append(parameter_data)
+                                cpg[category].append(cpg_data)
+                                jmc[category].append(command_data)
+                                pose[category].append(pose_data)
+                                jmp[category].append(position_data)
+                                velocity_data = calculate_joint_velocity(position_data,freq)
+                                jmv[category].append(velocity_data)
+                                jmf[category].append(current_data)
+                                grf[category].append(grf_data)
+                                noise[category].append(module_data)
+                                #----Metrics
+                                metric_phase_diff=calculate_phase_diff(cpg_data,time)
+                                gait_diagram_data_temp, duty_factor_data = calculate_gait(grf_data)
+                                gait_diagram_data[category].append(gait_diagram_data_temp); 
+                                duty_factor[category].append(duty_factor_data)
+                                metric_coordination = calculate_coordination(duty_factor_data)
+                                metric_convergence_time = calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
+                                metric_stability = calculate_ZMP_stability(pose_data,grf_data)
+                                metric_balance = calculate_body_balance(pose_data)
+                                metric_displacement = calculate_displacement(pose_data)
+                                metric_distance = calculate_distance(pose_data)
+                                metric_energy_cost = calculate_energy_cost(velocity_data,current_data,freq)
+                                metric_COT = calculate_COT(velocity_data,current_data,freq,metric_displacement)
+                                metrics[category][control_method].append({'phase_diff':metric_phase_diff,'coordination': metric_coordination, 'phase_convergence_time':metric_convergence_time,'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement, 'distance': metric_distance, 'energy_cost':metric_energy_cost, 'COT': metric_COT})
+                                experiment_data[category][control_method].append({'cpg': cpg_data, 'grf': grf_data, 'jmp': position_data, 'pose': pose_data, 'jmf':current_data,'jmc': command_data,'jmv':velocity_data,'time':time,'gait_diagram_data':gait_diagram_data_temp,'rosparameter':parameter_data})
 
-                            print("METRICS DISPLAY AS FOLLOW:")
-                            print("Coordination:{:.2f}".format(metric_coordination))
-                            print("Convergence time:{:.2f}".format(metric_convergence_time))
-                            print("Stability:{:.2f}".format(metric_stability))
-                            print("Balance:{:.2f}".format(metric_balance))
-                            print("Displacemment:{:.2f}".format(metric_displacement)) #Displacement
-                            print("Distance:{:.2f}".format(metric_distance)) #Distance 
-                            print("Energy cost:{:.2f}".format(metric_energy_cost)) # enery cost
-                            print("COT:{:.2f}".format(metric_COT))
-
+                                print("METRICS DISPLAY AS FOLLOW:")
+                                print("Coordination:{:.2f}".format(metric_coordination))
+                                print("Convergence time:{:.2f}".format(metric_convergence_time))
+                                print("Stability:{:.2f}".format(metric_stability))
+                                print("Balance:{:.2f}".format(metric_balance))
+                                print("Displacemment:{:.2f}".format(metric_displacement)) #Displacement
+                                print("Distance:{:.2f}".format(metric_distance)) #Distance 
+                                print("Energy cost:{:.2f}".format(metric_energy_cost)) # enery cost
+                                print("COT:{:.2f}".format(metric_COT))
+                        except IndexError:
+                            print("category 类别数目没有trial_ids 列出的多, 请添加trials")
 
     return experiment_data, metrics # dict
 

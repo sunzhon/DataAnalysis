@@ -4,20 +4,13 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.9~svn20110310	//
-ACITermData	Exp1_ACITerm.py	/^    ACITermData=columnsName_CPG[12:20]$/;"	v
 ANC_data	P2_Figs/Fig5_Output.py	/^    ANC_data=LD.loadData(fileName_ANC,columnsName_ANC)$/;"	v
 ANC_data	P2_Figs/Fig7_Exp.py	/^    ANC_data=LD.loadData(fileName_ANC,columnsName_ANC)$/;"	v
-ANC_data	fig5_Exp2.py	/^    ANC_data=LD.loadData(fileName_ANC,columnsName_ANC)$/;"	v
 APC_ANC_plots	experimentDataAnalysis.py	/^def APC_ANC_plots(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
 Animate_phase_transition	experimentDataAnalysis.py	/^def Animate_phase_transition(cpg_data):$/;"	f
-Average_COG_distribution	experimentDataAnalysis.py	/^def Average_COG_distribution(grf_data):$/;"	f
 AvgerageGaitBeta	experimentDataAnalysis.py	/^def AvgerageGaitBeta(beta):$/;"	f
-COG_distribution	experimentDataAnalysis.py	/^def COG_distribution(grf_data):$/;"	f
-CPGOutData	Exp1_CPG.py	/^CPGOutData=columnsName_CPG[0:8]$/;"	v
-CPGOutData	Exp1_SAdaptation.py	/^CPGOutData=columnsName[8:13]$/;"	v
-CPGOutData	Exp1_SFTerm.py	/^CPGOutData=columnsName[20:28]$/;"	v
+BASE_DIR	experimentDataAnalysis.py	/^BASE_DIR=os.path.dirname(os.path.abspath(__file__))$/;"	v
 DL_data	P2_Figs/Fig7_Exp.py	/^    DL_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
-DL_data	fig5_Exp2.py	/^    DL_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
 Exp2	P2_Figs/Fig8.py	/^def Exp2():$/;"	f
 Exp3	P2_Figs/Fig9.py	/^def Exp3():$/;"	f
 Exp3	P2_Figs/Fig9_temp.py	/^def Exp3():$/;"	f
@@ -25,104 +18,46 @@ Exp4	P2_Figs/Fig11.py	/^def Exp4():$/;"	f
 Exp4	P2_Figs/Fig14.py	/^def Exp4():$/;"	f
 GeneralDisplay	experimentDataAnalysis.py	/^def GeneralDisplay(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 GeneralDisplay_All	experimentDataAnalysis.py	/^def GeneralDisplay_All(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
-Gravity	experimentDataAnalysis.py	/^Gravity=9.8 # On earth$/;"	v
 LegName	P2_Figs/Fig7_Exp.py	/^    LegName=["RF","RH","LF","LH"]$/;"	v
-Mass	experimentDataAnalysis.py	/^Mass=2.5 # Kg$/;"	v
-NP	experimentDataAnalysis.py	/^def NP(data):$/;"	f
 PhaseAnalysis	experimentDataAnalysis.py	/^def PhaseAnalysis(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 Phase_Gait	experimentDataAnalysis.py	/^def Phase_Gait(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 Phase_Gait_ForNoiseFeedback	experimentDataAnalysis.py	/^def Phase_Gait_ForNoiseFeedback(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 WalkingSpeed_GaitDiagram	experimentDataAnalysis.py	/^def WalkingSpeed_GaitDiagram(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
-__init__	experimentDataAnalysis.py	/^    def __init__(self):$/;"	m	class:neuralprocessing
 animate	experimentDataAnalysis.py	/^    def animate(i):$/;"	f	function:Animate_phase_transition
 ax	P2_Figs/Fig7_Exp.py	/^    ax=stsubplot(position,4)$/;"	v
-ax1	Exp1_gait.py	/^ax1 = fig.add_axes([0.2, 0.4, 0.75, 0.1], **axprops)$/;"	v
-ax1	fig5_Exp2.py	/^    ax1 = fig.add_axes([left_p,bottom_p,width_p,height_p], **axprops)$/;"	v
-ax2	Exp1_gait.py	/^ax2 = fig.add_axes([0.2, 0.3, 0.75, 0.1], **axprops)$/;"	v
-ax2	fig5_Exp2.py	/^    ax2 = fig.add_axes([left_p,bottom_p-height_p,width_p,height_p], **axprops)$/;"	v
-ax3	Exp1_gait.py	/^ax3 = fig.add_axes([0.2, 0.2, 0.75, 0.1], **axprops)$/;"	v
-ax3	fig5_Exp2.py	/^    ax3 = fig.add_axes([left_p,bottom_p-2*height_p,width_p,height_p], **axprops)$/;"	v
-ax4	Exp1_gait.py	/^ax4 = fig.add_axes([0.2, 0.1, 0.75, 0.1], **axprops)$/;"	v
-ax4	fig5_Exp2.py	/^    ax4 = fig.add_axes([left_p,bottom_p-3*height_p,width_p,height_p], **axprops)$/;"	v
-axprops	Exp1_gait.py	/^axprops = dict(xticks=[], yticks=[])$/;"	v
-axprops	fig5_Exp2.py	/^    axprops = dict(xticks=[], yticks=[])$/;"	v
 axs	P2_Figs/Fig7_Exp.py	/^    axs=[]$/;"	v
 barplot_GRFs_patterns_statistic	experimentDataAnalysis.py	/^def barplot_GRFs_patterns_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0','1','2','3']):$/;"	f
-barprops	Exp1_gait.py	/^barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest')$/;"	v
 barprops	P2_Figs/Fig7_Exp.py	/^    barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest',vmin=0.0,vmax=1.0)$/;"	v
-barprops	fig5_Exp2.py	/^    barprops = dict(aspect='auto', cmap=plt.cm.binary, interpolation='nearest')$/;"	v
-bias	experimentDataAnalysis.py	/^    bias= -6.0$/;"	v	class:neuralprocessing
 boxplot_COT_statistic	experimentDataAnalysis.py	/^def boxplot_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
 boxplot_displacement_statistic	experimentDataAnalysis.py	/^def boxplot_displacement_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 boxplot_phase_convergenceTime_statistic	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
-boxplot_phase_convergenceTime_statistic_threeMethod_underMI	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
+boxplot_phase_convergenceTime_statistic_threeMethod_underMI	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0],**args):$/;"	f
 boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
-boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0]):$/;"	f
+boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],**args):$/;"	f
 boxplot_phase_convergenceTime_statistic_underMI	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
 boxplot_phase_convergenceTime_sucessRateBar_statistic	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_sucessRateBar_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
 boxplot_phase_formTime_statistic	experimentDataAnalysis.py	/^def boxplot_phase_formTime_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0']):$/;"	f
 boxplot_phase_stability_statistic	experimentDataAnalysis.py	/^def boxplot_phase_stability_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0']):$/;"	f
 boxplot_stability_statistic	experimentDataAnalysis.py	/^def boxplot_stability_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
-calculate_COT	experimentDataAnalysis.py	/^def calculate_COT(U,I,Fre,D):$/;"	f
-calculate_body_balance	experimentDataAnalysis.py	/^def calculate_body_balance(pose_data):$/;"	f
-calculate_displacement	experimentDataAnalysis.py	/^def calculate_displacement(pose_data):$/;"	f
-calculate_distance	experimentDataAnalysis.py	/^def calculate_distance(pose_data):$/;"	f
-calculate_energy_cost	experimentDataAnalysis.py	/^def calculate_energy_cost(U,I,Fre):$/;"	f
-calculate_joint_velocity	experimentDataAnalysis.py	/^def calculate_joint_velocity(position_data, freq):$/;"	f
-calculate_phase_convergence_time	experimentDataAnalysis.py	/^def calculate_phase_convergence_time(time,grf_data, cpg_data,freq):$/;"	f
-calculate_phase_diff	experimentDataAnalysis.py	/^def calculate_phase_diff(CPGs_output,time):$/;"	f
-calculate_phase_diff_stability	experimentDataAnalysis.py	/^def calculate_phase_diff_stability(grf_data,cpg_data,time):$/;"	f
-calculate_phase_diff_std	experimentDataAnalysis.py	/^def calculate_phase_diff_std(cpg_data,time,method_option=1):$/;"	f
-calculate_stability	experimentDataAnalysis.py	/^def calculate_stability(grf_data,pose_data):$/;"	f
-calculate_touch_idx_phaseConvergence_idx	experimentDataAnalysis.py	/^def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_option=2):$/;"	f
-cases	Exp1_ACITerm.py	/^    cases=["RF", "RH", "LF", "LH"]$/;"	v
-cases	Exp1_CPG.py	/^cases=["RF", "RH", "LF", "LH"]$/;"	v
-cases	Exp1_GRF.py	/^cases=["RF", "RH", "LF", "LH"]$/;"	v
-cases	Exp1_SAdaptation.py	/^cases=["RF", "RH", "LF", "LH"]$/;"	v
-cases	Exp1_SFTerm.py	/^cases=["RF", "RH", "LF", "LH"]$/;"	v
-cases	Exp1_attitude.py	/^cases=["Roll[rad]", "Pitch[rad]", "Yaw[rad]"]$/;"	v
-cases	Exp1_gait.py	/^cases=["RF", "RH", "LF", "LH"]$/;"	v
-colors	Exp1_attitude.py	/^colors=['r','g','b']$/;"	v
-columnsName	Exp1_GRF.py	/^columnsName=['RF','RH','LF','LH']$/;"	v
-columnsName	Exp1_SAdaptation.py	/^columnsName=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
-columnsName	Exp1_SFTerm.py	/^columnsName=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
-columnsName	Exp1_gait.py	/^columnsName=['RF','RH','LF','LH']$/;"	v
 columnsName_ANC	P2_Figs/Fig5_Output.py	/^    columnsName_ANC=['\\u03A6'+'$_{12}$','\\u03A6'+'$_{13}$','\\u03A6'+'$_{14}$','variance']$/;"	v
 columnsName_ANC	P2_Figs/Fig7_Exp.py	/^    columnsName_ANC=['\\u03A6'+'$_{12}$','\\u03A6'+'$_{13}$','\\u03A6'+'$_{14}$','variance']$/;"	v
-columnsName_ANC	fig5_Exp2.py	/^    columnsName_ANC=['\\u03A6'+'12','\\u03A6'+'13','\\u03A6'+'14','variance']$/;"	v
-columnsName_CPG	Exp1_ACITerm.py	/^columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
-columnsName_CPG	Exp1_CPG.py	/^columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
 columnsName_CPG	P2_Figs/Fig4_Output.py	/^    columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
 columnsName_CPG	P2_Figs/Fig5_Output.py	/^    columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
 columnsName_CPG	P2_Figs/Fig7_Exp.py	/^    columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
-columnsName_CPG	fig5_Exp2.py	/^    columnsName_CPG=['RFO1','RFO2','RHO1','RHO2','LFO1','LFO2','LHO1','LKO2',$/;"	v
 columnsName_GRF	P2_Figs/Fig4_Output.py	/^    columnsName_GRF=['RF','RH','LF','LH']$/;"	v
 columnsName_GRF	P2_Figs/Fig5_Output.py	/^    columnsName_GRF=['RF','RH','LF','LH']$/;"	v
 columnsName_GRF	P2_Figs/Fig7_Exp.py	/^    columnsName_GRF=['RF','RH','LF','LH']$/;"	v
-columnsName_GRF	fig5_Exp2.py	/^    columnsName_GRF=['RF','RH','LF','LH']$/;"	v
-columnsName_GRFFMI	fig5_Exp2.py	/^    columnsName_GRFFMI=['RF','RH','LF','LH','MI']$/;"	v
 columnsName_joint	P2_Figs/Fig4_Output.py	/^    columnsName_joint=['j1','j2','j3','j4','j5,''j6',$/;"	v
 columnsName_joint	P2_Figs/Fig5_Output.py	/^    columnsName_joint=['j1','j2','j3','j4','j5,''j6',$/;"	v
 columnsName_joint	P2_Figs/Fig7_Exp.py	/^    columnsName_joint=['j1','j2','j3','j4','j5,''j6',$/;"	v
-columnsName_joint	fig5_Exp2.py	/^    columnsName_joint=['j1','j2','j3','j4','j5,''j6',$/;"	v
-columnsName_pose	fig5_Exp2.py	/^    columnsName_pose=["roll","pitch","yaw","x","y","z"]$/;"	v
+control_methods	experimentDataAnalysis.py	/^    control_methods=['apnc','phase_modulation','phase_reset']$/;"	v
 control_methods	experimentDataAnalysis.py	/^    control_methods=['apnc']$/;"	v
+control_methods	experimentDataAnalysis.py	/^    control_methods=['phase_reset']$/;"	v
 cpg_data	P2_Figs/Fig4_Output.py	/^    cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
 cpg_data	P2_Figs/Fig5_Output.py	/^    cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
 cpg_data	P2_Figs/Fig7_Exp.py	/^    cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
-cpg_data	fig5_Exp2.py	/^    cpg_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
 cpg_diagram	experimentDataAnalysis.py	/^def cpg_diagram(fig,axs,gs,grf_data,time):$/;"	f
-culumnsName	Exp1_ANC.py	/^culumnsName=['A','B','C','D']$/;"	v
-culumnsName	Exp1_attitude.py	/^culumnsName=["roll","pitch","yaw","x","y","z"]$/;"	v
-data	Exp1_ACITerm.py	/^    data = fine_data[run_id][ACITermData]$/;"	v
-data	Exp1_CPG.py	/^data = fine_data[run_id][CPGOutData]$/;"	v
-data	Exp1_GRF.py	/^data = fine_data[run_id]$/;"	v
-data	Exp1_SAdaptation.py	/^data = fine_data[run_id][CPGOutData]$/;"	v
-data	Exp1_SFTerm.py	/^data = fine_data[run_id][CPGOutData]$/;"	v
-data	Exp1_attitude.py	/^data=fine_data[run_id]$/;"	v
-data	Exp1_gait.py	/^data = fine_data[run_id]$/;"	v
 data	P2_Figs/Fig7_Exp.py	/^    data=grf_data[run_id].iloc[start_point:end_point,:]$/;"	v
-data	fig5_Exp2.py	/^    data=grf_data[run_id].iloc[start_point:end_point,:]$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic = "\/media\/suntao\/DATA\/Research\/P3_workspace\/Figures\/experiment_data\/StatisticData\/ParameterInvestigation_V2\/PhaseModulation\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/home\/suntao\/roughness_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/home\/suntao\/workspace\/experiment_data\/"$/;"	v
@@ -130,6 +65,7 @@ data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/DATA
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/MI_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/roughness_data_3M\/"$/;"	v
+data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/Main_Workspace\/Researches\/Papers\/Working\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/3M_roughness_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/MI_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
@@ -140,6 +76,7 @@ data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/D
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Research\/P3_workspace\/Figures\/experiment_data\/StatisticData\/ParameterInvestigation_V2\/PhaseModulation\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Research\/P3_workspace\/Figures\/experiment_data\/StatisticData\/ParameterInvestigation_V2\/PhaseReset\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Research\/P3_workspace\/Figures\/experiment_data\/StatisticData\/PhaseModulation\/"$/;"	v
+data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= os.environ['EXPERIMENT_DATA_FOLDER']$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic="\/media\/suntao\/DATA\/MI_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic="\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/roughness_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic="\/media\/suntao\/DATA\/Research\/P2_workspace\/submission\/Revision\/revised_version\/kdenlive\/SourceMeidas\/f_g_curves_simulation\/"$/;"	v
@@ -148,7 +85,6 @@ df	lauSupplementarySimulation/seaborn-data/process/mpg.py	/^    df = pd.read_csv
 end_point	P2_Figs/Fig4_Output.py	/^    end_point=350#read_rows$/;"	v
 end_point	P2_Figs/Fig5_Output.py	/^    end_point=560#read_rows$/;"	v
 end_point	P2_Figs/Fig7_Exp.py	/^    end_point=400#read_rows$/;"	v
-end_point	fig5_Exp2.py	/^    end_point=min([800,read_rows])$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories= ['0.0', '0.04', '0.12', '0.2', '0.28', '0.36', '0.4','0.44'] # ['0.0','0.05','0.15','0.25','0.35','0.45','0.55']#phase modulation$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.0','0.04','0.08','0.12','0.16','0.2']$/;"	v
@@ -160,113 +96,61 @@ experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.1','0.2','0.3','0.4','0.5']$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.18']$/;"	v
-experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['0.5']$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['1.0']$/;"	v
+experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['15']$/;"	v
 experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']$/;"	v
-experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['5']$/;"	v
-fig	Exp1_ANC.py	/^fig= plt.figure()$/;"	v
-fig	Exp1_gait.py	/^fig = plt.figure(figsize=[5,2])$/;"	v
+experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['carrying_payload']$/;"	v
+experiment_categories	experimentDataAnalysis.py	/^    experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']$/;"	v
 fig	P2_Figs/Fig7_Exp.py	/^    fig = plt.figure(figsize=figsize,constrained_layout=False)$/;"	v
 figsize	P2_Figs/Fig4_Output.py	/^    figsize=(5.5118,4.7244)$/;"	v
 figsize	P2_Figs/Fig5_Output.py	/^    figsize=(5.5118,4.1244)$/;"	v
 figsize	P2_Figs/Fig7_Exp.py	/^    figsize=(5.5118,7.1244)$/;"	v
-figsize	fig5_Exp2.py	/^    figsize=(3.6614,8.6614)$/;"	v
-fileName	Exp1_ANC.py	/^fileName="controlfile_ANC"$/;"	v
-fileName	Exp1_CPG.py	/^fileName="controlfile_CPG"$/;"	v
-fileName	Exp1_GRF.py	/^fileName="sensorfile_GRF"$/;"	v
-fileName	Exp1_SAdaptation.py	/^fileName="controlfile_CPG"$/;"	v
-fileName	Exp1_SFTerm.py	/^fileName="controlfile_CPG"$/;"	v
-fileName	Exp1_attitude.py	/^fileName="sensorfile_POSE"$/;"	v
-fileName	Exp1_gait.py	/^fileName="sensorfile_GRF"$/;"	v
 fileName_ANC	P2_Figs/Fig5_Output.py	/^    fileName_ANC='controlfile_ANC'$/;"	v
 fileName_ANC	P2_Figs/Fig7_Exp.py	/^    fileName_ANC='controlfile_ANC'$/;"	v
-fileName_ANC	fig5_Exp2.py	/^    fileName_ANC='controlfile_ANC'$/;"	v
-fileName_CPG	Exp1_ACITerm.py	/^fileName_CPG="controlfile_CPG"$/;"	v
 fileName_CPG	P2_Figs/Fig4_Output.py	/^    fileName_CPG="controlfile_CPG"$/;"	v
 fileName_CPG	P2_Figs/Fig5_Output.py	/^    fileName_CPG="controlfile_CPG"$/;"	v
 fileName_CPG	P2_Figs/Fig7_Exp.py	/^    fileName_CPG="controlfile_CPG"$/;"	v
-fileName_CPG	fig5_Exp2.py	/^    fileName_CPG="controlfile_CPG"$/;"	v
 fileName_GRF	P2_Figs/Fig4_Output.py	/^    fileName_GRF='sensorfile_GRF'$/;"	v
 fileName_GRF	P2_Figs/Fig5_Output.py	/^    fileName_GRF='sensorfile_GRF'$/;"	v
 fileName_GRF	P2_Figs/Fig7_Exp.py	/^    fileName_GRF='sensorfile_GRF'$/;"	v
-fileName_GRF	fig5_Exp2.py	/^    fileName_GRF='sensorfile_GRF'$/;"	v
-fileName_GRFFMI	fig5_Exp2.py	/^    fileName_GRFFMI='feedbackfile_GRFF_MI'$/;"	v
 fileName_joint	P2_Figs/Fig4_Output.py	/^    fileName_joint='sensorfile_joint'$/;"	v
 fileName_joint	P2_Figs/Fig5_Output.py	/^    fileName_joint='sensorfile_joint'$/;"	v
 fileName_joint	P2_Figs/Fig7_Exp.py	/^    fileName_joint='sensorfile_joint'$/;"	v
-fileName_joint	fig5_Exp2.py	/^    fileName_joint='sensorfile_joint'$/;"	v
-fileName_pose	fig5_Exp2.py	/^    fileName_pose='sensorfile_POSE'$/;"	v
-fine_data	Exp1_ACITerm.py	/^fine_data=LD.loadData(fileName_CPG,columnsName_CPG)$/;"	v
-fine_data	Exp1_CPG.py	/^fine_data=LD.loadData(fileName,columnsName_CPG)$/;"	v
-fine_data	Exp1_GRF.py	/^fine_data=LD.loadData(fileName,columnsName)$/;"	v
-fine_data	Exp1_SAdaptation.py	/^fine_data=LD.loadData(fileName,columnsName)$/;"	v
-fine_data	Exp1_SFTerm.py	/^fine_data=LD.loadData(fileName,columnsName)$/;"	v
-fine_data	Exp1_attitude.py	/^fine_data=LD.loadData(fileName,culumnsName)$/;"	v
-fine_data	Exp1_gait.py	/^fine_data=LD.loadData(fileName,columnsName)$/;"	v
-fine_data_w12_array	Exp1_ANC.py	/^fine_data_w12_array=np.array(fine_data_w12)$/;"	v
-fine_data_w12_df	Exp1_ANC.py	/^fine_data_w12_df= pd.DataFrame(fine_data_w12_array.T, index=times, columns=range(0,fine_data_w12_array.shape[0]))$/;"	v
-fine_data_w13_array	Exp1_ANC.py	/^fine_data_w13_array=np.array(fine_data_w13)$/;"	v
-fine_data_w13_df	Exp1_ANC.py	/^fine_data_w13_df= pd.DataFrame(fine_data_w13_array.T, index=times, columns=range(0,fine_data_w13_array.shape[0]))$/;"	v
-fine_data_w14_array	Exp1_ANC.py	/^fine_data_w14_array=np.array(fine_data_w14)$/;"	v
-fine_data_w14_df	Exp1_ANC.py	/^fine_data_w14_df= pd.DataFrame(fine_data_w14_array.T, index=times, columns=range(0,fine_data_w14_array.shape[0]))$/;"	v
-fine_stability_array	Exp1_ANC.py	/^fine_stability_array=np.array(fine_stability)$/;"	v
-fine_stability_df	Exp1_ANC.py	/^fine_stability_df= pd.DataFrame(fine_stability_array.T, index=times, columns=range(0,fine_stability_array.shape[0]))$/;"	v
 font_label	P2_Figs/Fig4_Output.py	/^    font_label = {'family' : 'Arial',$/;"	v
 font_label	P2_Figs/Fig5_Output.py	/^    font_label = {'family' : 'Arial',$/;"	v
 font_label	P2_Figs/Fig7_Exp.py	/^    font_label = {'family' : 'Arial',$/;"	v
-font_label	fig5_Exp2.py	/^    font_label = {'family' : 'Times New Roman',$/;"	v
 font_legend	P2_Figs/Fig4_Output.py	/^    font_legend = {'family' : 'Arial',$/;"	v
 font_legend	P2_Figs/Fig5_Output.py	/^    font_legend = {'family' : 'Arial',$/;"	v
 font_legend	P2_Figs/Fig7_Exp.py	/^    font_legend = {'family' : 'Arial',$/;"	v
-font_legend	fig5_Exp2.py	/^    font_legend = {'family' : 'Times New Roman',$/;"	v
 font_tick	P2_Figs/Fig4_Output.py	/^    font_tick = {'family' : 'Arial',$/;"	v
 font_title	P2_Figs/Fig4_Output.py	/^    font_title = {'family' : 'Arial',$/;"	v
 font_title	P2_Figs/Fig5_Output.py	/^    font_title = {'family' : 'Arial',$/;"	v
 font_title	P2_Figs/Fig7_Exp.py	/^    font_title = {'family' : 'Arial',$/;"	v
-font_title	fig5_Exp2.py	/^    font_title = {'family' : 'Times New Roman',$/;"	v
 forceForwardmodel	experimentDataAnalysis.py	/^def forceForwardmodel(data):$/;"	f
-freq	Exp1_ACITerm.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_CPG.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_GRF.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_SAdaptation.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_SFTerm.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_attitude.py	/^freq=40.0 # 40Hz,$/;"	v
-freq	Exp1_gait.py	/^freq=40.0 # 40Hz,$/;"	v
 freq	P2_Figs/Fig4_Output.py	/^    freq=50.0 # 40Hz,$/;"	v
 freq	P2_Figs/Fig5_Output.py	/^    freq=40.0 # 40Hz,$/;"	v
 freq	P2_Figs/Fig7_Exp.py	/^    freq=40.0 # 40Hz,$/;"	v
-freq	fig5_Exp2.py	/^    freq=40.0 # 40Hz,$/;"	v
 g_VideoText	experimentDataAnalysis.py	/^def g_VideoText(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
-gait	experimentDataAnalysis.py	/^def gait(data):$/;"	f
 gait_diagram	experimentDataAnalysis.py	/^def gait_diagram(fig,axs,gs,gait_data):$/;"	f
 getTouchData	experimentDataAnalysis.py	/^def getTouchData(data_file_dic,start_time=900,end_time=1200,freq=60,experiment_categories=['0.0']):$/;"	f
 grf_data	P2_Figs/Fig4_Output.py	/^    grf_data=LD.loadData(fileName_GRF,columnsName_GRF)$/;"	v
 grf_data	P2_Figs/Fig5_Output.py	/^    grf_data=LD.loadData(fileName_GRF,columnsName_GRF)$/;"	v
 grf_data	P2_Figs/Fig7_Exp.py	/^    grf_data=LD.loadData(fileName_GRF,columnsName_GRF)$/;"	v
-grf_data	fig5_Exp2.py	/^    grf_data=LD.loadData(fileName_GRF,columnsName_GRF)$/;"	v
 grf_diagram	experimentDataAnalysis.py	/^def grf_diagram(fig,axs,gs,grf_data,time):$/;"	f
-grffmi_data	fig5_Exp2.py	/^    grffmi_data=LD.loadData(fileName_GRFFMI,columnsName_GRFFMI)$/;"	v
 gs1	P2_Figs/Fig7_Exp.py	/^    gs1=gridspec.GridSpec(10,1)$/;"	v
 horizontalalignment	P2_Figs/Fig7_Exp.py	/^        horizontalalignment='left',$/;"	v
 idx	P2_Figs/Fig4_Output.py	/^    idx=0$/;"	v
 idx	P2_Figs/Fig4_Output.py	/^    idx=idx+1$/;"	v
 idx	P2_Figs/Fig5_Output.py	/^    idx=0$/;"	v
 idx	P2_Figs/Fig5_Output.py	/^    idx=idx+1$/;"	v
-idx	fig5_Exp2.py	/^    idx=idx+1$/;"	v
-imuplot	oriAnalaysis.py	/^def imuplot(folder):$/;"	f
 init	experimentDataAnalysis.py	/^        def init():$/;"	f	function:g_VideoText
 init	experimentDataAnalysis.py	/^    def init():$/;"	f	function:Animate_phase_transition
-is_number	experimentDataAnalysis.py	/^    def is_number(s):$/;"	f	function:load_data_log
 joint_data	P2_Figs/Fig4_Output.py	/^    joint_data=LD.loadData(fileName_joint,columnsName_joint)$/;"	v
 joint_data	P2_Figs/Fig5_Output.py	/^    joint_data=LD.loadData(fileName_joint,columnsName_joint)$/;"	v
 joint_data	P2_Figs/Fig7_Exp.py	/^    joint_data=LD.loadData(fileName_joint,columnsName_joint)$/;"	v
-joint_data	fig5_Exp2.py	/^    joint_data=LD.loadData(fileName_joint,columnsName_joint)$/;"	v
 l1	P2_Figs/Fig7_Exp.py	/^    l1 = mlines.Line2D([0.6,0.64],[1.1,1.1],color='r', lw=2,transform=axs[plot_idx].transAxes,clip_on=False)$/;"	v
 l2	P2_Figs/Fig7_Exp.py	/^    l2 = mlines.Line2D([0.76,0.80],[1.1,1.1],color='b', lw=2,transform=axs[plot_idx].transAxes,clip_on=False)$/;"	v
 loadData	P2_Figs/Fig14.py	/^def loadData(fileName,columnsName,folderName="\/media\/suntao\/DATA\/Research\/P2_workspace\/Experiments\/Experiment_data\/fig14\/122201742"):$/;"	f
-loadData	experimentDataAnalysis.py	/^def loadData(fileName,columnsName,folderName="\/home\/suntao\/workspace\/experiment_data\/0127113800"):$/;"	f
-loadData	loaddata.py	/^def loadData(fileName,columnsName,folderName=" "):$/;"	f
-load_data_log	experimentDataAnalysis.py	/^def load_data_log(data_file_dic):$/;"	f
 loaddatapath	P2_Figs/Fig11.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
 loaddatapath	P2_Figs/Fig4_Output.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
 loaddatapath	P2_Figs/Fig5_Output.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
@@ -274,9 +158,6 @@ loaddatapath	P2_Figs/Fig7_Exp.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
 loaddatapath	P2_Figs/Fig8.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
 loaddatapath	P2_Figs/Fig9.py	/^loaddatapath=os.getenv("HOME")+'\/..\/'$/;"	v
 loaddatapath	P2_Figs/Fig9_temp.py	/^loaddatapath=os.getenv("HOME")+'\/PythonProjects\/PyPro3\/DataAnalysis\/P2'$/;"	v
-loaddatapath	fig5_Exp2.py	/^loaddatapath=os.getenv("HOME")+'\/PythonProjects\/PyPro3\/DataAnalysis\/P2'$/;"	v
-loaddatapath	oriAnalaysis.py	/^loaddatapath=os.getenv("PWD")+'\/..\/'$/;"	v
-loaddatapath	oriAnalaysis.py	/^loaddatapath=os.getenv("PWD")+'\/P2\/'$/;"	v
 lowPassFilter	experimentDataAnalysis.py	/^def lowPassFilter(data,gamma):$/;"	f
 main	lauSupplementarySimulation/seaborn-data/process/attention.py	/^def main():$/;"	f
 main	lauSupplementarySimulation/seaborn-data/process/exercise.py	/^def main():$/;"	f
@@ -285,7 +166,6 @@ main	lauSupplementarySimulation/seaborn-data/process/gammas.py	/^def main():$/;"
 main	lauSupplementarySimulation/seaborn-data/process/planets.py	/^def main():$/;"	f
 main	lauSupplementarySimulation/seaborn-data/process/titanic.py	/^def main():$/;"	f
 neural_preprocessing	experimentDataAnalysis.py	/^def neural_preprocessing(data):$/;"	f
-neuralprocessing	experimentDataAnalysis.py	/^class neuralprocessing:$/;"	c
 origin_map	lauSupplementarySimulation/seaborn-data/process/mpg.py	/^    origin_map = {1: "usa", 2: "europe", 3: "japan"}$/;"	v
 p1	P2_Figs/Fig7_Exp.py	/^    p1 = mpatches.Rectangle($/;"	v
 p2	P2_Figs/Fig7_Exp.py	/^    p2 = mpatches.Rectangle($/;"	v
@@ -297,10 +177,11 @@ phase_formTime_statistic	experimentDataAnalysis.py	/^def phase_formTime_statisti
 phase_stability_statistic	experimentDataAnalysis.py	/^def phase_stability_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0']):$/;"	f
 plot_COT_statistic	experimentDataAnalysis.py	/^def plot_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
 plot_actual_grf_all_leg	experimentDataAnalysis.py	/^def plot_actual_grf_all_leg(data_file_dic,start_time=600,end_time=1200,freq=60,experiment_categories=['0'], trial_id=0):$/;"	f
+plot_all_metrics	experimentDataAnalysis.py	/^def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):$/;"	f
 plot_comparasion_expected_actual_grf_all_leg	experimentDataAnalysis.py	/^def plot_comparasion_expected_actual_grf_all_leg(data_file_dic,start_time=600,end_time=1200,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_comparasion_of_expected_actual_grf	experimentDataAnalysis.py	/^def plot_comparasion_of_expected_actual_grf(Te, leg_id,ax=None):$/;"	f
 plot_coordination_statistic	experimentDataAnalysis.py	/^def plot_coordination_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
-plot_cpg_phase_portrait	experimentDataAnalysis.py	/^def plot_cpg_phase_portrait(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
+plot_cpg_phase_portrait	experimentDataAnalysis.py	/^def plot_cpg_phase_portrait(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
 plot_displacement_statistic	experimentDataAnalysis.py	/^def plot_displacement_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_distance_statistic	experimentDataAnalysis.py	/^def plot_distance_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_energyCost_statistic	experimentDataAnalysis.py	/^def plot_energyCost_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
@@ -308,68 +189,34 @@ plot_idx	P2_Figs/Fig7_Exp.py	/^    plot_idx=0$/;"	v
 plot_idx	P2_Figs/Fig7_Exp.py	/^    plot_idx=plot_idx+1$/;"	v
 plot_phase_diff	experimentDataAnalysis.py	/^def plot_phase_diff(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 plot_phase_shift_dynamics	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods=['apnc']):$/;"	f
-plot_phase_shift_dynamics_underThreeMethods	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):$/;"	f
-plot_phase_transition_animation	experimentDataAnalysis.py	/^def plot_phase_transition_animation(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
+plot_phase_shift_dynamics_underThreeMethods	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):$/;"	f
+plot_phase_transition_animation	experimentDataAnalysis.py	/^def plot_phase_transition_animation(data_file_dic,start_time=5,end_time=30,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 plot_runningSuccess_statistic	experimentDataAnalysis.py	/^def plot_runningSuccess_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_single_details	experimentDataAnalysis.py	/^def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods=['apnc'],investigation="parameter investigation"):$/;"	f
 plot_slipping_statistic	experimentDataAnalysis.py	/^def plot_slipping_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
 plot_stability_statistic	experimentDataAnalysis.py	/^def plot_stability_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
-pose_data	fig5_Exp2.py	/^    pose_data=LD.loadData(fileName_pose,columnsName_pose)$/;"	v
 position	P2_Figs/Fig7_Exp.py	/^    position=axs[plot_idx].get_position()$/;"	v
-position	fig5_Exp2.py	/^    position=axs[idx].get_position()$/;"	v
 raw_data	lauSupplementarySimulation/seaborn-data/process/mpg.py	/^    raw_data = "raw\/mpg.csv"$/;"	v
-read_data	experimentDataAnalysis.py	/^def read_data(freq,start_time,end_time,folder_name):$/;"	f
-read_rows	Exp1_ACITerm.py	/^    read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_ANC.py	/^read_rows=resource_data[0].shape[0];$/;"	v
-read_rows	Exp1_CPG.py	/^read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_GRF.py	/^read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_SAdaptation.py	/^read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_SFTerm.py	/^read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_attitude.py	/^read_rows=data.shape[0]$/;"	v
-read_rows	Exp1_gait.py	/^read_rows=data.shape[0]$/;"	v
 read_rows	P2_Figs/Fig4_Output.py	/^    read_rows=min([cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0]])$/;"	v
 read_rows	P2_Figs/Fig5_Output.py	/^    read_rows=min([4000,cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0],ANC_data[run_id].shape[0]])$/;"	v
 read_rows	P2_Figs/Fig7_Exp.py	/^    read_rows=min([cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0],ANC_data[run_id].shape[0]])$/;"	v
-read_rows	fig5_Exp2.py	/^    read_rows=min([cpg_data[run_id].shape[0],grf_data[run_id].shape[0],joint_data[run_id].shape[0],ANC_data[run_id].shape[0],grffmi_data[run_id].shape[0],pose_data[run_id].shape[0]])$/;"	v
-resource_data	Exp1_ANC.py	/^resource_data=LD.loadData(fileName,culumnsName)$/;"	v
-run_id	Exp1_ACITerm.py	/^    run_id = 0$/;"	v
-run_id	Exp1_ACITerm.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_ANC.py	/^    run_id = 0$/;"	v
-run_id	Exp1_ANC.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_CPG.py	/^    run_id = 0$/;"	v
-run_id	Exp1_CPG.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_GRF.py	/^    run_id = 0$/;"	v
-run_id	Exp1_GRF.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_SAdaptation.py	/^    run_id = 0$/;"	v
-run_id	Exp1_SAdaptation.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_SFTerm.py	/^    run_id = 0$/;"	v
-run_id	Exp1_SFTerm.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_attitude.py	/^    run_id = 0$/;"	v
-run_id	Exp1_attitude.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	Exp1_gait.py	/^    run_id = 0$/;"	v
-run_id	Exp1_gait.py	/^    run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
 run_id	P2_Figs/Fig4_Output.py	/^        run_id = 0$/;"	v
 run_id	P2_Figs/Fig4_Output.py	/^        run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
 run_id	P2_Figs/Fig5_Output.py	/^        run_id = 0$/;"	v
 run_id	P2_Figs/Fig5_Output.py	/^        run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
 run_id	P2_Figs/Fig7_Exp.py	/^        run_id = 0$/;"	v
 run_id	P2_Figs/Fig7_Exp.py	/^        run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
-run_id	fig5_Exp2.py	/^        run_id = 0$/;"	v
-run_id	fig5_Exp2.py	/^        run_id = int(sys.argv[1]) # The id of the experiments$/;"	v
 scatter_COT_statistic	experimentDataAnalysis.py	/^def scatter_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
 scatter_dutyFactors_statistic	experimentDataAnalysis.py	/^def scatter_dutyFactors_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
 scatter_phaseShift_statistic	experimentDataAnalysis.py	/^def scatter_phaseShift_statistic(data_file_dic,start_time=800,end_time=2400,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
+set_param	lauSimExp/lauSimRobotSituation	/^ function set_param()$/;"	f
+set_param	lauSimExp/lauSimSlopeTest_WithDifferentMethods	/^ function set_param()$/;"	f
 set_param	lauSimExp/lauSim_FrequencyTest_WithDifferentMethods	/^ function set_param()$/;"	f
 start_point	P2_Figs/Fig4_Output.py	/^    start_point=0$/;"	v
 start_point	P2_Figs/Fig5_Output.py	/^    start_point=240$/;"	v
 start_point	P2_Figs/Fig7_Exp.py	/^    start_point=0$/;"	v
-start_point	fig5_Exp2.py	/^    start_point=400$/;"	v
-state	Exp1_gait.py	/^state = np.zeros(data.shape, int)$/;"	v
 state	P2_Figs/Fig7_Exp.py	/^    state= data>threshold$/;"	v
 state	P2_Figs/Fig7_Exp.py	/^    state=state.values$/;"	v
-state	fig5_Exp2.py	/^    state= data>threshold$/;"	v
-state	fig5_Exp2.py	/^    state=state.values$/;"	v
-step	experimentDataAnalysis.py	/^    def step(self, input_signal):$/;"	m	class:neuralprocessing
 stsubplot	P2_Figs/Fig11.py	/^def stsubplot(fig,position,number):$/;"	f
 stsubplot	P2_Figs/Fig14.py	/^def stsubplot(fig,position,number):$/;"	f
 stsubplot	P2_Figs/Fig7_Exp.py	/^def stsubplot(position,number):$/;"	f
@@ -377,52 +224,28 @@ stsubplot	P2_Figs/Fig8.py	/^def stsubplot(fig,position,number):$/;"	f
 stsubplot	P2_Figs/Fig9.py	/^def stsubplot(fig,position,number):$/;"	f
 stsubplot	P2_Figs/Fig9_temp.py	/^def stsubplot(fig,position,number):$/;"	f
 stsubplot	experimentDataAnalysis.py	/^def stsubplot(fig,position,number,gs):$/;"	f
-stsubplot	oriAnalaysis.py	/^def stsubplot(fig,position,number):$/;"	f
 temp_data2	P2_Figs/Fig5_Output.py	/^    temp_data2=[ int(temp)  for temp in temp_data < threshold]$/;"	v
 temp_data3	P2_Figs/Fig5_Output.py	/^    temp_data3=[temp_data2[i-1] for i, temp in enumerate(temp_data2)];$/;"	v
 temp_data4	P2_Figs/Fig5_Output.py	/^    temp_data4=np.array(temp_data2)-np.array(temp_data3)$/;"	v
-test_neuralprocessing	experimentDataAnalysis.py	/^def test_neuralprocessing():$/;"	f
 text_x	P2_Figs/Fig7_Exp.py	/^    text_x=-1.4$/;"	v
-text_x	fig5_Exp2.py	/^    text_x=8.5$/;"	v
-threshold	Exp1_gait.py	/^threshold = 0.01$/;"	v
 threshold	P2_Figs/Fig7_Exp.py	/^    threshold = 0.0$/;"	v
-threshold	fig5_Exp2.py	/^    threshold = 0.01$/;"	v
-time	Exp1_ACITerm.py	/^    time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
-time	Exp1_CPG.py	/^time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
-time	Exp1_GRF.py	/^time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
-time	Exp1_SAdaptation.py	/^time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
-time	Exp1_SFTerm.py	/^time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
-time	Exp1_attitude.py	/^time = np.linspace(0,read_rows\/freq,read_rows)$/;"	v
 time	P2_Figs/Fig4_Output.py	/^    time = np.linspace(int(start_point\/freq),int(end_point\/freq),end_point-start_point)$/;"	v
 time	P2_Figs/Fig5_Output.py	/^    time = np.linspace(int(start_point\/freq),int(end_point\/freq),end_point-start_point)$/;"	v
 time	P2_Figs/Fig7_Exp.py	/^    time = np.linspace(int(start_point\/freq),int(end_point\/freq),end_point-start_point)$/;"	v
-time	fig5_Exp2.py	/^    time = np.linspace(int(start_point\/freq),int(end_point\/freq),end_point-start_point)$/;"	v
-times	Exp1_ANC.py	/^times = np.linspace(0,read_rows,read_rows)\/40 # The controller is 40Hz$/;"	v
 touch_convergence_moment_identification	experimentDataAnalysis.py	/^def touch_convergence_moment_identification(grf_data,cpg_data,time):$/;"	f
 touch_difference	experimentDataAnalysis.py	/^def touch_difference(joint_cmd, actual_grf):$/;"	f
 transform	P2_Figs/Fig7_Exp.py	/^        transform=axs[plot_idx].transAxes)$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]$/;"	v
-trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]$/;"	v
-trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3]$/;"	v
+trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[1]$/;"	v
+trial_ids	experimentDataAnalysis.py	/^    trial_ids=[2]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[4]$/;"	v
 update	experimentDataAnalysis.py	/^        def update(frame):$/;"	f	function:g_VideoText
 verticalalignment	P2_Figs/Fig7_Exp.py	/^        verticalalignment='bottom',$/;"	v
-w_i	experimentDataAnalysis.py	/^    w_i= 20.0$/;"	v	class:neuralprocessing
-w_r	experimentDataAnalysis.py	/^    w_r= 7.2$/;"	v	class:neuralprocessing
 woman_child_or_man	lauSupplementarySimulation/seaborn-data/process/titanic.py	/^def woman_child_or_man(passenger):$/;"	f
-x1	Exp1_gait.py	/^x1 = np.where(state[:,0] > 0.7, 1.0, 0.0)$/;"	v
-x1	fig5_Exp2.py	/^    x1 = np.where(state[:,0] > 0.7, 1.0, 0.0)$/;"	v
-x2	Exp1_gait.py	/^x2 = np.where(state[:,1] > 0.7, 1.0, 0.0)$/;"	v
-x2	fig5_Exp2.py	/^    x2 = np.where(state[:,1] > 0.7, 1.0, 0.0)$/;"	v
-x3	Exp1_gait.py	/^x3 = np.where(state[:,2] > 0.7, 1.0, 0.0)$/;"	v
-x3	fig5_Exp2.py	/^    x3 = np.where(state[:,2] > 0.7, 1.0, 0.0)$/;"	v
-x4	Exp1_gait.py	/^x4 = np.where(state[:,3] > 0.7, 1.0, 0.0)$/;"	v
-x4	fig5_Exp2.py	/^    x4 = np.where(state[:,3] > 0.7, 1.0, 0.0)$/;"	v
 xticks	P2_Figs/Fig4_Output.py	/^    xticks=list(range(int(time[0]),int(time[-1])+1,1))$/;"	v
 xticks	P2_Figs/Fig5_Output.py	/^    xticks=list(range(int(time[0]),int(time[-1])+1,1))$/;"	v
 xticks	P2_Figs/Fig7_Exp.py	/^    xticks=list(range(int(time[0]),int(time[-1])+1,1))$/;"	v
-xticks	fig5_Exp2.py	/^    xticks=list(range(int(time[0]),int(time[-1])+1,1))$/;"	v
 xx	P2_Figs/Fig7_Exp.py	/^    xx=[]$/;"	v
