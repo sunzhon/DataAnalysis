@@ -4253,6 +4253,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
 def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],control_methods=['apnc'],**args):
     '''
+    Modified date: 2022-1-31
     Plot convergence time statistic in three different methods under different controlller update frequency, it can indicates the actual traverability of the locomotion
     '''
 
@@ -4946,6 +4947,11 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
     pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
 
+
+    #2.2) rename column names and values
+    pd_metrics=pd_metrics.rename(columns={'control_methods':'Control methods'})# rename column name or index name
+    pd_metrics['Control methods']=pd_metrics['Control methods'].map({'phase_reset':'PR','apnc':'APNC','phase_modulation':'Tegotae'})
+
     #3) plot
     figsize=(10,7)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -4960,25 +4966,27 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     #axs.append(fig.add_subplot(gs1[2:4,2]))
 
 
-    test_method="Mann-Whitney"
-    #test_method="t-test_ind"
+    #test_method="Mann-Whitney"
+    test_method="t-test_ind"
     order=['S1','S2','S3','S4']
-    hue_order=['apnc','phase_modulation','phase_reset']
+    hue_order=['APNC','Tegotae','PR']
     pairs=(
-        [('S1','apnc'),('S1','phase_modulation')],
-        [('S1','apnc'),('S1','phase_reset')],
+        [('S1','APNC'),('S1','Tegotae')],
+        [('S1','APNC'),('S1','PR')],
 
-        [('S2','apnc'),('S2','phase_modulation')],
-        [('S2','apnc'),('S2','phase_reset')],
+        [('S2','APNC'),('S2','Tegotae')],
+        [('S2','APNC'),('S2','PR')],
 
-        [('S3','apnc'),('S3','phase_modulation')],
-        [('S3','apnc'),('S3','phase_reset')],
+        [('S3','APNC'),('S3','Tegotae')],
+        [('S3','APNC'),('S3','PR')],
 
-        [('S4','apnc'),('S4','phase_modulation')],
-        [('S4','apnc'),('S4','phase_reset')]
+        [('S4','APNC'),('S4','Tegotae')],
+        [('S4','APNC'),('S4','PR')]
           )
-    axs_id=0
 
+    colors = ['tab:red', 'tab:green','tab:blue']
+
+    axs_id=0
     x='experiment_categories'; y='displacement'
     states_palette = sns.color_palette("YlGnBu", n_colors=5)
     hue_plot_params = {
@@ -4986,9 +4994,9 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     'x': x,
     'y': y,
     "order": order,
-    "hue": "control_methods",
-    "hue_order": hue_order
-    #"palette": states_palette
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
     }
 
     sns.barplot(ax=axs[axs_id],**hue_plot_params)
@@ -5002,7 +5010,18 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=1
     x='experiment_categories'; y='balance'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
     axs[axs_id].set_ylabel('Balance [$rad^{-1}$]')
     axs[axs_id].set_xlabel('')
 
@@ -5013,7 +5032,19 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=2
     x='experiment_categories'; y='coordination'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
+
     axs[axs_id].set_ylabel('Coordination')
     axs[axs_id].set_xlabel('')
 
@@ -5023,7 +5054,18 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=3
     x='experiment_categories'; y='COT'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
     axs[axs_id].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
     axs[axs_id].set_xlabel('')
 
@@ -5031,8 +5073,6 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
 
-    #sns.barplot(ax=axs[1],x='experiment_categories', y='distance',hue='control_methods', order=['S1','S2','S3','S4'],  data=pd_metrics)
-    #sns.barplot(ax=axs[4],x='experiment_categories', y='stability',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
 
     # save figure
     folder_fig = data_file_dic + 'data_visulization/'
@@ -5270,7 +5310,7 @@ if __name__=="__main__":
     #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     control_methods=['apnc','phase_modulation','phase_reset']
-    boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness')
+    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness')
 
     experiment_categories=['1.0']
     control_methods=['apnc']
@@ -5332,8 +5372,8 @@ if __name__=="__main__":
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
-    #plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='robot situation',study_variable='Robot situation')
+    plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
     control_methods=['apnc']
     experiment_categories=['carrying_payload']
