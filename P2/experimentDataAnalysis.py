@@ -5263,12 +5263,12 @@ if __name__=="__main__":
 
     data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/3M_roughness_data/"
     data_file_dic="/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
-    data_file_dic= "/home/suntao/workspace/experiment_data/"
-    data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
+    data_file_dic= "/home/suntao/workspace/experiment_data_bk/"
+    #data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
 
     experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
-    #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10]
     control_methods=['apnc','phase_modulation','phase_reset']
     boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness')
 

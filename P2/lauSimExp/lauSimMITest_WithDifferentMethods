@@ -25,16 +25,16 @@ do
     do
 
         if [ $control_method = "phase_reset" ]; then
-            cpg_type=8 # phase reset
+            cpg_type=9 # phase reset
             threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
             echo "phase resetting"
         elif test $control_method = "phase_modulation" ; then
-            cpg_type=9  # phase modulation is tegotae
+            cpg_type=8  # phase modulation is tegotae
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.03 #GRF feedback modulation gain
         elif [ $control_method = "apnc" ]; then
-            cpg_type=10 # adaptive physical and neural commnications
+            cpg_type=5 # 5 is APC, 6 is ANC, 7 is APNC adaptive physical and neural commnications
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
         else
@@ -54,10 +54,10 @@ do
             eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
             eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
             eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
-            eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
+            eval "rosparam set /CPGType ${cpg_type}" # 9 is PR, 8 is PM, 7 is  apnc (induce adaptive neural control input)
             if [ $control_method = "apnc" ]; then
                 sleep 20
-            eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
+            eval "rosparam set /CPGType 7" # 7 is APNC (induce adaptive neural control input)
                 sleep 30
             else
                 sleep 50 #22 #32 #55 

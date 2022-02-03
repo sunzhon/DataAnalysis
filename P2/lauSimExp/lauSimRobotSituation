@@ -55,7 +55,7 @@ do
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.3 #GRF feedback modulation gain
         elif [ $control_method = "apnc" ]; then
-            cpg_type=5 # 5 is APC, 7 is APNC (APC & ANC) adaptive physical and neural commnications
+            cpg_type=5 # 5 is APC, 6 is ANC, 7 is APNC (APC & ANC) adaptive physical and neural commnications
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
         else
