@@ -5,7 +5,7 @@
 if [ $# -gt 0 ]; then
     runs=$1
 else
-    runs=4
+    runs=2
 fi
 
 echo "run ${runs} times"
@@ -17,24 +17,23 @@ rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 "data: 0.0" # i
 
 
 
-for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
-#for experiment_variable in 0.0  0.1 0.2 0.3; # Three type of roughness terrains
-#for experiment_variable in 0.5
+#for experiment_variable in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
+for experiment_variable in 0.4 0.5 0.6 0.7 0.8 0.9 # Three type of roughness terrains
 do
     for control_method in "phase_reset" "phase_modulation" "apnc";
     do
 
         if [ $control_method = "phase_reset" ]; then
-            cpg_type=8 # phase reset
+            cpg_type=9 # phase reset
             threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
             echo "phase resetting"
         elif test $control_method = "phase_modulation" ; then
-            cpg_type=9  # phase modulation is tegotae
+            cpg_type=8  # phase modulation is tegotae, with fixed gain
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.03 #GRF feedback modulation gain
         elif [ $control_method = "apnc" ]; then
-            cpg_type=10 # adaptive physical and neural commnications
+            cpg_type=5 # , 5 is APC, 6 is ANC, 7 is APNC adaptive physical and neural commnications
             threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
             gain_value=0.0 #GRF feedback modulation gain
         else
@@ -56,7 +55,7 @@ do
             eval "rosparam set /CPGType ${cpg_type}" # 6 is  SP (induce adaptive neural control input)
             if [ $control_method = "apnc" ]; then
                 sleep 20
-            eval "rosparam set /CPGType 6" # 6 is  SP (induce adaptive neural control input)
+                eval "rosparam set /CPGType 7" # 7 is APNC (APC and ANC)  (induce adaptive neural control input)
                 sleep 30
             else
                 sleep 50 #22 #32 #55 
