@@ -97,8 +97,19 @@ def load_csv_file(fileName,columnsName,folderName="/home/suntao/workspace/experi
     data_file = os.path.join(folderName,fileName + ".csv")
     resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=None, names=columnsName, skip_blank_lines=True, dtype=str)
 
+    #2) check data whether loss frame
+    if(len(resource_data.index)!=resource_data.shape[0]):
+        print("dataset loss frame in ",data_file)
+        warnings.warn("Please note that the raw data loss some frame")
+
     read_rows=resource_data.shape[0]-1
-    fine_data = resource_data.iloc[0:read_rows,:].astype(float)# 数据行对齐
+    try:
+        fine_data = resource_data.iloc[0:read_rows,:].astype(float)# 数据行对齐
+    except ValueError:
+        print("data type is wrong, please check raw dataset")
+        warnings.warn("Please note that the raw data loss some frame")
+        pdb.set_trace()
+
     return fine_data
 
 def load_a_trial_data(freq,start_time,end_time,folder_name):

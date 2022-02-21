@@ -31,9 +31,9 @@ barprops	P2_Figs/Fig7_Exp.py	/^    barprops = dict(aspect='auto', cmap=plt.cm.bi
 boxplot_COT_statistic	experimentDataAnalysis.py	/^def boxplot_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):$/;"	f
 boxplot_displacement_statistic	experimentDataAnalysis.py	/^def boxplot_displacement_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 boxplot_phase_convergenceTime_statistic	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
+boxplot_phase_convergenceTime_statistic_threeMethod	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],control_methods=['apnc'],**args):$/;"	f
 boxplot_phase_convergenceTime_statistic_threeMethod_underMI	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0],**args):$/;"	f
 boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
-boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_threeMethod_underUpdateFrequency(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],**args):$/;"	f
 boxplot_phase_convergenceTime_statistic_underMI	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_statistic_underMI(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
 boxplot_phase_convergenceTime_sucessRateBar_statistic	experimentDataAnalysis.py	/^def boxplot_phase_convergenceTime_sucessRateBar_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0'],trial_ids=[0]):$/;"	f
 boxplot_phase_formTime_statistic	experimentDataAnalysis.py	/^def boxplot_phase_formTime_statistic(data_file_dic,start_time=1200,end_time=1200+900,freq=60,experiment_categories=['0']):$/;"	f
@@ -62,9 +62,10 @@ data_file_dic	experimentDataAnalysis.py	/^    data_file_dic = "\/media\/suntao\/
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/home\/suntao\/roughness_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/home\/suntao\/workspace\/experiment_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
+data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/DATA\/roughness_3m_new"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/MI_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
-data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/DATA\/Researches\/Papers\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/roughness_data_3M\/"$/;"	v
+data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/Main_Workspace\/Researches\/Papers\/Working\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/MI_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/sun\/My Passport\/Main_Workspace\/Researches\/Papers\/Working\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/UpdateFrequency_data_3M\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/3M_roughness_data\/"$/;"	v
 data_file_dic	experimentDataAnalysis.py	/^    data_file_dic= "\/media\/suntao\/DATA\/Onedrive\/Researches\/Papers_and_Thesis\/P2_workspace\/Experiments\/Experiment_data\/SupplementaryExperimentData\/MI_data\/"$/;"	v
@@ -178,6 +179,7 @@ phase_stability_statistic	experimentDataAnalysis.py	/^def phase_stability_statis
 plot_COT_statistic	experimentDataAnalysis.py	/^def plot_COT_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
 plot_actual_grf_all_leg	experimentDataAnalysis.py	/^def plot_actual_grf_all_leg(data_file_dic,start_time=600,end_time=1200,freq=60,experiment_categories=['0'], trial_id=0):$/;"	f
 plot_all_metrics	experimentDataAnalysis.py	/^def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):$/;"	f
+plot_average_phase_shift_dynamics_progression	experimentDataAnalysis.py	/^def plot_average_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):$/;"	f
 plot_comparasion_expected_actual_grf_all_leg	experimentDataAnalysis.py	/^def plot_comparasion_expected_actual_grf_all_leg(data_file_dic,start_time=600,end_time=1200,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_comparasion_of_expected_actual_grf	experimentDataAnalysis.py	/^def plot_comparasion_of_expected_actual_grf(Te, leg_id,ax=None):$/;"	f
 plot_coordination_statistic	experimentDataAnalysis.py	/^def plot_coordination_statistic(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0']):$/;"	f
@@ -189,7 +191,7 @@ plot_idx	P2_Figs/Fig7_Exp.py	/^    plot_idx=0$/;"	v
 plot_idx	P2_Figs/Fig7_Exp.py	/^    plot_idx=plot_idx+1$/;"	v
 plot_phase_diff	experimentDataAnalysis.py	/^def plot_phase_diff(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 plot_phase_shift_dynamics	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics(data_file_dic,start_time=90,end_time=1200,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods=['apnc']):$/;"	f
-plot_phase_shift_dynamics_underThreeMethods	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):$/;"	f
+plot_phase_shift_dynamics_progression	experimentDataAnalysis.py	/^def plot_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):$/;"	f
 plot_phase_transition_animation	experimentDataAnalysis.py	/^def plot_phase_transition_animation(data_file_dic,start_time=5,end_time=30,freq=60.0,experiment_categories=['0.0'],trial_id=0):$/;"	f
 plot_runningSuccess_statistic	experimentDataAnalysis.py	/^def plot_runningSuccess_statistic(data_file_dic,start_time=10,end_time=400,freq=60,experiment_categories=['0.0']):$/;"	f
 plot_single_details	experimentDataAnalysis.py	/^def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods=['apnc'],investigation="parameter investigation"):$/;"	f
@@ -236,7 +238,8 @@ touch_convergence_moment_identification	experimentDataAnalysis.py	/^def touch_co
 touch_difference	experimentDataAnalysis.py	/^def touch_difference(joint_cmd, actual_grf):$/;"	f
 transform	P2_Figs/Fig7_Exp.py	/^        transform=axs[plot_idx].transAxes)$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]$/;"	v
-trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2]$/;"	v
+trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3,4,5,6,7]$/;"	v
+trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1,2,3,4,5]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0,1]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[0]$/;"	v
 trial_ids	experimentDataAnalysis.py	/^    trial_ids=[1]$/;"	v
