@@ -27,6 +27,14 @@ from package_lib.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 from sklearn.preprocessing import StandardScaler
 from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 
+
+import numpy as np
+from sklearn.model_selection import LeaveOneOut
+import time as localtimepkg
+
+
+
+
 subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
 
 cpus=tf.config.list_logical_devices(device_type='CPU')
@@ -516,9 +524,13 @@ def plot_history(history_dict):
 
     
 def plot_prediction_statistic(features, labels, predictions,testing_folder):
+    '''
+    This function calculate the error between predicted and ground truth, and plot them for comparison
+    '''
     
     if(re.search('test_\d',testing_folder)!=None):
         testing_folder=os.path.dirname(testing_folder) # 父目录
+
     # Load hyperparameters, Note the values in hyperparams become string type
     training_folder=testing_folder+"/../training"+re.search(r"_\d+$",testing_folder).group()
     hyperparams_file=training_folder+"/hyperparams.yaml"
@@ -568,13 +580,6 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     
 
     
-
-
-import numpy as np
-from sklearn.model_selection import LeaveOneOut
-import time as localtimepkg
-
-
 
 
 '''
@@ -684,11 +689,11 @@ def main():
 if __name__=='__main__':
 
     #0) Train and test model or testing existing model
-    if(True):#retrain model
+    if(False):#retrain model
         training_folder, testing_folder, xy_test, scaler =  main()
     else:# plot existing model
         hyperparams=initParameters()
-        if(not testing_folder in locals().keys()):
+        if(not "testing_folder" in locals().keys()):
             testing_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/test_115856/test_1')
             training_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/training_115856/')
 
