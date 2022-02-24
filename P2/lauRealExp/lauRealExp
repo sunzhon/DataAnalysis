@@ -1,0 +1,147 @@
+#! /bin/zsh
+# sim start
+
+#- Define a function to change MNC (modular neural controller) rate in stbot.yaml
+ function set_param()
+ {
+
+    file_name="${GOROBOTS}/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot.yaml"
+    file_name_new="${GOROBOTS}/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_new.yaml"
+    file_name_old="${GOROBOTS}/projects/stbot/genesis/catkin_ws/src/stbot/config/stbot_old.yaml"
+    mncrate=$1
+    param_name=$1
+    param_value=$2
+    awk '{if($1 == "'$param_name'") $2 = "'$param_value'";print}' $file_name > $file_name_new && mv $file_name $file_name_old && mv $file_name_new $file_name 
+    
+    if [ -f "$file_name_old" ]; then
+    rm $file_name_old
+    fi
+ }
+
+
+
+ 
+#- Main routine
+
+# running times
+if [ $# -gt 0 ]; then
+    runs=$1
+else
+    runs=1
+fi
+
+echo "run ${runs} times"
+# define files
+data_log_file_path=$HOME/workspace/experiment_data/datapath.log
+data_log_file=$HOME/workspace/experiment_data/ExperimentDataLog.csv
+echo "" > $data_log_file #create a experiment data log file 
+
+# Three robot situations
+#for experiment_variable in "normal_situation" "noisy_feedback" "leg_damage" "carrying_payload"
+for experiment_variable in "leg_damage"
+do
+    # set ros rate
+    $(set_param "RosRate:" 60)
+    $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation
+    for control_method in "phase_modulation" "phase_reset" "apnc" "only_cpg";
+    do
+        #-- controller parameter values setting via ROS pramaeter server
+        cpg_mi=0.08   # Modulation input, MI
+        if [ $control_method = "phase_reset" ]; then
+            cpg_type=9 # phase reset
+            threshold_value=0.4  #, this value is 0.4 for all case. The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.0 #GRF feedback modulation gain
+            echo "phase resetting"
+        elif test $control_method = "phase_modulation" ; then
+            cpg_type=8  # phase modulation is tegotae
+            threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.3 #GRF feedback modulation gain
+        elif [ $control_method = "apnc" ]; then
+            cpg_type=5 # 5 is APC, 6 is ANC, 7 is APNC (APC & ANC) adaptive physical and neural commnications
+            threshold_value=100  #The threshold for phase resetting. carrying load using 6.5, normal case using 5.0
+            gain_value=0.0 #GRF feedback modulation gain
+        else
+            echo "CONTROL METHOD IS WRONG"
+        fi
+
+        #- simulation environments
+        roughness_value="\"data: 0.0\""
+        inclination_value="\"data: 0.0\""
+
+
+        if [ $experiment_variable = "normal_situation" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
+            $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation (i.e., no noise in GRF, no leg damage)
+        fi
+
+        if [ $experiment_variable = "carrying_payload" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: true" # enable the payload
+            $(set_param "USER_MACRO:" 0) # default value of USER_MACRO without specific operation
+        fi
+
+        if [ $experiment_variable = "noisy_feedback" ]; then
+            rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
+            $(set_param "USER_MACRO:" 1) # add noisy sensory information into GRF for CPG modulation
+        fi
+
+
+        cmd1="rostopic pub --once /sim_control/floorInclination std_msgs/Float32 ${inclination_value}" #set floorInclination
+        cmd2="rostopic pub --once /sim_control/floorRoughness std_msgs/Float32 ${roughness_value}" #set terrain roughness
+        #- repeat this trial $run times
+        for i in $(seq 1 $runs); do
+            eval $cmd1                         #publishing the roughness or the floor slope
+            eval $cmd2                         #publishing the roughness or the floor slope
+            echo "Control method is: $control_method, experiment category is: $experiment_variable"
+            rostopic pub --once /sim_control/startSimulation std_msgs/Bool "data: true"
+	    #roslaunch lilibot lilibot.launch
+            $start_lilibot
+	    echo "Start lilibot by joystic"
+	    
+            eval "rosparam set /CPGMi ${cpg_mi}" # set CPG MI
+            eval "rosparam set /CPGPGain ${gain_value}" #set CPG gain
+            eval "rosparam set /CPGPThreshold ${threshold_value}" #set CPG threshild
+            eval "rosparam set /CPGType ${cpg_type}" # 7 is  APNC (induce adaptive neural control input)
+
+            sleep 10
+	    eval "rosparam set /CPGType 4" # ask robot to trot
+            sleep 6
+
+            if [ $control_method = "phase_modulation" ]; then
+	    eval "rosparam set /CPGType 8" #  ask robot PM
+            fi
+
+            if [ $control_method = "phase_reset" ]; then
+	    eval "rosparam set /CPGType 9" #  ask robot PR
+            fi
+
+
+            if [ $control_method = "apnc" ]; then
+            	eval "rosparam set /CPGType 7" # 7 is  APNC (induce adaptive physical and neural control input)
+            fi
+
+            if [ $control_method = "cpg_only" ]; then
+            	eval "rosparam set /CPGType 11" # 11 is only use CPG without sensory feedback
+            fi
+
+            sleep 10
+
+            if [ $experiment_variable = "leg_damage" ]; then
+                rostopic pub --once /sim_control/payloadSetting std_msgs/Bool "data: false" # disable the payload
+            	eval "rosparam set /USER_MACRO 2" #leg damage
+		echo "Right front leg damage"
+            fi
+            sleep 15
+
+	    eval "rosparam set /CPGType -1" # -1 ask robot stand up
+	    sleep 10
+	    rosnode kill /control_node
+	    echo "Stop lilibot by joystick"
+            data_path_temp=$(cat $data_log_file_path)
+            echo "$control_method\t$data_path_temp\t$experiment_variable">> $data_log_file
+        done
+        sleep 4
+    done
+done 
+echo "Experiments Done!"
+
+
