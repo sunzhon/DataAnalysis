@@ -25,7 +25,7 @@ import warnings
 from matplotlib.animation import FuncAnimation
 import matplotlib.font_manager
 
-# 使用Savitzky-Golay 滤波器后得到平滑图线
+# 使用Savitzky-Golay 滤波器后得到平滑图线 ,是基于局域多项式最小二乘法拟合的滤波方法
 from scipy.signal import savgol_filter
 
 BASE_DIR=os.path.dirname(os.path.abspath(__file__))
@@ -130,7 +130,8 @@ def calculate_phase_diff(CPGs_output,time):
     C4=CPGs_output[:,6:8]
         
     # Checking wheather the center of the orbit in in orgin
-    start=500;end=800 # 选取一段做评估, 建立极限环的圆心和半径
+    #start=500;end=800 # 选取一段做评估, 建立极限环的圆心和半径
+    start=60;end=120 # 选取一段做评估, 建立极限环的圆心和半径
     C1_center=np.sum(C1[start:end,:], axis=0) # 轨迹圆心坐标
     C1_center_norm=np.linalg.norm(C1_center) #轨迹圆心到坐标原点的距离
 
@@ -186,7 +187,7 @@ def calculate_phase_diff_std(cpg_data,time,method_option=1):
 
     M1: Calculation the standard derivation of the phase diffs
 
-    M2: Calculation the distance of the phase diff state variable to the (3.14,3.14,0)
+    M2: Calculation the distance of the phase diff state variables to the desired state (3.14,3.14,0)
     '''
     if method_option==1:
         phi = calculate_phase_diff(cpg_data,time)
@@ -195,22 +196,19 @@ def calculate_phase_diff_std(cpg_data,time,method_option=1):
         phi['phi_12']=savgol_filter(phi['phi_12'],91,2,mode='nearest')
         phi['phi_13']=savgol_filter(phi['phi_13'],91,2,mode='nearest')
         phi['phi_14']=savgol_filter(phi['phi_14'],91,2,mode='nearest')
-        for idx in range(phi.shape[0]):
+        for idx in range(phi.shape[0]): # calculate the desired state (in a moving window)
             if idx>=filter_width:
                 temp= filter_width 
             else:
                 temp=idx
                 
-            std_phi=np.std(phi.loc[idx-temp:idx]) # standard derivation of the phi
+            std_phi=np.std(phi.loc[idx-temp:idx]) # standard derivation of the phi in a window (filter_width)
             phi_stability.append(sum(std_phi[1:])) # the sum of three phis, phi_12, phi_13, phi_14
 
         return np.array(phi_stability)
 
     if method_option==2:
         phi = calculate_phase_diff(cpg_data,time)
-        #phi['phi_12']=savgol_filter(phi['phi_12'],91,2,mode='nearest')
-        #phi['phi_13']=savgol_filter(phi['phi_13'],91,2,mode='nearest')
-        #phi['phi_14']=savgol_filter(phi['phi_14'],91,2,mode='nearest')
         desired_point=np.array([3.14, 3.14, 0])
         distances=np.sqrt(np.sum((phi[['phi_12','phi_13','phi_14']]-desired_point)**2,axis=1))
 
@@ -249,14 +247,14 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
         grf_stance_index=np.where(grf_stance.sum(axis=1)>=2)# Find the robot drop on ground moment if has two feet on ground at least
         if(grf_stance_index[0].size!=0):#机器人落地了 robot on the ground
             touch_moment_idx= grf_stance_index[0][0]# 落地时刻 the touch momnet $n_0$
-            phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # 相位差的标准差, start from touch moment
+            phi_distances=calculate_phase_diff_std(cpg_data[touch_moment_idx:,:],time[touch_moment_idx:],method_option=2) # distance to the desired state (pi, pi, 0), start from touch moment
             #phi_distances=calculate_phase_diff_std(cpg_data,time,method_option=2) # 相位差的标准差, start from start_time
             phi_distances_threshold=1.4# empirically set 1.4
             for idx, value in enumerate(phi_distances): #serach the idx of the convergence moment/time
-                if idx>=len(phi_distances)-1: # Not converge happen
+                if idx>=len(phi_distances)-1: # Not converge happen during walking period
                     #convergence_idx=len(phi_distances)
                     convergence_idx=-1
-                    print("CPG phase do not converge", convergence_idx)
+                    warnings.warn("CPG phase do not converge, the convergence index is {}".format(convergence_idx))
                     break
                     # meet convergence condition, "max(phi_stability) >1.0 is to avoid the the CPG oscillatory disapper 
                 if (value > phi_distances_threshold) and (phi_distances[idx+1]<=phi_distances_threshold):# the state variable converge to the desired fixed point (3.14, 3.14, 0)
@@ -499,7 +497,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
     grf={}
     cpg={}
     phi={}# cpgs phase difference
-    noise={}
+    modules={}
     rosparameter={}
     metrics={}
     experiment_data={}
@@ -516,7 +514,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
             grf[category]=[]
             cpg[category]=[]
             phi[category]=[]
-            noise[category]=[]
+            modules[category]=[]
             rosparameter[category]=[]
             metrics[category]={}
             experiment_data[category]={}
@@ -546,7 +544,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                                 jmv[category].append(velocity_data)
                                 jmf[category].append(current_data)
                                 grf[category].append(grf_data)
-                                noise[category].append(module_data)
+                                modules[category].append(module_data)
                                 #----Metrics
                                 metric_phase_diff=calculate_phase_diff(cpg_data,time)
                                 gait_diagram_data_temp, duty_factor_data = calculate_gait(grf_data)
@@ -561,7 +559,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                                 metric_energy_cost = calculate_energy_cost(velocity_data,current_data,freq)
                                 metric_COT = calculate_COT(velocity_data,current_data,freq,metric_displacement)
                                 metrics[category][control_method].append({'phase_diff':metric_phase_diff,'coordination': metric_coordination, 'phase_convergence_time':metric_convergence_time,'stability': metric_stability, 'balance': metric_balance, 'displacement': metric_displacement, 'distance': metric_distance, 'energy_cost':metric_energy_cost, 'COT': metric_COT})
-                                experiment_data[category][control_method].append({'cpg': cpg_data, 'grf': grf_data, 'jmp': position_data, 'pose': pose_data, 'jmf':current_data,'jmc': command_data,'jmv':velocity_data,'time':time,'gait_diagram_data':gait_diagram_data_temp,'rosparameter':parameter_data})
+                                experiment_data[category][control_method].append({'cpg': cpg_data, 'grf': grf_data, 'jmp': position_data, 'pose': pose_data, 'jmf':current_data,'jmc': command_data,'jmv':velocity_data,'time':time,'gait_diagram_data':gait_diagram_data_temp,'rosparameter':parameter_data,'modules':module_data})
 
                                 print("METRICS DISPLAY AS FOLLOW:")
                                 print("Coordination:{:.2f}".format(metric_coordination))

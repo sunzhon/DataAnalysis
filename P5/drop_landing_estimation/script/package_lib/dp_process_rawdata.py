@@ -572,7 +572,6 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     print("mean of ground-truth:",np.mean(labels))
     print("mean: {.2f}, std: {.2f}, RMSE: {.2f}, rRMSE: {.2f} of the errors between estimation and ground truth",pred_mean, pred_std, pred_rmse, pred_rrmse)
 
-    pdb.set_trace()
 
     #ii) calculate estimation errors realtime: normalized_absolute_error (nae)= abs(labels-prediction)/labels, along the time, each column indicates a labels
     nae = np.abs(pred_error)#/labels
@@ -583,6 +582,8 @@ def plot_test_results(features,labels,predictions,features_names,labels_names,fi
     #iii) plot absolute error and noramlized error (error-percentage)
     g=sns.FacetGrid(data=pd_nae,col='GRF error [BW]',col_wrap=3,sharey=False)
     g.map_dataframe(sns.lineplot,'time','vals')
+    pdb.set_trace()
+
     plt.show()
 
     #ii) save figure

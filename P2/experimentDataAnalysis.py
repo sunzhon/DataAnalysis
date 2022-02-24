@@ -44,6 +44,7 @@ BASE_DIR=os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR+"/../")
 from CRCF.metrics import *
 from CRCF.data_manager import *
+from CRCF.plot_utilities import *
 
 warnings.simplefilter('always', UserWarning)
 
@@ -56,7 +57,6 @@ Global parameters:
 Robot configurations and parameters of Lilibot
 
 '''
-
 
 
 def stsubplot(fig,position,number,gs):
@@ -3267,171 +3267,187 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
 
 
     #2) Whether get right data
-    for exp_idx in range(len(experiment_categories)):
-        for trial_id in range(len(trial_ids)):
-            experiment_category=experiment_categories[exp_idx]# The first category of the input parameters (arg)
-            control_method=control_methods[0]
-            cpg=experiment_data[experiment_category][control_method][trial_id]['cpg']
-            grf=experiment_data[experiment_category][control_method][trial_id]['grf']
-            time=experiment_data[experiment_category][control_method][trial_id]['time']
-            gait_diagram_data=experiment_data[experiment_category][control_method][trial_id]['gait_diagram_data']
+    for exp_idx, experiment_category in enumerate(experiment_categories):
+        for control_method in control_methods: # control methods
+            for trial_idx, trial_id in enumerate(trial_ids): # trials ids
+                cpg=experiment_data[experiment_category][control_method][trial_idx]['cpg']
+                grf=experiment_data[experiment_category][control_method][trial_idx]['grf']
+                module_data=experiment_data[experiment_category][control_method][trial_idx]['modules']
+                time=experiment_data[experiment_category][control_method][trial_idx]['time']
+                gait_diagram_data=experiment_data[experiment_category][control_method][trial_idx]['gait_diagram_data']
 
-            #3) plot
-            figsize=(6,6.5)
-            fig = plt.figure(figsize=figsize,constrained_layout=False)
-            plot_column_num=1# the columns of the subplot. here set it to one
-            gs1=gridspec.GridSpec(14,plot_column_num)#13
-            gs1.update(hspace=0.18,top=0.95,bottom=0.08,left=0.1,right=0.98)
-            axs=[]
-            for idx in range(plot_column_num):# how many columns, depends on the experiment_categories
-                axs.append(fig.add_subplot(gs1[0:3,idx]))
-                axs.append(fig.add_subplot(gs1[3:6,idx]))
-                axs.append(fig.add_subplot(gs1[6:9,idx]))
-                axs.append(fig.add_subplot(gs1[9:12,idx]))
-                axs.append(fig.add_subplot(gs1[12:14,idx]))
+                #3) plot
+                figsize=(6,6.5+2)
+                fig = plt.figure(figsize=figsize,constrained_layout=False)
+                plot_column_num=1# the columns of the subplot. here set it to one
+                gs1=gridspec.GridSpec(16,plot_column_num)#13
+                gs1.update(hspace=0.18,top=0.95,bottom=0.08,left=0.1,right=0.98)
+                axs=[]
+                for idx in range(plot_column_num):# how many columns, depends on the experiment_categories
+                    axs.append(fig.add_subplot(gs1[0:3,idx]))
+                    axs.append(fig.add_subplot(gs1[3:6,idx]))
+                    axs.append(fig.add_subplot(gs1[6:9,idx]))
+                    axs.append(fig.add_subplot(gs1[9:12,idx]))
+                    axs.append(fig.add_subplot(gs1[12:14,idx]))
+                    axs.append(fig.add_subplot(gs1[14:16,idx]))
 
-            #3.1) plot 
-            if investigation=="situation investigation":
-                #experiment_variables={'0':'Normal', '1':'Noisy feedback', '2':'Malfunction leg', '3':'Carrying load','0.9':'0.9'}
-                experiment_variables={'0':'Normal', '1':'Noisy feedback', '2':'Malfunction leg', '3':'Carrying load','0.9':'0.9'}
+                #3.1) plot 
+                if investigation=="situation investigation":
+                    #experiment_variables={'0':'Normal', '1':'Noisy feedback', '2':'Malfunction leg', '3':'Carrying load','0.9':'0.9'}
+                    experiment_variables={'0':'Normal', '1':'Noisy feedback', '2':'Malfunction leg', '3':'Carrying load','0.9':'0.9'}
 
-            if investigation=="parameter investigation":
-                experiment_variables=['0.0','0.05','0.15','0.25','0.35','0.45','0.55']
+                if investigation=="parameter investigation":
+                    experiment_variables=['0.0','0.05','0.15','0.25','0.35','0.45','0.55']
     
-            c4_1color=(46/255.0, 77/255.0, 129/255.0)
-            c4_2color=(0/255.0, 198/255.0, 156/255.0)
-            c4_3color=(255/255.0, 1/255.0, 118/255.0)
-            c4_4color=(225/255.0, 213/255.0, 98/255.0)
-            colors=[c4_1color, c4_2color, c4_3color, c4_4color]
+                c4_1color=(46/255.0, 77/255.0, 129/255.0)
+                c4_2color=(0/255.0, 198/255.0, 156/255.0)
+                c4_3color=(255/255.0, 1/255.0, 118/255.0)
+                c4_4color=(225/255.0, 213/255.0, 98/255.0)
+                colors=[c4_1color, c4_2color, c4_3color, c4_4color]
 
 
-            idx=0
-            axs[idx].plot(time,cpg[:,1], color=c4_1color)
-            axs[idx].plot(time,cpg[:,3], color=c4_2color)
-            axs[idx].plot(time,cpg[:,5], color=c4_3color)
-            axs[idx].plot(time,cpg[:,7], color=c4_4color)
-            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-            axs[idx].set_ylabel(u'CPGs')
-            axs[idx].set_yticks([-1.0,0.0,1.0])
-            axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4, loc='right')
-            axs[idx].set_xticklabels([])
-            axs[idx].set_title(control_method+": " + experiment_category +" "+str(trial_id))
-            axs[idx].set(xlim=[min(time),max(time)])
-            axs[idx].set(ylim=[-1.1,1.1])
-
-
-            plt.subplots_adjust(hspace=0.4)
-            idx=1
-            axs[idx].set_ylabel(u'Phase diff. [rad]')
-            phi=calculate_phase_diff(cpg,time)
-            phi_std=calculate_phase_diff_std(cpg,time,method_option=1); 
-            axs[idx].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
-            axs[idx].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
-            axs[idx].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
-            axs[idx].plot(phi['time'],phi_std,color='k')
-            #axs[idx].plot(phi['time'],savgol_filter(phi['phi_12'],91,2,mode='nearest'),color='k',linestyle="-.")
-            #ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
-            #ax2.set_ylabel('Phase disance', color='tab:red')  # we already handled the x-label with ax1
-            #ax2.plot(phi['time'],phi_std,color='red')
-            axs[idx].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$',u'$\phi^{dis}$'],ncol=2,loc='center')
-            axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-            axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-            axs[idx].set_yticks([0.0,1.5,3.0])
-            axs[idx].set_xticklabels([])
-            axs[idx].set(xlim=[min(time),max(time)])
-            axs[idx].set(ylim=[-0.1,3.5])
-
-            #ax2.plot(ind, success_rate,'-h', color=color)
-            #ax2.tick_params(axis='y', labelcolor=color)
-            #ax2.set_ylim(-10,110)
-            #ax2.set_yticks([0, 20,40, 60, 80, 100])
-
-            idx=2
-            axs[idx].set_ylabel(u'GRFs')
-            if experiment_category == "1": # noisy situation
-                grf_feedback_rf = grf[:,0] + noise[experiment_category][trial_id][:,1]
-                grf_feedback_rh = grf[:,1] + noise[experiment_category][trial_id][:,2]
-                axs[idx].set(ylim=[-1,20.1])
-            else:
-                grf_feedback_rf = grf[:,0]
-                grf_feedback_rh = grf[:,1]
-                axs[idx].set(ylim=[-1,20.1])
-
-            if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
-                axs[idx].plot(time,grf_feedback_rf, color=c4_1color)
-                axs[idx].plot(time,grf_feedback_rh, color=c4_2color)
+                idx=0 # CPG outputs
+                axs[idx].plot(time,cpg[:,1], color=c4_1color)
+                axs[idx].plot(time,cpg[:,3], color=c4_2color)
+                axs[idx].plot(time,cpg[:,5], color=c4_3color)
+                axs[idx].plot(time,cpg[:,7], color=c4_4color)
                 axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
                 axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-                axs[idx].legend(['RF','RH'])
+                axs[idx].set_ylabel(u'CPGs')
+                axs[idx].set_yticks([-1.0,0.0,1.0])
+                axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4, loc='right')
                 axs[idx].set_xticklabels([])
+                axs[idx].set_title(control_method+ ": " + experiment_category +" "+ str(trial_id))
                 axs[idx].set(xlim=[min(time),max(time)])
+                axs[idx].set(ylim=[-1.1,1.1])
 
-            if  control_method in ["PhaseReset", "phase_reset"]:
-                axs[idx].plot(time,grf_feedback_rf, color=c4_1color)
-                axs[idx].plot(time,grf_feedback_rh, color=c4_2color)
-                GRF_threshold=experiment_data[experiment_category][control_method][trial_id]['rosparameter'][-1,3]*25/4*np.ones(len(time))
-                axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
-                axs[idx].set_yticks([0,GRF_threshold[0],10,20])
-                axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
-                axs[idx].legend(['RF','RH','Threshold'], ncol=3,loc='right')
+                idx = idx + 1
+                axs[idx].plot(time,module_data[:,-5])
                 axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
                 axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+                axs[idx].set_ylabel(u'Sensory feedback gain')
+                #axs[idx].set_yticks([-1.0,0.0,1.0])
+                #axs[idx].legend(['RF','RH','LF', 'LH'],ncol=4, loc='right')
                 axs[idx].set_xticklabels([])
                 axs[idx].set(xlim=[min(time),max(time)])
+                #axs[idx].set(ylim=[-1.1,1.1])
 
 
-            idx=3
-            axs[idx].set_ylabel(u'GRFs')
-            if experiment_category == "1": #noisy situation
-                grf_feedback_lf = grf[:,2] + noise[experiment_category][trial_id][:,3]
-                grf_feedback_lh = grf[:,3] + noise[experiment_category][trial_id][:,4]
-                axs[idx].set(ylim=[-1,20.1])
-            else:
-                grf_feedback_lf = grf[:,2]
-                grf_feedback_lh = grf[:,3]
-                axs[idx].set(ylim=[-1,20.1])
 
-            if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
-                axs[idx].plot(time,grf_feedback_lf, color=c4_3color)
-                axs[idx].plot(time,grf_feedback_lh, color=c4_4color)
+                plt.subplots_adjust(hspace=0.4)
+                idx = idx + 1 # phase diff and phase diff stability
+                axs[idx].set_ylabel(u'Phase diff. [rad]')
+                phi=calculate_phase_diff(cpg,time)
+                phi_std=calculate_phase_diff_std(cpg,time,method_option=1); 
+                axs[idx].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
+                axs[idx].plot(phi['time'],phi['phi_13'],color=(247/255,144/255,61/255))
+                axs[idx].plot(phi['time'],phi['phi_14'],color=(89/255,169/255,90/255))
+                axs[idx].plot(phi['time'],phi_std,color='k')
+                #axs[idx].plot(phi['time'],savgol_filter(phi['phi_12'],91,2,mode='nearest'),color='k',linestyle="-.")
+                #ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
+                #ax2.set_ylabel('Phase disance', color='tab:red')  # we already handled the x-label with ax1
+                #ax2.plot(phi['time'],phi_std,color='red')
+                axs[idx].legend([u'$\phi_{12}$',u'$\phi_{13}$',u'$\phi_{14}$',u'$\phi^{dis}$'],ncol=2,loc='center')
                 axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
                 axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-                axs[idx].legend(['RF','RH'])
+                axs[idx].set_yticks([0.0,1.5,3.0])
                 axs[idx].set_xticklabels([])
                 axs[idx].set(xlim=[min(time),max(time)])
+                axs[idx].set(ylim=[-0.1,3.5])
 
-            if  control_method in ["PhaseReset", "phase_reset"]:
-                axs[idx].plot(time,grf_feedback_lf, color=c4_3color)
-                axs[idx].plot(time,grf_feedback_lh, color=c4_4color)
-                GRF_threshold=experiment_data[experiment_category][control_method][trial_id]['rosparameter'][-1,3]*25/4*np.ones(len(time))
-                axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
-                axs[idx].set_yticks([0,GRF_threshold[0],10,20])
-                axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
-                axs[idx].legend(['LF','LH','Threshold'], ncol=3, loc='right')
-                axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-                axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-                #axs[idx].set_yticks([-0.3, 0.0, 0.3])
-                axs[idx].set_xticklabels([])
+
+
+                #ax2.plot(ind, success_rate,'-h', color=color)
+                #ax2.tick_params(axis='y', labelcolor=color)
+                #ax2.set_ylim(-10,110)
+                #ax2.set_yticks([0, 20,40, 60, 80, 100])
+
+                idx=idx+1 #GRF
+                axs[idx].set_ylabel(u'GRFs')
+                if experiment_category == "1": # noisy situation
+                    grf_feedback_rf = grf[:,0] + noise[experiment_category][trial_idx][:,1]
+                    grf_feedback_rh = grf[:,1] + noise[experiment_category][trial_idx][:,2]
+                    axs[idx].set(ylim=[-1,20.1])
+                else:
+                    grf_feedback_rf = grf[:,0]
+                    grf_feedback_rh = grf[:,1]
+                    axs[idx].set(ylim=[-1,20.1])
+
+                if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
+                    axs[idx].plot(time,grf_feedback_rf, color=c4_1color)
+                    axs[idx].plot(time,grf_feedback_rh, color=c4_2color)
+                    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+                    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+                    axs[idx].legend(['RF','RH'])
+                    axs[idx].set_xticklabels([])
+                    axs[idx].set(xlim=[min(time),max(time)])
+
+                if  control_method in ["PhaseReset", "phase_reset"]: # also draw GRF threshold
+                    axs[idx].plot(time,grf_feedback_rf, color=c4_1color)
+                    axs[idx].plot(time,grf_feedback_rh, color=c4_2color)
+                    GRF_threshold=experiment_data[experiment_category][control_method][trial_idx]['rosparameter'][-1,3]*25/4*np.ones(len(time))
+                    axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
+                    axs[idx].set_yticks([0,GRF_threshold[0],10,20])
+                    axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
+                    axs[idx].legend(['RF','RH','Threshold'], ncol=3,loc='right')
+                    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+                    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+                    axs[idx].set_xticklabels([])
+                    axs[idx].set(xlim=[min(time),max(time)])
+
+
+                idx=idx+1 # GRF
+                axs[idx].set_ylabel(u'GRFs')
+                if experiment_category == "1": #noisy situation
+                    grf_feedback_lf = grf[:,2] + noise[experiment_category][trial_idx][:,3]
+                    grf_feedback_lh = grf[:,3] + noise[experiment_category][trial_idx][:,4]
+                    axs[idx].set(ylim=[-1,20.1])
+                else:
+                    grf_feedback_lf = grf[:,2]
+                    grf_feedback_lh = grf[:,3]
+                    axs[idx].set(ylim=[-1,20.1])
+
+                if  control_method in ["PhaseModulation","phase_modulation","apnc"] :
+                    axs[idx].plot(time,grf_feedback_lf, color=c4_3color)
+                    axs[idx].plot(time,grf_feedback_lh, color=c4_4color)
+                    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+                    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+                    axs[idx].legend(['RF','RH'])
+                    axs[idx].set_xticklabels([])
+                    axs[idx].set(xlim=[min(time),max(time)])
+
+                if  control_method in ["PhaseReset", "phase_reset"]:
+                    axs[idx].plot(time,grf_feedback_lf, color=c4_3color)
+                    axs[idx].plot(time,grf_feedback_lh, color=c4_4color)
+                    GRF_threshold=experiment_data[experiment_category][control_method][trial_idx]['rosparameter'][-1,3]*25/4*np.ones(len(time))
+                    axs[idx].plot(time,GRF_threshold,'-.k') # Force threshold line, here it is 0.2, details can be see in synapticplasticityCPG.cpp
+                    axs[idx].set_yticks([0,GRF_threshold[0],10,20])
+                    axs[idx].set_yticklabels(['0',str(round(GRF_threshold[0],2)),'10','20'])
+                    axs[idx].legend(['LF','LH','Threshold'], ncol=3, loc='right')
+                    axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
+                    axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
+                    #axs[idx].set_yticks([-0.3, 0.0, 0.3])
+                    axs[idx].set_xticklabels([])
+                    axs[idx].set(xlim=[min(time),max(time)])
+
+                idx=idx+1 # Gait
+                axs[idx].set_ylabel(r'Gait')
+                gait_diagram(fig,axs[idx],gs1,gait_diagram_data)
+                axs[idx].set_xlabel(u'Time [s]')
+                xticks=np.arange(int(min(time)),int(max(time))+1,1)
+                axs[idx].set_xticks(xticks)
+                axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
+                axs[idx].yaxis.set_label_coords(-0.065,.5)
                 axs[idx].set(xlim=[min(time),max(time)])
-            idx=4
-            axs[idx].set_ylabel(r'Gait')
-            gait_diagram(fig,axs[idx],gs1,gait_diagram_data)
-            axs[idx].set_xlabel(u'Time [s]')
-            xticks=np.arange(int(min(time)),int(max(time))+1,1)
-            axs[idx].set_xticks(xticks)
-            axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
-            axs[idx].yaxis.set_label_coords(-0.065,.5)
-            axs[idx].set(xlim=[min(time),max(time)])
-            # save figure
-            folder_fig = os.path.join(data_file_dic, 'data_visulization/')
-            if not os.path.exists(folder_fig):
-                os.makedirs(folder_fig)
+                # save figure
+                folder_fig = os.path.join(data_file_dic, 'data_visulization/')
+                if not os.path.exists(folder_fig):
+                    os.makedirs(folder_fig)
 
-            figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + experiment_category+"_"+control_method+'_general_display.svg'
-            plt.savefig(figPath)
-            plt.show()
-            plt.close()
+                figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + experiment_category+"_"+control_method+'_general_display.svg'
+                plt.savefig(figPath)
+                plt.show()
+                plt.close()
 
 
 def plot_cpg_phase_portrait(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
@@ -4253,12 +4269,21 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
 def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],control_methods=['apnc'],**args):
     '''
+    Modified date: 2022-1-31
     Plot convergence time statistic in three different methods under different controlller update frequency, it can indicates the actual traverability of the locomotion
     '''
 
     #1) load data and calculate metrics
     #i) get metrics
     experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation=args['investigation'])
+    
+    # DEBUG #
+    # output the detailed curves if the phase convergence time is less than 0
+    for experiment_category_key, categories in metrics.items():
+        for control_method_key, metrics_value in categories.items():
+            for idx, trial_id in enumerate(trial_ids):
+                if(metrics[experiment_category_key][control_method_key][idx]['phase_convergence_time'] < 0.0):
+                    plot_single_details(data_file_dic, start_time, end_time, freq=60, experiment_categories=[experiment_category_key], trial_ids=[trial_id], control_methods=[control_method_key], investigation="paramater investigation")
 
     #ii) tranfer metrics in dict into pandas Dataframe
     pd_metrics_list=[]
@@ -4293,9 +4318,14 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
     #sort study variables
     if(args['investigation']=='update_frequency'):
         pd_metrics=pd_metrics.astype({'experiment_categories':'int32'}).sort_values(by=['experiment_categories'])# sort data by experiment categories: MI value, frequency, roughness from small to big
-    else:
+    
+    if(args['investigation'] in ['MI','roughness']):
         pd_metrics=pd_metrics.astype({'experiment_categories':'float'}).sort_values(by=['experiment_categories'])# sort data by experiment categories: MI value, frequency, roughness from small to big
     
+    if(args['investigation']=='roughness'):
+        pd_metrics['experiment_categories']=pd_metrics['experiment_categories']*100 # xx%, percentage
+        pd_metrics=pd_metrics.astype({'experiment_categories':'int32'}).sort_values(by=['experiment_categories'])# transfer to int and sort the oughness from small to big
+
     remove_unconvergenced_trials=pd_metrics[pd_metrics['phase_convergence_time']>0.0]# remove the not convergence trials which convergence time is negative
     axs[idx]=sns.boxplot(x='experiment_categories',y='phase_convergence_time',hue='Control methods', width=boxwidth,data=remove_unconvergenced_trials,palette=colors,showfliers=False,hue_order=['APNC','Tegotae','PR'])
     
@@ -4330,19 +4360,15 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
 
 
     #f) set art of the plot
-    ax2.set_ylabel('Success rate [%]', color=color)  # we already handled the x-label with ax1
-    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.set_ylabel('Success rate [%]', color='black')  # we already handled the x-label with ax1
+    ax2.tick_params(axis='y', labelcolor='black')
     #ax2.set_ylim(-10,110)
     ax2.set_yticks([0, 20,40, 60, 80, 100])
     #axs[idx].set_title('Phase reset')
 
     #3)save figure
-    folder_fig = data_file_dic + 'data_visulization/'
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + '_phase_convergence_time.svg'
-    plt.savefig(figPath)
-    plt.show()
+    save_figure(data_file_dic,'phase_convergen_time')
+
 
 def WalkingSpeed_GaitDiagram(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
     '''
@@ -4793,41 +4819,12 @@ def plot_phase_shift_dynamics(data_file_dic,start_time=90,end_time=1200,freq=60.
     figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'phase_shift_dynamics.svg'
     plt.savefig(figPath)
     plt.show()
-    '''
-    # save figure
-    folder_fig = data_file_dic + 'data_visulization/'
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + 'general_display.svg'
-    #plt.savefig(figPath)
-    
-
-    figsize=(6,6)
-    fig = plt.figure(figsize=figsize,constrained_layout=False)
-    x=phi_std
-    y=np.gradient(phi_std,1.0/freq)
-    plt.plot(0,0,'bo')
-    plt.plot(x,y,'ro',markersize=1.5)
-
-    figsize=(6,6)
-    fig1 = plt.figure(figsize=figsize,constrained_layout=False)
-    x=phi_std
-    y=np.gradient(phi_std,1.0/freq)
-    dx=2*np.sign(np.gradient(x,1.0/freq))
-    dy=2*np.sign(np.gradient(y,1.0/freq))
-
-    plt.plot(0,0,'bo')
-    plt.quiver(x,y,dx,dy,angles='xy',color='r')
-    plt.xlim([-0.1,4])
-    plt.ylim([-0.1,4])
-    plt.show()
-    '''
 
 
 
-def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):
+def plot_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):
     ''' 
-    @description: This is for plot CPG phase shift dynamics
+    @description: this is for plot cpg phase shift dynamics
     @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
     @param: start_time, the start point (time) of all the data, unit : seconds
     @param: end_time, the end point (time) of all the data
@@ -4870,8 +4867,8 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
             phi=metrics[experiment_category][control_method][trial_id]['phase_diff']
             plot_idx=exp_idx
             #3.1) draw
-            axs[plot_idx].plot([0],[0],[0],color='red',marker='X') # plot original point
-            axs[plot_idx].plot([3.14],[3.14],[0],color='blue',marker="D") # plot destination point
+            axs[plot_idx].plot([0],[0],[0],color='red',marker='x') # plot original point
+            axs[plot_idx].plot([3.14],[3.14],[0],color='blue',marker="d") # plot destination point
             axs[plot_idx].plot(phi['phi_12'], phi['phi_13'],phi['phi_14'],markers[exp_idx],markersize='3')
             axs[plot_idx].view_init(12,-62)
             axs[plot_idx].set_xlabel(u'$\phi_{12}$[rad]',fontsize=9)
@@ -4899,12 +4896,12 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
             
             
             if investigation == "update_frequency":
-                axs[plot_idx].set_title(u"$f=$"+titles[plot_idx]+" Hz",y=0.8,fontsize=11)
-            elif investigation in ["PhaseReset","phase_reset"]:
-                axs[plot_idx].set_title(u"$F_t=$"+titles[plot_idx],y=0.8,fontsize=11)
-            elif investigation in ["PhaseModulation","phase_modulation",'apnc']:
-                axs[plot_idx].set_title(u"R="+str(int(float(titles[plot_idx])*100))+r"%",y=0.8,fontsize=11)
-                #axs[plot_idx].set_title(u"MI="+titles[plot_idx])
+                axs[plot_idx].set_title(u"$f=$"+titles[plot_idx]+" hz",y=0.8,fontsize=11)
+            elif investigation in ["phasereset","phase_reset"]:
+                axs[plot_idx].set_title(u"$f_t=$"+titles[plot_idx],y=0.8,fontsize=11)
+            elif investigation in ["phasemodulation","phase_modulation",'apnc']:
+                axs[plot_idx].set_title(u"r="+str(int(float(titles[plot_idx])*100))+r"%",y=0.8,fontsize=11)
+                #axs[plot_idx].set_title(u"mi="+titles[plot_idx])
 
     #axs[plot_idx].legend(experiment_categories)
 
@@ -4913,15 +4910,112 @@ def plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_t
     folder_fig = data_file_dic + 'data_visulization/'
     if not os.path.exists(folder_fig):
         os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + control_methods[0]+'phase_shift_dynamics.svg'
-    plt.savefig(figPath)
+    figpath= folder_fig + str(localtimepkg.strftime("%y-%m-%d %h_%m_%s", localtimepkg.localtime())) + control_methods[0]+'phase_shift_dynamics.svg'
+    plt.savefig(figpath)
     plt.show()
 
 
 
+def plot_average_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=['0.0'],trial_ids=[0],control_methods='apnc',investigation='update_frequency'):
+    ''' 
+    @description: this is for plot cpg phase shift dynamics
+    @param: data_file_dic, the folder of the data files, this path includes a log file which list all folders of the experiment data for display
+    @param: start_time, the start point (time) of all the data, unit : seconds
+    @param: end_time, the end point (time) of all the data
+    @param: freq, the sample frequency of the data 
+    @param: experiment_categories, the conditions/cases/experiment_categories of the experimental data
+    @param: trial_ids, it indicates which experiment among a inclination/situation/case experiments 
+    @return: show and save a data figure.
+    '''
+
+    # 1) read data
+    experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation=investigation)
 
 
-def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):
+
+    #2) plot 
+    #i) figure size and grid configure
+    figsize=(len(experiment_categories),3)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+
+    gridspec_column=int(math.ceil(len(experiment_categories)/2))
+    gridspec_row=2
+    gs1=gridspec.GridSpec(gridspec_row,gridspec_column)#2 per column, experiment_category should be even
+    gs1.update(hspace=0.0,wspace=-0.4,top=0.9,bottom=0.11,left=0.02,right=0.94)
+
+
+    #ii) specify axs and its grids
+    axs=[]
+    for row_idx in range(gridspec_row):
+        for col_idx in range(gridspec_column):
+            axs.append(fig.add_subplot(gs1[row_idx,col_idx:col_idx+1],projection="3d"))
+
+    markers=['g*','g*','g*','g*','g*','g*']*3
+    titles=experiment_categories
+
+
+    #iii) plot data
+    for exp_idx, experiment_category in enumerate(experiment_categories):
+        control_method=control_methods[0]# the control methods, just pick the first one
+        plot_idx=exp_idx
+        phi=[]
+        for trial_id in range(len(trial_ids)): # get data from several trials
+            temp=metrics[experiment_category][control_method][trial_id]['phase_diff']
+            temp['trial_ids']=trial_id
+            phi.append(temp)
+
+        pd_phi=pd.concat(phi,axis=0)
+
+
+        #3.1) draw
+        axs[plot_idx].plot([0],[0],[0],color='red',marker='x') # plot original point
+        axs[plot_idx].plot([3.14],[3.14],[0],color='blue',marker="d") # plot destination point
+        #axs[plot_idx].plot(pd_phi['phi_12'], pd_phi['phi_13'],pd_phi['phi_14'],markers[exp_idx],markersize='2.5')# original data 
+        mean_phi=pd_phi.groupby('time').mean()
+        axs[plot_idx].plot(mean_phi['phi_12'], mean_phi['phi_13'],mean_phi['phi_14'],color='green') #average data
+        
+        axs[plot_idx].view_init(12,-62)
+        axs[plot_idx].set_xlabel(u'$\phi_{12}$[rad]',fontsize=9)
+        axs[plot_idx].set_ylabel(u'$\phi_{13}$[rad]',fontsize=9)
+        axs[plot_idx].set_zlabel(u'$\phi_{14}$[rad]',fontsize=9) # specifying the distance betwwen the label and the axis
+        #axs[plot_idx].xaxis._axinfo['label']['space_factor'] = 1
+        #axs[plot_idx].yaxis._axinfo['label']['space_factor'] = 1
+        axs[plot_idx].dist=15
+        axs[plot_idx].set_xlim([-0.1,3.2])
+        axs[plot_idx].set_ylim([-0.1,3.2])
+        axs[plot_idx].set_zlim([-0.1,2.2])
+        axs[plot_idx].set_xticks([0,1,2,3])
+        axs[plot_idx].set_yticks([0,1,2,3])
+        axs[plot_idx].set_zticks([0,1,2])
+        axs[plot_idx].grid( which='both', axis='x', color='k', linestyle=':')
+        axs[plot_idx].grid( which='both', axis='y', color='k', linestyle=':')
+        axs[plot_idx].grid( which='both', axis='z', color='k', linestyle=':')
+        axs[plot_idx].tick_params( axis='x', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+        axs[plot_idx].tick_params( axis='y', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+        axs[plot_idx].tick_params( axis='z', which='major', pad=-3)# reduce the distance between ticklabels and the axis
+        axs[plot_idx].set_xticklabels(labels=['0','1','2','3'],fontsize=8)
+        axs[plot_idx].set_yticklabels(labels=['0','1','2','3'],fontsize=8)
+        axs[plot_idx].set_zticklabels(labels=['0','1','2'],fontsize=8)
+        #plt.xticks(fontsize=9)
+        
+        
+        if investigation == "update_frequency":
+            axs[plot_idx].set_title(u"$f=$"+titles[plot_idx]+" hz",y=0.8,fontsize=11)
+        elif investigation in ["phasereset","phase_reset"]:
+            axs[plot_idx].set_title(u"$f_t=$"+titles[plot_idx],y=0.8,fontsize=11)
+        elif investigation in ["phasemodulation","phase_modulation",'apnc']:
+            axs[plot_idx].set_title(u"r="+str(int(float(titles[plot_idx])*100))+r"%",y=0.8,fontsize=11)
+            #axs[plot_idx].set_title(u"mi="+titles[plot_idx])
+
+    #axs[plot_idx].legend(experiment_categories)
+
+
+    # save figure
+    save_figure(data_file_dic,'phase_shift_dynamic')
+
+
+
+def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids, control_methods,**args):
     '''
     Compare and Plot the metrics of different experiment catogries and experimental titles (i.e., control_methods)
 
@@ -4946,6 +5040,11 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
     pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
 
+
+    #2.2) rename column names and values
+    pd_metrics=pd_metrics.rename(columns={'control_methods':'Control methods'})# rename column name or index name
+    pd_metrics['Control methods']=pd_metrics['Control methods'].map({'phase_reset':'PR','apnc':'APNC','phase_modulation':'Tegotae'})
+
     #3) plot
     figsize=(10,7)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -4960,25 +5059,28 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     #axs.append(fig.add_subplot(gs1[2:4,2]))
 
 
-    test_method="Mann-Whitney"
-    #test_method="t-test_ind"
+    #test_method="Mann-Whitney"
+    test_method="t-test_ind"
     order=['S1','S2','S3','S4']
-    hue_order=['apnc','phase_modulation','phase_reset']
+    hue_order=['APNC','Tegotae','PR']
     pairs=(
-        [('S1','apnc'),('S1','phase_modulation')],
-        [('S1','apnc'),('S1','phase_reset')],
+        [('S1','APNC'),('S1','Tegotae')],
+        [('S1','APNC'),('S1','PR')],
 
-        [('S2','apnc'),('S2','phase_modulation')],
-        [('S2','apnc'),('S2','phase_reset')],
+        [('S2','APNC'),('S2','Tegotae')],
+        [('S2','APNC'),('S2','PR')],
 
-        [('S3','apnc'),('S3','phase_modulation')],
-        [('S3','apnc'),('S3','phase_reset')],
+        [('S3','APNC'),('S3','Tegotae')],
+        [('S3','APNC'),('S3','PR')],
 
-        [('S4','apnc'),('S4','phase_modulation')],
-        [('S4','apnc'),('S4','phase_reset')]
+        [('S4','APNC'),('S4','Tegotae')],
+        [('S4','APNC'),('S4','PR')]
           )
-    axs_id=0
 
+    colors = ['tab:red', 'tab:green','tab:blue']
+    fontsize=10
+
+    axs_id=0
     x='experiment_categories'; y='displacement'
     states_palette = sns.color_palette("YlGnBu", n_colors=5)
     hue_plot_params = {
@@ -4986,13 +5088,13 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     'x': x,
     'y': y,
     "order": order,
-    "hue": "control_methods",
-    "hue_order": hue_order
-    #"palette": states_palette
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors,
     }
 
     sns.barplot(ax=axs[axs_id],**hue_plot_params)
-    axs[axs_id].set_ylabel('Displacement [m]')
+    axs[axs_id].set_ylabel('Displacement [m]',fontsize=fontsize)
     axs[axs_id].set_xlabel('')
 
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
@@ -5002,7 +5104,18 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=1
     x='experiment_categories'; y='balance'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
     axs[axs_id].set_ylabel('Balance [$rad^{-1}$]')
     axs[axs_id].set_xlabel('')
 
@@ -5013,7 +5126,19 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=2
     x='experiment_categories'; y='coordination'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order, data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
+
     axs[axs_id].set_ylabel('Coordination')
     axs[axs_id].set_xlabel('')
 
@@ -5023,7 +5148,18 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
 
     axs_id=3
     x='experiment_categories'; y='COT'
-    sns.barplot(ax=axs[axs_id],hue='control_methods', x=x, y=y, order=order,data=pd_metrics)
+
+    hue_plot_params = {
+    'data': pd_metrics,
+    'x': x,
+    'y': y,
+    "order": order,
+    "hue": "Control methods",
+    "hue_order": hue_order,
+    "palette": colors
+    }
+    sns.barplot(ax=axs[axs_id],**hue_plot_params)
+
     axs[axs_id].set_ylabel('COT [$JKg^{-1}m^{-1}$]')
     axs[axs_id].set_xlabel('')
 
@@ -5031,15 +5167,9 @@ def plot_all_metrics(data_file_dic, start_time, end_time, freq, experiment_categ
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
 
-    #sns.barplot(ax=axs[1],x='experiment_categories', y='distance',hue='control_methods', order=['S1','S2','S3','S4'],  data=pd_metrics)
-    #sns.barplot(ax=axs[4],x='experiment_categories', y='stability',hue='control_methods', order=['S1','S2','S3','S4'],data=pd_metrics)
 
     # save figure
-    folder_fig = data_file_dic + 'data_visulization/'
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + '_metrics.svg'
-    plt.savefig(figPath)
+    save_figure(data_file_dic,'metrics')
 
 
 
@@ -5259,18 +5389,18 @@ if __name__=="__main__":
 
     '''------------------------------------------------------------------------------------------------------------'''
     ''' Various roughness in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
-    ##------- Various Roughness 
+    ##------- Various Roughness under three control methods
 
     data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/3M_roughness_data/"
     data_file_dic="/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
-    data_file_dic= "/home/suntao/workspace/experiment_data_bk/"
+    data_file_dic= "/media/sun/DATA/roughness_3m_new/"
     #data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
 
     experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    trial_ids=[0,1,2,3,4,5,6,7,8,9,10]
+    trial_ids=[0,1,2,3,4,5,6,7]
     control_methods=['apnc','phase_modulation','phase_reset']
-    boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness')
+    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness [%]')
 
     experiment_categories=['1.0']
     control_methods=['apnc']
@@ -5281,40 +5411,37 @@ if __name__=="__main__":
 
 
 
-    ##----- Various MI
-
+    ##----- Various MI under three control methods
     data_file_dic= "/home/suntao/workspace/experiment_data/"
     data_file_dic="/media/suntao/DATA/MI_3M/"
     data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
     data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
-    #experiment_categories=['0.0','0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     experiment_categories=['0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
-    #trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    #experiment_categories=['0.0','0.04']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     control_methods=['apnc','phase_modulation','phase_reset']
-    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='MI', study_variable='MI')
+    boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='MI', study_variable='MI')
     #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
-    #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=10*60,end_time=1900,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
+    experiment_categories=['0.02']
+    trial_ids=[0]
+    control_methods=['apnc']
+    #plot_phase_shift_dynamics_progression(data_file_dic,start_time=10,end_time=35,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
+    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
 
 
-    ##----- various Update frequency
+    ##----- Various Update frequency under three control methods
 
     data_file_dic= "/home/suntao/workspace/experiment_data/"
-    data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
-    data_file_dic= "/media/sun/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
-    data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
     data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/UpdateFrequency_data_3M/"
 
-
-    #data_file_dic="/media/suntao/DATA/UpdateFrequency_3M/"
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     control_methods=['apnc','phase_modulation','phase_reset']
     #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=50,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='update_frequency',study_variable='Update frequency [Hz]')
 
     experiment_categories=['5','10', '15', '20','25','30','35','40','45','50','55','60']
-    #plot_phase_shift_dynamics_underThreeMethods(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods=['apnc'],investigation='update_frequency')
+    #plot_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=[6],control_methods=['apnc'],investigation='update_frequency')
+    trial_ids=[0,1,2,3,4,5]
+    #plot_average_phase_shift_dynamics_progression(data_file_dic,start_time=5,end_time=40,freq=60.0,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=['apnc'],investigation='update_frequency')
 
     experiment_categories=['15']
     control_methods=['phase_reset']
@@ -5325,15 +5452,17 @@ if __name__=="__main__":
 
     '''------------------------------------------------------------------------------------------------------------'''
     ''' Various robot situations in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
-    ## various robot situations
+    ##---  various robot situations under three control methods
 
     data_file_dic= os.environ['EXPERIMENT_DATA_FOLDER']
+    data_file_dic= "/media/sun/DATA/robot_situations/"
 
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underRoughness(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids)
-    #plot_all_metrics(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='robot situation',study_variable='Robot situation')
+
+    #plot_comparison_test(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
     control_methods=['apnc']
     experiment_categories=['carrying_payload']
