@@ -4285,6 +4285,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
                 if(metrics[experiment_category_key][control_method_key][idx]['phase_convergence_time'] < 0.0):
                     plot_single_details(data_file_dic, start_time, end_time, freq=60, experiment_categories=[experiment_category_key], trial_ids=[trial_id], control_methods=[control_method_key], investigation="paramater investigation")
 
+
     #ii) tranfer metrics in dict into pandas Dataframe
     pd_metrics_list=[]
     for experiment_category_key, categories in metrics.items():
@@ -4368,6 +4369,9 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
 
     #3)save figure
     save_figure(data_file_dic,'phase_convergen_time')
+
+
+
 
 
 def WalkingSpeed_GaitDiagram(data_file_dic,start_time=60,end_time=900,freq=60.0,experiment_categories=['0.0'],trial_ids=[0]):
@@ -5415,17 +5419,16 @@ if __name__=="__main__":
     data_file_dic="/media/suntao/DATA/MI_3M/"
     data_file_dic= "/media/sun/My Passport/DATA/Researches/Papers/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
     data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/MI_data_3M/"
-    experiment_categories=['0.02','0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
+    experiment_categories=['0.04','0.06','0.08','0.1','0.12','0.14','0.16','0.18','0.2','0.22','0.24','0.26','0.28']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     control_methods=['apnc','phase_modulation','phase_reset']
-    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='MI', study_variable='MI')
-    #boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,start_time=5,end_time=30,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,plot_type='catplot')
-    data_file_dic= "/home/suntao/workspace/experiment_data/"
+    boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='MI', study_variable='MI')
+    #data_file_dic= "/home/suntao/workspace/experiment_data/"
     experiment_categories=['0.02']
     trial_ids=[0]
     control_methods=['apnc']
     #plot_phase_shift_dynamics_progression(data_file_dic,start_time=10,end_time=35,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
-    plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
+    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
 
 
     ##----- Various Update frequency under three control methods

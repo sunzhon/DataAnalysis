@@ -279,27 +279,19 @@ def calculate_phase_convergence_time(time,grf_data, cpg_data,freq):
     touch_idx,convergence_idx=calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data)
     return convergence_idx/freq
 
-def calculate_coordination(duty_factor):
+def calculate_motion_coordination(duty_factor):
     '''
     Coordination metric represents the derivation of the four legs' duty factors
 
-    @params: duty_factor (M*4) list, M steps of four legs.
+    @params: duty_factor (stance ratio) (M*leg_num) numpy , M steps of four legs.
     
     @return: the reciprocal of the max standard derivation of the duty factor
     '''
-
-    if(isinstance(duty_factor,list)):
-        min_step_num=min([len(bb) for bb in duty_factor]) #minimum steps of all legs
-        duty_fatcor_array=np.array([duty_factor[0][:min_step_num],duty_factor[1][:min_step_num],duty_factor[2][:min_step_num],duty_factor[3][0:min_step_num]]) # transfer four legs' duty factors
-    
-    if type(duty_factor) is np.ndarray:
-        duty_fatcor_array=duty_factor
-
     #- metrics for evaluation the robot locomotion
-    if(duty_fatcor_array.size==0):
+    if(duty_factor.size==0):
         coordination = 0
     else:
-        coordination = 1.0/max(np.std(duty_fatcor_array, axis=0))
+        coordination = 1.0/max(np.std(duty_factor, axis=0))
 
 
     return coordination
@@ -394,48 +386,48 @@ def calculate_joint_velocity(position_data, freq):
     return velocity_data
 
 
-def calculate_gait(data):
+def calculate_gait(data,stance_threshold_coefficient=0.1):
     ''' 
-    Calculating the gait information including touch states and duty factor
+    Calculating the gait information including touch gaitphases and duty factor
     
     @params: data is N*4, 4 legs's GRF
 
-    @return: state (N*4) indicates the stance phase with 1 or swing phase with 0
-             beta (M*4) indicates duty factors, where M indicates the step number 
+    @return: gaitphase (N*leg_num) numpy array indicates the stance phase with 1 or swing phase with 0
+             stanceratio (M*leg_num) numpy array indicates duty factors, where M indicates the step number 
     
     '''
     # binary the GRF value 
-    threshold = 0.1*max(data[:,0])
-    state=np.zeros(data.shape,int)
-    for i in range(data.shape[1]):
-        for j in range(data.shape[0]):
+    threshold = stance_threshold_coefficient*max(data[:,0])
+    gaitphase=np.zeros(data.shape,int)
+    for i in range(data.shape[1]): #legs
+        for j in range(data.shape[0]):# step count
             if data[j,i] < threshold:
-                state[j,i] = 0
+                gaitphase[j,i] = 0
             else:
-                state[j,i]=1
+                gaitphase[j,i]=1
     
     # get gait info, count the touch and lift number steps
     gait_info=[]
-    beta=[]
-    state=np.vstack([state,abs(state[-1,:]-1)])
-    for i in range(state.shape[1]): #each leg
+    stanceratio=[]
+    gaitphase=np.vstack([gaitphase,abs(gaitphase[-1,:]-1)])# repeat the last step count gaitphase, since the for use an additional row [j+1, ]
+    for i in range(gaitphase.shape[1]): #each leg
         count_stance=0;
         count_swing=0;
         number_stance=0
         number_swing=0
         duty_info = {}
                 
-        for j in range(state.shape[0]-1): #every count
-            if state[j,i] ==1:# stance 
+        for j in range(gaitphase.shape[0]-1): #every count
+            if gaitphase[j,i] ==1:# stance 
                 count_stance+=1
-            else:#swing
+            else: # swing
                 count_swing+=1
 
-            if (state[j,i]==0) and (state[j+1,i]==1):
-                duty_info[str(number_swing)+ "swing"]= count_swing
-                count_swing=0
+            if (gaitphase[j,i]==0) and (gaitphase[j+1,i]==1): # come into swing phase
+                duty_info[str(number_swing)+ "swing"]= count_swing # swing phase number
+                count_swing=0 # swing number of a swing phase
                 number_swing+=1
-            if (state[j,i]==1) and (state[j+1,i]==0):
+            if (gaitphase[j,i]==1) and (gaitphase[j+1,i]==0): # come into stance phase
                 duty_info[str(number_stance) + "stance"]= count_stance
                 count_stance=0
                 number_stance+=1
@@ -443,23 +435,31 @@ def calculate_gait(data):
         gait_info.append(duty_info)
     # calculate the duty factors of all legs
     for i in range(len(gait_info)): # each leg
-        beta_singleleg=[]
+        stanceratio_singleleg=[]
         for j in range(len(gait_info[i])): # each step, ignore the first stance or swing
-            if (gait_info[i].__contains__(str(j)+'stance') and  gait_info[i].__contains__(str(j)+'swing')):
-                beta_singleleg.append(gait_info[i][str(j)+"stance"]/(gait_info[i][str(j)+"stance"] + gait_info[i][str(j) + "swing"]))
-            elif (gait_info[i].__contains__(str(j)+'stance') and  (not gait_info[i].__contains__(str(j)+'swing'))):
-                beta_singleleg.append(1.0)
+            if (gait_info[i].__contains__(str(j)+'stance') and gait_info[i].__contains__(str(j)+'swing')):
+                stanceratio_singleleg.append(gait_info[i][str(j)+"stance"]/(gait_info[i][str(j)+"stance"] + gait_info[i][str(j) + "swing"]))
+            elif (gait_info[i].__contains__(str(j)+'stance') and  (not gait_info[i].__contains__(str(j)+'swing'))): 
+                stanceratio_singleleg.append(1.0)
             elif ((not gait_info[i].__contains__(str(j)+'stance')) and  gait_info[i].__contains__(str(j)+'swing')):
-                beta_singleleg.append(0.0)
+                stanceratio_singleleg.append(0.0)
         
-        # if the step more than theree, then remove the max and min beta of each legs during the whole locomotion
-        if(len(beta_singleleg)>3):
-            beta_singleleg.remove(max(beta_singleleg))
-        if(len(beta_singleleg)>3):
-            beta_singleleg.remove(min(beta_singleleg))
-        beta.append(beta_singleleg)
+        # if the step more than theree, then remove the max and min stanceratio of each legs during the whole locomotion
+        if(len(stanceratio_singleleg)>3):
+            stanceratio_singleleg.remove(max(stanceratio_singleleg))
+        if(len(stanceratio_singleleg)>3):
+            stanceratio_singleleg.remove(min(stanceratio_singleleg))
+        stanceratio.append(stanceratio_singleleg)
+    
 
-    return state, beta # state indicates the swing of stance, beta indicates the duty factors
+
+    # transfer 2D list into 2D numpy array
+    min_step_num=min([len(bb) for bb in stanceratio]) #minimum steps of all legs
+    stanceratio=np.array([stanceratio[0][:min_step_num],stanceratio[1][:min_step_num],stanceratio[2][:min_step_num],stanceratio[3][0:min_step_num]]) # transfer four legs' duty factors
+    stanceratio=np.array(stanceratio).T # stride number * leg number
+
+
+    return gaitphase, stanceratio # gaitphase indicates the swing of stance, stanceratio indicates the duty factors
 
 
 def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,experiment_categories=['0.0'],control_methods=['apnc'],trial_ids=[0],**args):
@@ -521,10 +521,11 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
             #control_method=files_name['titles'].iat[0]
             for control_method, file_name in files_name.groupby('titles'): #control methods
                 if(control_method in control_methods): # which control methoid is to be display
-                    print("The experiment category: ", category, "control method is: ", control_method)
                     metrics[category][control_method]=[]
                     experiment_data[category][control_method]=[]
-                    for idx in file_name.index: # trials for display  in below
+                    for idx in file_name.index: # trials for display in below
+                        pdb.set_trace()
+                        print("The experiment category is: ", category, ", control method is: ", control_method, ", trial id is:", idx)
                         try:
                             if idx in np.array(file_name.index)[trial_ids]:# which one is to load
                                 folder_category= os.path.join(data_file_dic,file_name['data_files'][idx])
@@ -550,7 +551,7 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                                 gait_diagram_data_temp, duty_factor_data = calculate_gait(grf_data)
                                 gait_diagram_data[category].append(gait_diagram_data_temp); 
                                 duty_factor[category].append(duty_factor_data)
-                                metric_coordination = calculate_coordination(duty_factor_data)
+                                metric_coordination = calculate_motion_coordination(duty_factor_data)
                                 metric_convergence_time = calculate_phase_convergence_time(time,grf_data,cpg_data,freq)
                                 metric_stability = calculate_ZMP_stability(pose_data,grf_data)
                                 metric_balance = calculate_body_balance(pose_data)
