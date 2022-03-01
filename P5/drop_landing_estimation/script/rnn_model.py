@@ -14,18 +14,18 @@ import yaml
 import h5py
 print("tensorflow version:",tf.__version__)
 # load datasets in a numpy 
-import package_lib.dp_process_rawdata as dp_lib
+import vicon_imu_data_process.process_rawdata as dp_lib
 
 import seaborn as sns
 import copy
 import re
 
-from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
-from package_lib.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
+from vicon_imu_data_process.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
 
 
 from sklearn.preprocessing import StandardScaler
-from package_lib.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 
 
 import numpy as np
@@ -549,16 +549,24 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     test_sub_idx_str=''
     for ii in test_sub_idx:
         test_sub_idx_str+='_'+str(ii)
+
+    pd_error, pd_NRMSE = estimation_accuracy(predictions,labels,labels_names)
+
+    plot_estimation_accuracy(pd_error, pd_NRMSE)
     
     
+def estimation_accuracy(estimation, actual, labels_names):
     # Plot the statistical results of the estimation results and errors
-    error=abs(predictions-labels)
+    error=abs(estimation-actual)
     pd_error=pd.DataFrame(data=error,columns=labels_names)
-    NRMSE=100.0*np.sqrt(pd_error.apply(lambda x: x**2).mean(axis=0).to_frame().transpose())/(labels.max(axis=0)-labels.min(axis=0))
+    NRMSE=100.0*np.sqrt(pd_error.apply(lambda x: x**2).mean(axis=0).to_frame().transpose())/(actual.max(axis=0)-actual.min(axis=0))
     #*np.ones(pd_error.shape)*100
     pd_NRMSE=pd.DataFrame(data=NRMSE, columns = [col for col in list(pd_error.columns)])
-    
-    
+
+    return pd_error, pd_NRMSE 
+
+
+def plot_estimation_accuracy(pd_error, pd_NRMSE):
     # create experiment results folder
     # MAE
     fig=plt.figure(figsize=(10,2))
@@ -569,7 +577,6 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     test_sub_idx=hyperparams['test_sub_idx']
     savefig_file=testing_folder+'/sub'+str(test_sub_idx_str)+'_mae.svg'
     plt.savefig(savefig_file)
-    
     
     # NRMSE
     fig=plt.figure(figsize=(10,3))

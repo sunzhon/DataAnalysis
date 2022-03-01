@@ -32,9 +32,9 @@ if __name__ == "__main__":
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
             KNEE_DATA_FIELDS, WRONG_TRIALS
 else:
-    import package_lib.wearable_toolkit as wearable_toolkit
-    import package_lib.wearable_math as wearable_math
-    from package_lib.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
+    import vicon_imu_data_process.wearable_toolkit as wearable_toolkit
+    import vicon_imu_data_process.wearable_math as wearable_math
+    from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
             KNEE_DATA_FIELDS, WRONG_TRIALS
 
@@ -144,7 +144,7 @@ class ViconReader():
                 vicon_data_path = os.path.join(self.folder_path, self.subject_name + ' '+trial_type +' '+ trial + '.csv')
                 if os.path.exists(vicon_data_path):
                     print(vicon_data_path)
-                    self.vicon_data[trial]=wearable_toolkit.ViconCsvReader(vicon_data_path, trial, vicon_calibrate_data_path, subject_info=subject_info)
+                    self.vicon_data[trial]=wearable_toolkit.ViconCsvReader(vicon_data_path, trial=trial, static_trial=vicon_calibrate_data_path, subject_info=subject_info)
                     self.session_trial_exists=(self.session_trial_exists or True)
                 else:
                     self.session_trial_exists=(self.session_trial_exists or False)

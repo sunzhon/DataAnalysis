@@ -19,15 +19,25 @@ from sklearn.preprocessing import MinMaxScaler
 from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
 
-
-from const import IMU_SENSOR_LIST, IMU_FIELDS,EXT_KNEE_MOMENT, TARGETS_LIST, SUBJECT_HEIGHT, \
-    EVENT_COLUMN,  V3D_DATA_FIELDS, V3D_LABELS_FIELDS,IMU_FEATURES_FIELDS, IMU_DATA_FIELDS
-from const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE, FORCE_PLATE_DATA_FIELDS, FORCE_DATA_FIELDS, DROPLANDING_PERIOD
-import wearable_math as wearable_math
 import pdb
 import os, re
 import warnings
 import termcolor
+
+if __package__=='':
+    from const import IMU_SENSOR_LIST, IMU_FIELDS,EXT_KNEE_MOMENT, TARGETS_LIST, SUBJECT_HEIGHT, \
+    EVENT_COLUMN,  V3D_DATA_FIELDS, V3D_LABELS_FIELDS,IMU_FEATURES_FIELDS, IMU_DATA_FIELDS
+    from const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE, FORCE_DATA_FIELDS, DROPLANDING_PERIOD
+    from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, \
+SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS
+    import wearable_math as wearable_math
+else:
+    from vicon_imu_data_process.const import IMU_SENSOR_LIST, IMU_FIELDS,EXT_KNEE_MOMENT, TARGETS_LIST, SUBJECT_HEIGHT, \
+    EVENT_COLUMN,  V3D_DATA_FIELDS, V3D_LABELS_FIELDS,IMU_FEATURES_FIELDS, IMU_DATA_FIELDS
+    from vicon_imu_data_process.const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE,FORCE_DATA_FIELDS, DROPLANDING_PERIOD
+    from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS
+    import vicon_imu_data_process.wearable_math as wearable_math
+
 
 
 
@@ -462,8 +472,6 @@ class XsenTxtReader():
 [PARENT_TITLE, SAMPLE_RATE, TITLE, DIRECTION, UNITS, DATA] = range(6)
 
 
-from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, \
-SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS
 class ViconCsvReader:
     '''
     Read the csv files exported from vicon.
@@ -474,7 +482,11 @@ class ViconCsvReader:
     def __init__(self, file_path,trial=None, segment_definitions=None, static_trial=None, subject_info=None):
         self.data_dict, self.sample_rate = ViconCsvReader.reading(file_path)
         self.trial=trial
+        self.segment_definitions = segment_definitions
+        if(self.trial==None):
+            self.trial='0' # default is zero
         self.file_path=file_path
+
         '''
         # create segment marker data
         self.segment_data = dict()
@@ -490,27 +502,26 @@ class ViconCsvReader:
                 segment_data = pd.Series(dict([(marker, calibrate_data[marker]) for marker in markers]))
                 self.fill_missing_marker(segment_data, self.segment_data[segment])
         '''
+        
+        # 1) Force_Plate_Data
+        # get need data fields (NEEDED_FORCE_PLATED_DATA_FIELDS)  and align them force plate 1 and 2
+        force_plate_data_names=[]
+        force_plate_data_field_direction=[]
+        for vicon_data_field in self.data_dict.keys():
+            for needed_field in NEEDED_FORCE_PLATED_DATA_FIELDS: # '- Force', '- CoP', #'- Moment'
+                if(needed_field in vicon_data_field):
+                    force_plate_data_names.append(vicon_data_field)# get needed data filed (force and cop)
+                    field_key=re.search(r"#([0-9]) - (.*)",vicon_data_field)
+                    force_plate_data_field_direction.append("Plate_"+field_key.group(1)+"_"+field_key.group(2)+ '_x')
+                    force_plate_data_field_direction.append("Plate_"+field_key.group(1)+"_"+field_key.group(2)+ '_y')
+                    force_plate_data_field_direction.append("Plate_"+field_key.group(1)+"_"+field_key.group(2)+ '_z')
+        #print(force_plate_data_names)
 
-        
-        plate_nums=['1','2']
-        
-        #force names orders
-        force_names_ori = ['Imported AMTI 400600 V1.00 #' + plate_num + ' - ' + data_type for plate_num in plate_nums
-                           for data_type in ['Force', 'CoP']]
-        if force_names_ori[0] in self.data_dict.keys():
-            if('Imported AMTI 400600 V1.00 #1 - Force' not in self.data_dict.keys()):
-                print(self.data_dict.keys())
-                print(force_names_ori)
-        else:
-            force_names_ori = ['AMTI 400600 V1.00 #' + plate_num + ' - ' + data_type for plate_num in plate_nums
-                           for data_type in ['Force', 'CoP']]
-            if('AMTI 400600 V1.00 #1 - Force' not in self.data_dict.keys()):
-                print(self.data_dict.keys())
-                print(force_names_ori)
         # resample force data
-        filtered_force_array = np.concatenate([data_filter(self.data_dict[force_name], 50, 1000) for force_name in force_names_ori], axis=1)
+        filtered_force_array = np.concatenate([data_filter(self.data_dict[field_name], 50, 1000) for field_name in force_plate_data_names], axis=1)
         filtered_force_array = filtered_force_array[::10, :]# 取10次中的最后一次采用
-        filtered_force_df = pd.DataFrame(filtered_force_array, columns=FORCE_PLATE_DATA_FIELDS)
+        filtered_force_df = pd.DataFrame(filtered_force_array, columns=force_plate_data_field_direction)
+
         
         # calibration of force offset through adding an offset
         '''
@@ -520,16 +531,13 @@ class ViconCsvReader:
                            'plate_2_cop_x', 'plate_2_cop_y', 'plate_2_cop_z']] += cal_offset.values
         '''
         
-        # marker's data
-        '''
-        self.segment_definitions = segment_definitions
-        if segment_definitions != {}:
+        #2) marker's data
+        if self.segment_definitions != None:
             markers = [marker for markers in segment_definitions.values() for marker in markers]
             self.data_frame = pd.concat([self.data[marker] for marker in markers], axis=1)
             self.data_frame.columns = [marker + '_' + axis for marker in markers for axis in ['X', 'Y', 'Z']]
 
-        '''
-        # 如果数据文件中有关节数据
+        #3) 如果数据文件中有关节数据
         if('LKneeAngles' in self.data_dict.keys()):
             # KneeJoint values
             left_knee=np.concatenate([self.data_dict[feild_name] for feild_name in ['LKneeAngles','LKneeForce','LKneeMoment']],axis=1)
@@ -549,9 +557,9 @@ class ViconCsvReader:
         self.data_frame.index=range(self.data_frame.shape[0])
         self.data_frame.fillna(0.0,inplace=True)
         self.generate_labels_csv()
+
         #process moments to trafer data unit to international unit
         '''
-        
         temp_fields=['L_KneeForce_X','L_KneeForce_Y','L_KneeForce_Z',
                            'L_KneeMoment_X','L_KneeMoment_Y','L_KneeMoment_Z',
                            'R_KneeForce_X','R_KneeForce_X','R_KneeForce_Z',

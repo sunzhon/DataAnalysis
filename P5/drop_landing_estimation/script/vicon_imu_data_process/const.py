@@ -184,8 +184,9 @@ FPA_VALUES=['FPA']
 PELVIS_VALUES=['PelvisAngle']
 THORAX_VALUES=['ThoraxAngle']
 
-FORCE_PLATE_DATA_FIELDS = ['plate_' + num + '_' + data_type + '_' + axis for num in ['1', '2']
-                     for data_type in ['force', 'cop'] for axis in ['x', 'y', 'z']]
+NEEDED_FORCE_PLATED_DATA_FIELDS=['- Force', '- CoP']
+#FORCE_PLATE_DATA_FIELDS = ['Plate_' + num + '_' + data_type + '_' + axis for num in ['1', '2']
+#                     for data_type in ['Force', 'CoP'] for axis in ['x', 'y', 'z']]
 
 FORCE_DATA_FIELDS=  [lr + 'Force' + dire for lr in LEFT_RIGHT for dire in DIRECTIONS]
 KNEE_DATA_FIELDS = [lr + knee + dire for lr in LEFT_RIGHT for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]
