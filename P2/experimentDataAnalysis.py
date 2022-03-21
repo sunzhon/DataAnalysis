@@ -3260,9 +3260,12 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
     @return: show and save a data figure.
     '''
     # 1) read data
-    experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods,trial_folder_names=kwargs['trial_folder_names'])
+    if('trial_folder_names' in kwargs): # check  unnamed kwargs
+        experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods,trial_folder_names=kwargs['trial_folder_names'])
+    else:
+        experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
 
-
+    
     #2) Whether get right data
     for exp_idx, experiment_category in enumerate(experiment_categories):
         for control_method in control_methods: # control methods
@@ -3283,6 +3286,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
                     plot_column_num=1# the columns of the subplot. here set it to one
                     gs1=gridspec.GridSpec(16,plot_column_num)#13
                     gs1.update(hspace=0.18,top=0.95,bottom=0.08,left=0.1,right=0.98)
+                    plt.subplots_adjust(hspace=0.4)
                     axs=[]
                     for idx in range(plot_column_num):# how many columns, depends on the experiment_categories
                         axs.append(fig.add_subplot(gs1[0:3,idx]))
@@ -3319,7 +3323,7 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
                     axs[idx].set(xlim=[min(time),max(time)])
                     axs[idx].set(ylim=[-1.1,1.1])
 
-                    idx = idx + 1
+                    idx = idx + 1 # sensory feedback gain
                     axs[idx].plot(time,module_data[:,-5])
                     axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
                     axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
@@ -3332,7 +3336,6 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
 
 
 
-                    plt.subplots_adjust(hspace=0.4)
                     idx = idx + 1 # phase diff and phase diff stability
                     axs[idx].set_ylabel(u'Phase diff. [rad]')
                     axs[idx].plot(phi['time'],phi['phi_12'],color=(77/255,133/255,189/255))
@@ -3435,7 +3438,6 @@ def plot_single_details(data_file_dic,start_time=5,end_time=30,freq=60.0,experim
                     axs[idx].set_xticklabels([str(xtick) for xtick in xticks])
                     axs[idx].yaxis.set_label_coords(-0.065,.5)
                     axs[idx].set(xlim=[min(time),max(time)])
-
 
                     # save figure
                     save_figure(data_file_dic,'general_display')
@@ -4257,7 +4259,6 @@ def boxplot_phase_convergenceTime_statistic_threeMethod_underMI(data_file_dic,st
 
 
 
-
 def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=30,experiment_categories=['0'],trial_ids=[0],control_methods=['apnc'],**kwargs):
     '''
     Modified date: 2022-1-31
@@ -4269,29 +4270,8 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
     experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation=kwargs['investigation'])
     
     # --- START DEBUG ---#
-    # output the detailed curves if the phase convergence time is less than 0
-    saved_data_metric=[]
-    saved_data_names=['experiment_categories','control_methods','trial_folder_name','phase_convergence_time',]
-    for experiment_category_key, categories in metrics.items():
-        for control_method_key, metrics_value in categories.items():
-            for idx, trial_id in enumerate(trial_ids):
-                # keep metric data for save
-                saved_data_metric.append([experiment_category_key,
-                                          control_method_key,
-                                          metrics[experiment_category_key][control_method_key][idx][saved_data_names[2]],
-                                          metrics[experiment_category_key][control_method_key][idx][saved_data_names[3]]])
-                # plot strange trials
-                if(metrics[experiment_category_key][control_method_key][idx]['phase_convergence_time'] < 0.0):
-                    plot_single_details(data_file_dic, start_time, end_time, freq=60, experiment_categories=[experiment_category_key], trial_ids=[trial_id], control_methods=[control_method_key], investigation="paramater investigation")
-                if(metrics[experiment_category_key][control_method_key][idx]['phase_convergence_time'] > 10):
-                    if(control_method_key=='apnc'):
-                        plot_single_details(data_file_dic, start_time, end_time, freq=60, experiment_categories=[experiment_category_key], trial_ids=[trial_id], control_methods=[control_method_key], investigation="paramater investigation")
-                        print("Trial folder name:",metrics[experiment_category_key][control_method_key][idx]['trial_folder_name'])
-
-
-    # save metrics to a csv file
-    saved_data_metric=pd.DataFrame(data=np.array(saved_data_metric),columns=saved_data_names)
-    saved_data_metric.to_csv("./saved_data_metrics.csv")
+    saved_metrics_names=['experiment_categories','control_methods','trial_folder_name','phase_convergence_time','balance','coordination','energy_cost']
+    save_metrics(metrics,saved_metrics_names,trial_ids)
     # --- END DEBUG ---#
 
 
@@ -4336,6 +4316,9 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
         pd_metrics['experiment_categories']=pd_metrics['experiment_categories']*100 # xx%, percentage
         pd_metrics=pd_metrics.astype({'experiment_categories':'int32'}).sort_values(by=['experiment_categories'])# transfer to int and sort the oughness from small to big
 
+    if(kwargs['investigation']=='robot_conditions'):
+        pd_metrics=pd_metrics.astype({'experiment_categories':'str'})
+
     remove_unconvergenced_trials=pd_metrics[pd_metrics['phase_convergence_time']>0.0]# remove the not convergence trials which convergence time is negative
     axs[idx]=sns.boxplot(x='experiment_categories',y='phase_convergence_time',hue='Control methods', width=boxwidth,data=remove_unconvergenced_trials,palette=colors,showfliers=False,hue_order=['APNC','Tegotae','PR'])
     
@@ -4349,7 +4332,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
     axs[idx].set_xlabel(kwargs['study_variable'])
 
 
-
+    pdb.set_trace()
     #c) plot the success_rate with twinx 
     ax2 = axs[idx].twinx()  # instantiate a second axes that shares the same x-axis
     #d) calculate success_rate
@@ -4372,7 +4355,7 @@ def boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time
     #f) set art of the plot
     ax2.set_ylabel('Success rate [%]', color='black')  # we already handled the x-label with ax1
     ax2.tick_params(axis='y', labelcolor='black')
-    #ax2.set_ylim(-10,110)
+    ax2.set_ylim(0,105)
     ax2.set_yticks([0, 20,40, 60, 80, 100])
     #axs[idx].set_title('Phase reset')
 
@@ -5035,6 +5018,13 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     '''
     #1) calculate metrics
     experiment_data, metrics=metrics_calculatiions(data_file_dic, start_time, end_time, freq, experiment_categories, trial_ids=trial_ids, control_methods=control_methods)
+
+
+    # --- START DEBUG ---#
+    saved_metrics_names=['experiment_categories','control_methods','trial_folder_name','phase_convergence_time','balance','coordination','COT','displacement']
+    save_metrics(metrics,saved_metrics_names,trial_ids)
+    # --- END DEBUG ---#
+
     
     #2) tranfer metrics in dict into pandas Dataframe
     pd_metrics_list=[]
@@ -5048,10 +5038,10 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     pd_metrics=pd.concat(pd_metrics_list)
 
     #2.1) add info in dataframe
-    pd_metrics.loc[pd_metrics['experiment_categories']=='normal_situation','experiment_categories']='S1'
-    pd_metrics.loc[pd_metrics['experiment_categories']=='noisy_feedback','experiment_categories']='S2'
-    pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='S3'
-    pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='S4'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='normal_situation','experiment_categories']='C1'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='noisy_feedback','experiment_categories']='C2'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='leg_damage','experiment_categories']='C3'
+    pd_metrics.loc[pd_metrics['experiment_categories']=='carrying_payload','experiment_categories']='C4'
 
 
     #2.2) rename column names and values
@@ -5059,43 +5049,46 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     pd_metrics['Control methods']=pd_metrics['Control methods'].map({'phase_reset':'PR','apnc':'APNC','phase_modulation':'Tegotae'})
 
     #3) plot
-    figsize=(10,7)
+    figsize=(13,3)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(4,2)#13
-    gs1.update(hspace=0.35,top=0.95,bottom=0.12,left=0.1,right=0.92)
+    gs1=gridspec.GridSpec(1,6)#13
+    gs1.update(hspace=0.45,wspace=0.34,top=0.95,bottom=0.12,left=0.06,right=0.95)
     axs=[]
-    axs.append(fig.add_subplot(gs1[0:2,0]))
-    axs.append(fig.add_subplot(gs1[2:4,0]))
-    axs.append(fig.add_subplot(gs1[0:2,1]))
-    axs.append(fig.add_subplot(gs1[2:4,1]))
+    axs.append(fig.add_subplot(gs1[0,0:2]))
+    axs.append(fig.add_subplot(gs1[0,2:4]))
+    axs.append(fig.add_subplot(gs1[0,4:6]))
+    #axs.append(fig.add_subplot(gs1[2:4,0]))
+    #axs.append(fig.add_subplot(gs1[0:2,1]))
+    #axs.append(fig.add_subplot(gs1[2:4,1]))
     #axs.append(fig.add_subplot(gs1[0:2,2]))
     #axs.append(fig.add_subplot(gs1[2:4,2]))
 
 
-    #test_method="Mann-Whitney"
-    test_method="t-test_ind"
-    order=['S1','S2','S3','S4']
+    test_method="Mann-Whitney"
+    #test_method="t-test_ind"
+    order=['C1','C2','C3','C4']
     hue_order=['APNC','Tegotae','PR']
     pairs=(
-        [('S1','APNC'),('S1','Tegotae')],
-        [('S1','APNC'),('S1','PR')],
+        [('C1','APNC'),('C1','Tegotae')],
+        [('C1','APNC'),('C1','PR')],
 
-        [('S2','APNC'),('S2','Tegotae')],
-        [('S2','APNC'),('S2','PR')],
+        [('C2','APNC'),('C2','Tegotae')],
+        [('C2','APNC'),('C2','PR')],
 
-        [('S3','APNC'),('S3','Tegotae')],
-        [('S3','APNC'),('S3','PR')],
+        [('C3','APNC'),('C3','Tegotae')],
+        [('C3','APNC'),('C3','PR')],
 
-        [('S4','APNC'),('S4','Tegotae')],
-        [('S4','APNC'),('S4','PR')]
+        [('C4','APNC'),('C4','Tegotae')],
+        [('C4','APNC'),('C4','PR')]
           )
 
     colors = ['tab:red', 'tab:green','tab:blue']
     fontsize=10
+    states_palette = sns.color_palette("YlGnBu", n_colors=5)
 
+    '''
     axs_id=0
     x='experiment_categories'; y='displacement'
-    states_palette = sns.color_palette("YlGnBu", n_colors=5)
     hue_plot_params = {
     'data': pd_metrics,
     'x': x,
@@ -5113,11 +5106,11 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     annotator=Annotator(axs[axs_id],pairs=pairs,**hue_plot_params)
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
+    '''
 
 
-    axs_id=1
+    axs_id=0
     x='experiment_categories'; y='balance'
-
     hue_plot_params = {
     'data': pd_metrics,
     'x': x,
@@ -5137,9 +5130,8 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     annotator.apply_and_annotate()
 
 
-    axs_id=2
+    axs_id=1
     x='experiment_categories'; y='coordination'
-
     hue_plot_params = {
     'data': pd_metrics,
     'x': x,
@@ -5159,7 +5151,9 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
     annotator.configure(test=test_method, text_format='star', loc='inside')
     annotator.apply_and_annotate()
 
-    axs_id=3
+
+
+    axs_id=2
     x='experiment_categories'; y='COT'
 
     hue_plot_params = {
@@ -5400,27 +5394,35 @@ if __name__=="__main__":
 
 
 
+
+
+
+
+
+
+
     '''------------------------------------------------------------------------------------------------------------'''
-    ''' Various roughness in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
+    ''' Various roughness, MI, update frequencies, robot conditions in three diffrent control methods (PR, PM, and APNC), the second round revision of P2,     '''
+    '''------------------------------------------------------------------------------------------------------------'''
+
     ##------- Various Roughness under three control methods
 
     data_file_dic= "/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/3M_roughness_data/"
     data_file_dic="/media/suntao/DATA/Onedrive/Researches/Papers_and_Thesis/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data/"
     data_file_dic= "/media/sun/DATA/roughness_3m_new/"
-    #data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M/"
+    data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/roughness_data_3M_new/"
 
     experiment_categories=['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0']
     trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    trial_ids=[0,1,2,3,4,5,6,7]
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
     control_methods=['apnc','phase_modulation','phase_reset']
-    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness [%]')
+    boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=5,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='roughness', study_variable='Roughness [%]')
 
-    experiment_categories=['1.0']
+    experiment_categories=['0.8']
     control_methods=['apnc']
-    #plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=[2], control_methods=control_methods,investigation="paramater investigation")
-
-
-
+    trial_ids=[0]
+    trial_folder_names=None #['0308153909']
+    #plot_single_details(data_file_dic, start_time=1, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation",trial_folder_names=trial_folder_names)
 
 
 
@@ -5433,12 +5435,13 @@ if __name__=="__main__":
     control_methods=['apnc','phase_modulation','phase_reset']
     #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=1,end_time=40,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='MI', study_variable='MI')
     #data_file_dic= "/home/suntao/workspace/experiment_data/"
-    experiment_categories=['0.22']
+    experiment_categories=['0.12']
     control_methods=['apnc']
-    #trial_folder_names=['1019134854']
-    trial_folder_names=['1019170257']
+    trial_folder_names=['1021111925','1021150945','1020104901','1020104649']
+    #trial_folder_names=['1018092352','1018165011','1018165113','1018165216','1020170620','1020193230']
+    #trial_folder_names=['1018093536','1019131953','1020145158','1020145255','1020171553','1020171757','1021103001']
     #plot_phase_shift_dynamics_progression(data_file_dic,start_time=10,end_time=35,freq=60.0,experiment_categories=experiment_categories,trial_ids=[0],control_methods='apnc',investigation='MI')
-    plot_single_details(data_file_dic, start_time=5, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation",trial_folder_names=trial_folder_names)
+    #plot_single_details(data_file_dic, start_time=1, end_time=40, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation",trial_folder_names=trial_folder_names)
 
 
     ##----- Various Update frequency under three control methods
@@ -5469,17 +5472,15 @@ if __name__=="__main__":
 
     data_file_dic= os.environ['EXPERIMENT_DATA_FOLDER']
     data_file_dic= "/media/sun/DATA/robot_situations/"
+    data_file_dic= "/media/sun/My Passport/Main_Workspace/Researches/Papers/Working/P2_workspace/Experiments/Experiment_data/SupplementaryExperimentData/robot_situations/"
 
     control_methods=['apnc','phase_modulation','phase_reset']
     experiment_categories=['normal_situation','noisy_feedback','leg_damage','carrying_payload']
-    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=40,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='robot situation',study_variable='Robot situation')
+    trial_ids=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
+    #boxplot_phase_convergenceTime_statistic_threeMethod(data_file_dic,start_time=1,end_time=60,freq=60,experiment_categories=experiment_categories,trial_ids=trial_ids,control_methods=control_methods,investigation='robot situation',study_variable='Robot situation')
 
-    #plot_comparison_test(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
+    plot_comparison_test(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids,control_methods=control_methods,investigation="paramater investigation")
     
-    control_methods=['apnc']
-    experiment_categories=['carrying_payload']
-    trial_ids=[0]
-    #plot_single_details(data_file_dic, start_time=40, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation")
-    
+    trial_folder_names=['1222152311','0111101148','0111101313','0111101438']
+    #plot_single_details(data_file_dic, start_time=1, end_time=60, freq=60, experiment_categories=experiment_categories, trial_ids=trial_ids, control_methods=control_methods, investigation="paramater investigation",trial_folder_names=trial_folder_names)
 

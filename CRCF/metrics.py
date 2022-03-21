@@ -261,6 +261,9 @@ def calculate_touch_idx_phaseConvergence_idx(time,grf_data,cpg_data,method_optio
                     break
         else:#机器人没有放在地面
             convergenTime=0
+            touch_moment_idx=-1# invalid value
+            convergence_idx=-1# invalid value
+
             warnings.warn('The robot may be not dropped on the ground!')
     
 
@@ -289,7 +292,7 @@ def calculate_motion_coordination(duty_factor):
     if(duty_factor.size==0):
         coordination = 0
     else:
-        coordination = 1.0/max(np.std(duty_factor, axis=0))
+        coordination = 1.0/max(np.std(duty_factor, axis=1))
 
 
     return coordination
@@ -524,8 +527,9 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
                         try:
                             if (idx in trial_ids):# which one is to load
                                 if('trial_folder_names' in kwargs): # check  unnamed kwargs
-                                    if(trial_folder_name not in kwargs['trial_folder_names']):# if specified trial_folder_name in kwargs, then use the trial_folder_name
-                                        continue
+                                    if(kwargs['trial_folder_names']!=None):
+                                        if(trial_folder_name not in kwargs['trial_folder_names']):# if specified trial_folder_name in kwargs, then use the trial_folder_name
+                                            continue
                                 print("The experiment category is: ", category, ", control method is: ", control_method, ", trial folder name is:", trial_folder_name)
                                 folder_category= os.path.join(data_file_dic,trial_folder_name)
                                 print(folder_category)
@@ -579,6 +583,21 @@ def metrics_calculatiions(data_file_dic,start_time=5,end_time=30,freq=60.0,exper
 
 
 
+def save_metrics(metrics,saved_metrics_names,trial_ids):
+    # output the detailed curves if the phase convergence time is less than 0
+    saved_data_metric=[]
+    for experiment_category_key, categories in metrics.items():
+        for control_method_key, metrics_values in categories.items():
+            # whether the trial number is enough
+            if(len(metrics_values)!=len(trial_ids)):
+                print("Trial Number is NOT enough: {} of {} has {}".format(experiment_category_key,control_method_key,len(metrics_values)))
+            # keep metric data for save
+            for metric_value in metrics_values:
+                saved_data_metric.append([experiment_category_key,control_method_key] + [metric_value[saved_data_name] for saved_data_name in saved_metrics_names[2:]])
+
+    # save metrics to a csv file
+    saved_data_metric=pd.DataFrame(data=saved_data_metric,columns=saved_metrics_names)
+    saved_data_metric.to_csv("./saved_data_metrics.csv")
 
 
 

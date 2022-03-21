@@ -63,12 +63,15 @@ def load_data_log(data_file_dic):
 
     #1.1) load file list 
     data_file_log = os.path.join(data_file_dic,"ExperimentDataLog.csv")
-    data_files = pd.read_csv(data_file_log, sep='\t',delimiter=r'\t',skiprows=1,header=None, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str)
+    data_files = pd.read_csv(data_file_log, sep='\t',delimiter=r'\t',skiprows=1,header=None, names=['titles', 'data_files','categories'], skip_blank_lines=True,dtype=str,engine='python')
     #data_files = pd.read_csv(data_file_log, skiprows=1, names=['titles', 'data_files','categories'], skip_blank_lines=True, dtype=str)
 
     data_files_categories=data_files.groupby('categories')
+
+    '''
     keys = data_files_categories.groups.keys() # categories should be a list of number
     categories=[]
+    pdb.set_trace()
     for ll in keys: #drop off the non-number categories
         if is_number(ll):
             categories.append(ll)
@@ -82,7 +85,7 @@ def load_data_log(data_file_dic):
     for idx,value in enumerate(temp_dic_keys):
         categories[idx]=temp_dic[value]
 
-    print(categories)
+    '''
     return data_files_categories
 
 
@@ -97,12 +100,17 @@ def load_csv_file(fileName,folderName="/home/suntao/workspace/experiment_data/01
         
     #1) load data from file
     data_file = os.path.join(folderName,fileName + ".csv")
-    if(columnsName==None):
-        resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=0, skip_blank_lines=True, dtype=str) # use the first row as clomun names
-    else:
+    if(columnsName==None): # 没有设定 column name, 因为文件中有了, 使用文件中的第一行作为columns name
+        try:
+            resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=0, skip_blank_lines=True, dtype=str) # use the first row as clomun names
+        except:
+            print("Please check the data file!, see: ", data_file)
+            pdb.set_trace()
+    else: # 设定了columns, 因为文件中没有
         try:
             resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=0, names=columnsName,skip_blank_lines=True,dtype=str)#names will replace the first row 
         except:
+            print("Please check the data file! See: ", data_file)
             pdb.set_trace()
 
     #2) check data whether loss frame
@@ -143,9 +151,13 @@ def load_a_trial_data_A(freq,start_time,end_time,folder_name):
     columnsName_jointVelocities=['v1','v2','v3','v4','v5','v6', 'v7','v8','v9','v10','v11','v12']
     columnsName_jointCurrents=['c1','c2','c3','c4','c5','c6', 'c7','c8','c9','c10','c11','c12']
     columnsName_jointVoltages=['vol1','vol2','vol3','vol4','vol5','vol6', 'vol7','vol8','vol9','vol10','vol11','vol12']
-    #columnsName_modules=['ANC_stability', 'GRFNosie1','GRFNoise2','GRFNoise3','GRFNoise4','adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','NP_GRF_1','NP_GRF_2','phi_12','phi_13','phi_14']
+    
+    columnsName_modules=['ANC_stability', 'GRFNosie1','GRFNoise2','GRFNoise3','GRFNoise4','adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','NP_GRF_1','NP_GRF_2','phi_12','phi_13','phi_14']
+
     #columnsName_modules=['ANC_stability','adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','NP_GRF_1','NP_GRF_2','phi_12','phi_13','phi_14']
-    columnsName_modules=['ANC_stability','adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','phi_12','phi_13','phi_14']
+
+    #columnsName_modules=['ANC_stability','adfrl_w1', 'dfrl_w2', 'dfrl_w3', 'dfrl_w4', 'f1','f2','f3','f4','f5','f6','f7','f8','g1','g2','g3','g4','g5','g6','g7','g8','FM1','FM2','adapitve_gama1','adaptive_gamma2','phi_12','phi_13','phi_14']
+
     columnsName_rosparameters=['USER_MACRO','CPGtype','CPGMi','CPGPGain', 'CPGPThreshold', 'PCPGBeta', \
                             'RF_PSN','RF_VRN_Hip','RF_VRN_Knee','RF_MN1','RF_MN2','RF_MN3',\
                             'RH_PSN','RH_VRN_Hip','RH_VRN_Knee','RH_MN1','RH_MN2','RH_MN3',\
@@ -285,9 +297,9 @@ def load_a_trial_data(freq,start_time,end_time,folder_name):
 
     file_name="controlfile_CPGs"
     data_file = os.path.join(folder_name,file_name + ".csv")
-    resource_data = pd.read_csv(data_file, sep='\t', index_col=0, header=None, skip_blank_lines=True, dtype=str)#
+    resource_data = pd.read_csv(data_file, sep='\t', skip_blank_lines=True, dtype=str)#
 
-    if(resource_data.iloc[0,0]=='Time'):
+    if(resource_data.columns[0]=='Time'):
         has_coulum = True
     else:
         has_coulum = False
