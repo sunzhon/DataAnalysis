@@ -59,7 +59,17 @@ Robot configurations and parameters of Lilibot
 '''
 
 
-def stsubplot(fig,position,number,gs):
+def stsubplot(fig,position,number,gs=None):
+    '''
+    create subplot axis
+    @params:
+    fig: figure object
+    position: the position of the subplot axis
+    gs: gridSpec
+    @return ax
+
+    '''
+
     axprops = dict(xticks=[], yticks=[])
     width_p=position.x1-position.x0; height_p=(position.y1-position.y0)/number
     left_p=position.x0;bottom_p=position.y1-height_p;
@@ -141,6 +151,13 @@ def grf_diagram(fig,axs,gs,grf_data,time):
 def gait_diagram(fig,axs,gs,gait_data):
     '''
     plot gait diagram using while and black block to indicate swing and stance phase
+
+    @Params:
+    fig: is a figure object of matplotlib
+    axs: is a axis object
+    gs: gridSpec object
+    gait_data is gait phase (M*N), M steps * N legs
+
     '''
     position=axs.get_position()
     axs.set_yticks([])
@@ -5177,6 +5194,34 @@ def plot_comparison_test(data_file_dic, start_time, end_time, freq, experiment_c
 
     # save figure
     save_figure(data_file_dic,'metrics')
+
+
+def plot_gait_diagram():
+    '''
+    example to plot gait diagram
+
+    '''
+    figsize=(6,6.5+2)
+    fig = plt.figure(figsize=figsize,constrained_layout=False)
+    gs=gridspec.GridSpec(2,1)#13
+    axs=[]
+    axs.append(fig.add_subplot(gs[0:2,0]))
+
+    
+    # for example data
+    gait_data=np.array([
+        [1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0],
+        [1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0],
+        [1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0],
+        [1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0]]
+    )
+    gait_data=gait_data.T
+
+    pdb.set_trace()
+    gait_diagram(fig,axs[0],gs,gait_data)
+    plt.show()
+
+
 
 
 
