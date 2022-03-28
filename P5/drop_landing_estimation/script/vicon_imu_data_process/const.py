@@ -1,4 +1,5 @@
 import os
+import pdb
 
 GRAVITY = 9.81
 VIDEO_PATH = os.environ.get('VIDEO_DATA_PATH')
@@ -69,7 +70,7 @@ IMU_SENSOR_LIST = ['CHEST','WAIST', 'R_THIGH', 'R_SHANK','R_FOOT','L_THIGH','L_S
 IMU_FIELDS = ['Accel_X', 'Accel_Y', 'Accel_Z', 'Gyro_X', 'Gyro_Y', 'Gyro_Z', 'Mag_X', 'Mag_Y', 'Mag_Z', 'Quat_1', 'Quat_2',
               'Quat_3', 'Quat_4']
 
-IMU_RAW_FIELDS = ['Accel_X', 'Accel_Y', 'Accel_Z', 'Gyro_X', 'Gyro_Y', 'Gyro_Z', 'Mag_X', 'Mag_Y', 'Mag_Z',]
+IMU_RAW_FIELDS = ['Accel_X', 'Accel_Y', 'Accel_Z', 'Gyro_X', 'Gyro_Y', 'Gyro_Z', 'Mag_X', 'Mag_Y', 'Mag_Z']
 ACC_GYRO_FIELDS = ['Accel_X', 'Accel_Y', 'Accel_Z', 'Gyro_X', 'Gyro_Y', 'Gyro_Z']
 
 extract_imu_fields = lambda imus, fields: [imu + "_" + field for imu in imus for field in fields]
@@ -191,7 +192,6 @@ NEEDED_FORCE_PLATED_DATA_FIELDS=['- Force', '- CoP']
 FORCE_DATA_FIELDS=  [lr + 'Force' + dire for lr in LEFT_RIGHT for dire in DIRECTIONS]
 KNEE_DATA_FIELDS = [lr + knee + dire for lr in LEFT_RIGHT for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]
 
-import pdb
 
 
 
@@ -223,8 +223,8 @@ IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 V3D_LABELS_FIELDS = ['LON','RON']+['L_'+ temp + dire for temp in BIOMECHANICS_VARIABLES for dire in DIRECTIONS] + ['R_'+temp + dire for temp in BIOMECHANICS_VARIABLES for dire in DIRECTIONS] + [temp + dire for temp in ['PELVIS_ANGLE','THORAX_ANGLE'] for dire in DIRECTIONS]
 
 
-print(V3D_DATA_FIELDS)
-print(V3D_LABELS_FIELDS)
+#print(V3D_DATA_FIELDS)
+#print(V3D_LABELS_FIELDS)
 
 
 
@@ -236,7 +236,7 @@ DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','da
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
-#LABELS_FIELDS= ['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
+#LABELS_FIELDS= ['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','L_KNEE_MOMENT_Z']
 LABELS_FIELDS= ['L_GRF_X','L_GRF_Y','L_GRF_Z']
 
 

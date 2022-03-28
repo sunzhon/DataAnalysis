@@ -48,11 +48,6 @@ from scipy.stats import shapiro
 from scipy.stats import levene
 from scipy import stats
 
-
-
-
-
-
 from statannotations.Annotator import Annotator
 
 if __name__=='__main__':
@@ -94,8 +89,6 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
             if(subject_name not in subject_names):
                 print("This subject:{subject_name} is not in datasets".format(subject_name))
                 exit()
-            #- feature data feilds
-            feature_data_fields=[hyperparams['features_names']]
 
             #-- get each trial data with specified columns
             for trial in trials:
@@ -220,18 +213,18 @@ def load_normalize_data(hyperparams,scaler=None,**args):
                 series_temp.append(read_rawdata(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name, assign_trials=True))
 
             series=np.concatenate(series_temp,axis=0)
-            print("Raw data of subject {:}".format(sub_idx))
+            #print("Raw data of subject {:}".format(sub_idx))
         else: # - not extract drop landing period
             for subject_name,trials in sub_idx.items():
                 assert(isinstance(trials,list))
                 series_temp.append(read_rawdata(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name))
             series=np.concatenate(series_temp,axis=0)
-            print("Raw data of subject {:}".format(sub_idx))
+            #print("Raw data of subject {:}".format(sub_idx))
 
     
 
     # load dataset
-    print('Loaded dataset shape:',series.shape)
+    #print('Loaded dataset shape:',series.shape)
 
     #Normalization data
     if (scaler==None) or (scaler=='standard'):
@@ -499,109 +492,6 @@ def inverse_norm(norm_datasets:np.ndarray, col_names:list, norm_type:str)->np.nd
         datasets=copy.deepcopy(norm_datasets)
     return datasets
 
-
-
-
-
-
-def plot_test_results(features,labels,predictions,features_names,labels_names,fig_save_folder=None,**args):
-    """
-    Plot the test results
-
-    """
-    print("Plot the test results")
-    
-    #------------Process the test results
-    # features
-    #features=np.squeeze(np.array(features))
-    # lablels
-    #labels=np.squeeze(np.array(labels))
-    # predictions
-    #predictions=np.squeeze(np.array(predictions))
-    
-    #1) load dataset
-    #i) Pandas DataFrame of the above datasets
-    pd_features = pd.DataFrame(features,columns=features_names)
-    pd_labels = pd.DataFrame(labels,columns=labels_names)
-    pd_predictions = pd.DataFrame(data=predictions,columns=labels_names)
-
-
-    #ii) add time and legends to pd_labels and pd_predictions
-    freq=100.0;
-    print("NOTE: Sampe frequency is 100 Hz in default")
-    Time=np.linspace(0,labels.shape[0]/freq,num=labels.shape[0])
-
-    pd_labels['time']=Time
-    pd_predictions['time']=Time
-
-    pd_labels['legends']='Actual'
-    pd_predictions['legends']='Prediction'
-
-    #iii) organize labels and predictions into a pandas dataframe
-    pd_labels_predictions=pd.concat([pd_labels,pd_predictions],axis=0)
-    pd_labels_predictions=pd_labels_predictions.melt(id_vars=['time','legends'],var_name='GRF [BW]',value_name='vals')
-    
-    #2) plot dataset and save figures
-    #i) plot estimation results
-    g=sns.FacetGrid(data=pd_labels_predictions,col='GRF [BW]',hue='legends',sharey=False)
-    g.map_dataframe(sns.lineplot,'time','vals')
-    g.add_legend()
-
-    #ii) save figure
-    if(fig_save_folder!=None):
-        folder_fig = fig_save_folder+"/"
-    else:
-        folder_fig="./"
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-    # whether define the figsave_file
-    if('prediction_file' in args.keys()):
-        figPath=args['prediction_file']
-    else:
-        figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + '_test_prediction.svg'
-    plt.savefig(figPath)
-
-
-    #3) plot and save statisrical estimation errors
-    #i) calculate estimation errors statistically: rmse. It is an average value
-    pred_error=predictions-labels
-    pred_mean=np.mean(pred_error,axis=0)
-    pred_std=np.std(pred_error,axis=0)
-    pred_rmse=np.sqrt(np.sum(np.power(pred_error,2),axis=0)/pred_error.shape[0])
-    pred_rrmse=pred_rmse/np.mean(labels,axis=0)*100.0
-    print("mean of ground-truth:",np.mean(labels))
-    print("mean: {.2f}, std: {.2f}, RMSE: {.2f}, rRMSE: {.2f} of the errors between estimation and ground truth",pred_mean, pred_std, pred_rmse, pred_rrmse)
-
-
-    #ii) calculate estimation errors realtime: normalized_absolute_error (nae)= abs(labels-prediction)/labels, along the time, each column indicates a labels
-    nae = np.abs(pred_error)#/labels
-    pd_nae=pd.DataFrame(data=nae,columns=labels_names);pd_nae['time']=Time
-    pd_nae=pd_nae.melt(id_vars=['time'],var_name='GRF error [BW]',value_name='vals')
-
-
-    #iii) plot absolute error and noramlized error (error-percentage)
-    g=sns.FacetGrid(data=pd_nae,col='GRF error [BW]',col_wrap=3,sharey=False)
-    g.map_dataframe(sns.lineplot,'time','vals')
-    pdb.set_trace()
-
-    plt.show()
-
-    #ii) save figure
-    if(fig_save_folder!=None):
-        folder_fig = fig_save_folder+"/"
-    else:
-        folder_fig="./"
-
-    if not os.path.exists(folder_fig):
-        os.makedirs(folder_fig)
-
-    # figure save file
-    if('prediction_error_file' in args.keys()):
-        figPath=args['prediction_error_file']
-    else:
-        figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + '_test_mes.svg'
-
-    plt.savefig(figPath)
 
 
 
@@ -1363,20 +1253,23 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
 
 
 #- set hyperparaams: sub_idx. subject_name: trial
-def setHyperparams_subject(hyperparaams):
-    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+def setHyperparams_subject(hyperparams,subject_list=None):
+    if(subject_list==None):
+        subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
     subject_names=[ss for ss in subject_infos.index]
     for subject_idx in subjects_list:
         for subject_name in subject_names:
-            if(re.search(subject_idx,subject_name)!=None):
+            if(re.search(subject_idx,subject_name)!=None): # checking the sub_idx_id is in subject_infos
                 subject_idx_name=subject_name
                 break
-        print(subject_idx_name)
-        hyperparaams['sub_idx'][subject_idx_name]=TRIALS
+        hyperparams['sub_idx'][subject_idx_name]=TRIALS
+
+    return hyperparams
 
 
-
+'''
 # basic parameters
 all_datasets_len={'sub_0':6951, 'sub_1':7439, 'sub_2': 7686, 'sub_3': 8678, 'sub_4':6180, 'sub_5': 6671,
                   'sub_6': 7600, 'sub_7': 5583, 'sub_8': 6032, 'sub_9': 6508, 'sub_10': 6348, 'sub_11': 7010, 'sub_12': 8049, 'sub_13': 6248}
@@ -1395,18 +1288,7 @@ hyperparams={
         #'device': str(torch.device("cuda" if torch.cuda.is_available() else "cpu")),
 }
 
-# h5 dataset path
-raw_dataset_path=os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
-hyperparams['raw_dataset_path']=raw_dataset_path
-hyperparams['sub_idx']={}
-hyperparams['features_names']=FEATURES_FIELDS;
-hyperparams['labels_names']=LABELS_FIELDS
-hyperparams['features_num']=len(FEATURES_FIELDS)
-hyperparams['labels_num']=len(LABELS_FIELDS)
-hyperparams['columns_names']=hyperparams['features_names']+hyperparams['labels_names']
-setHyperparams_subject(hyperparams)
-
-
+'''
 
 
 if __name__=='__main__':

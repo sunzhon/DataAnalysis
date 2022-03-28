@@ -13,8 +13,8 @@ import pandas as pd
 import yaml
 import h5py
 print("tensorflow version:",tf.__version__)
-# load datasets in a numpy 
-import vicon_imu_data_process.process_rawdata as dp_lib
+import vicon_imu_data_process.process_rawdata as pro_rd
+import estimation_assessment.estimation_scores as es_as
 
 import seaborn as sns
 import copy
@@ -22,6 +22,7 @@ import re
 
 from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
+from vicon_imu_data_process import const
 
 
 from sklearn.preprocessing import StandardScaler
@@ -30,29 +31,37 @@ from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PA
 
 import numpy as np
 from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import KFold
 import time as localtimepkg
 
 
 
-
-subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
+#subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
 
 cpus=tf.config.list_logical_devices(device_type='CPU')
 gpus=tf.config.list_logical_devices(device_type='GPU')
-
 print(cpus,gpus)
 
 '''
 Set hyper parameters
 
 '''
-def initParameters():
+def initParameters(labels_names=None,features_names=None):
     # hyper parameters
-    hyperparams=dp_lib.hyperparams
+    hyperparams={}
     
-    labels_names=LABELS_FIELDS
-    features_names=FEATURES_FIELDS
-    
+    if(labels_names==None):
+        labels_names=LABELS_FIELDS
+    else:
+        labels_names=labels_names
+
+    if(features_names==None):
+        features_names=FEATURES_FIELDS
+    else:
+        features_names=features_names
+
+
+
     columns_names=features_names+labels_names
     hyperparams['features_num']=len(features_names)
     hyperparams['labels_num']=len(labels_names)
@@ -62,9 +71,12 @@ def initParameters():
     hyperparams['batch_size']=4
     hyperparams['window_size']=DROPLANDING_PERIOD
     hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=10
+    hyperparams['epochs']=20
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
+    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    hyperparams['sub_idx']={}
+    hyperparams=pro_rd.setHyperparams_subject(hyperparams)
     
     return hyperparams
 
@@ -140,7 +152,7 @@ def windowed_dataset(series, hyperparams,shuffle_buffer):
     ds = ds.flat_map(lambda w: w.batch(window_size))
     ds = ds.shuffle(shuffle_buffer)
     ds = ds.map(lambda w: (w[:,:-labels_num], w[:,-labels_num:]))
-    ds=ds.batch(batch_size).prefetch(1)
+    ds = ds.batch(batch_size).prefetch(1)
     #print(list(ds.as_numpy_iterator())[0])
     return ds
 
@@ -272,7 +284,7 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
     callbacks=myCallback()
     
     # Crerate train results folder
-    training_folder=dp_lib.create_training_files(hyperparams=hyperparams)
+    training_folder=pro_rd.create_training_files(hyperparams=hyperparams)
     
     # register tensorboard writer
     sensorboard_file=training_folder+'/tensorboard/'
@@ -404,7 +416,7 @@ Testing model
 def test_model(training_folder, xy_test,scaler,**args):
     
     #1) Crerate test results folder
-    testing_folder=dp_lib.create_testing_files(training_folder)
+    testing_folder=pro_rd.create_testing_files(training_folder)
     
     #2) Load hyperparameters, Note the values in hyperparams become string type
     hyperparams_file=training_folder+"/hyperparams.yaml"
@@ -475,7 +487,7 @@ def plot_prediction(features,labels,predictions,testing_folder):
     #1) evaluate using two metrics, mae and mse
     mae=tf.keras.metrics.mean_absolute_error(labels, predictions).numpy()
     mse=tf.keras.metrics.mean_squared_error(labels, predictions).numpy()
-    print('MAE: {:.3f}, RMSE:{:.3f} in a period'.format(np.mean(mae),np.mean(np.sqrt(mse))))
+    print('Mean absolute error: {:.3f}, mean root squard error:{:.3f} in a period'.format(np.mean(mae),np.mean(np.sqrt(mse))))
     
     #2) preparation
 
@@ -506,8 +518,8 @@ def plot_prediction(features,labels,predictions,testing_folder):
     
     
     #iv) plot the estimation results and errors
-    dp_lib.plot_test_results(features, labels, predictions, features_names, labels_names,testing_folder,
-                                   prediction_file=prediction_file,prediction_error_file=prediction_error_file)
+    es_as.plot_estimation_comparison(labels, predictions, labels_names,testing_folder, 
+                                  prediction_file=prediction_file,prediction_error_file=prediction_error_file)
 
     
     
@@ -597,8 +609,8 @@ def normalize_subjects_data(hyperparams):
     sub_idxs=hyperparams['sub_idx']
     if(isinstance(sub_idxs,list)):
         hyperparams['sub_idx'] = ['sub_'+str(ii) for ii in sub_idxs]
-        xy_data, scaled_xy_data, scaler = dp_lib.load_normalize_data(hyperparams)
-        subject_data_len=dp_lib.all_datasets_len
+        xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams)
+        subject_data_len=pro_rd.all_datasets_len
     
         norm_trials_data={}
         start,end=0,0
@@ -615,9 +627,9 @@ def normalize_subjects_data(hyperparams):
     
     # suntao experimental data
     if(isinstance(sub_idxs,dict)):
-        xy_data, scaled_xy_data, scaler = dp_lib.load_normalize_data(hyperparams,assign_trials=True)
+        xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams,assign_trials=True)
         norm_trials_data={}
-        for idx in range(scaled_xy_data.shape[0]):
+        for idx in range(scaled_xy_data.shape[0]):# trasnfer list of trials to a dictory of trials
             norm_trials_data['trial_'+str(idx)]=scaled_xy_data[idx,:,:]
         return norm_trials_data, scaler
 
@@ -627,9 +639,12 @@ def normalize_subjects_data(hyperparams):
 Main rountine for developing ANN model for biomechanic variable estimations
 
 '''
-def main():
-    #1) Setup hyper parameters
-    hyperparams=initParameters()
+def train_test_loop(hyperparams=None):
+    #1) Set hyper parameters
+    if(hyperparams==None):
+        hyperparams=initParameters()
+    else:
+        hyperparams=hyperparams
     
     #2) Create a list of training and testing files
     train_test_folder= os.path.join(EXPERIMENT_RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
@@ -646,18 +661,20 @@ def main():
 
     #4) leave-one-out cross-validation
     loo = LeaveOneOut()
-    applied_dataset_trials = range(len(norm_trials_data.keys()))
+    #loo = KFold(40) # trial number of a subject
+    applied_dataset_trials = range(len(norm_trials_data.keys())-40)
     for train_index, test_index in loo.split(applied_dataset_trials):
         #i) decide train and test subject dataset 
-        print("train set:", train_index, "test set:", test_index)
+        #print("train set:", train_index, "test set:", test_index)
         hyperparams['train_sub_idx']=[str(ii) for ii in  train_index] # the values of params should be str or int types
         hyperparams['test_sub_idx']=[str(ii) for ii in test_index]
         xy_train=[norm_trials_data['trial_'+str(ii)] for ii in train_index]
-        xy_test=[norm_trials_data['trial_'+str(ii)] for ii in test_index]
+        xy_valid=[norm_trials_data['trial_'+str(ii)] for ii in test_index]
+        xy_test=[norm_trials_data['trial_598']]
         
         xy_train=np.concatenate(xy_train,axis=0)
+        xy_valid=np.concatenate(xy_valid,axis=0)
         xy_test=np.concatenate(xy_test,axis=0)
-        xy_valid=xy_test
         
         #ii) load train and test dataset
         train_set = windowed_dataset(xy_train, hyperparams,   shuffle_buffer=1000)
@@ -678,8 +695,10 @@ def main():
         features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
         log_dict['training_folder'].append(training_folder)
         log_dict['testing_folder'].append(testing_folder)
-         
+        print("scores (r2, rmse, mae, r_rmse):", es_as.get_scores(labels,predictions))
+
         #vi) Plot estimation results
+
         #plot_prediction(features,labels,predictions,testing_folder)
         #plot_prediction_statistic(features, labels, predictions,testing_folder)
         break;# only run a leave-one-out a time
@@ -693,30 +712,75 @@ def main():
 
 
 
+def deploy_sensor_combination():
+
+    # sensor placement configurations
+    list_testing_folders={}
+    study_id='03222'
+    sensor_placement_combination_dict = {
+                                   'C1': ['L_FOOT'],
+                                   'C2_1': ['L_FOOT','L_SHANK'],
+                                   'C2_2': ['L_FOOT','L_THIGH'],
+                                   'C3_1': ['L_FOOT','L_SHANK','L_THIGH'], 
+                                   'C3_2': ['L_FOOT','L_THIGH','WAIST'], 
+                                   'C3_3': ['L_FOOT','WAIST','CHEST'], 
+                                   'C4_1': ['L_FOOT','L_SHANK','L_THIGH','WAIST'], 
+                                   'C4_2': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
+                                   'C5': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']
+                                  }
+    
+    # train and test model
+    for config, sensor_list in sensor_placement_combination_dict.items():
+        print("Sensor is:",sensor_list)
+        features_fields = const.extract_imu_fields(sensor_list, const.IMU_RAW_FIELDS)
+        hyperparams=initParameters(labels_names=LABELS_FIELDS, features_names=features_fields)
+        print('features are:', hyperparams['features_names'])
+        training_folder, testing_folder, xy_test, scaler =  train_test_loop(hyperparams)
+        list_testing_folders[config]=testing_folder
+
+    # save testing folders
+    with open(study_id+"_list_testing_folders.txt",'a') as f:
+        for config, testing_folder in list_testing_folders.items():
+            f.write(config+'\t'+testing_folder+'\n')
+
+
+
+def display_testing_results():
+    # open testing folder
+    list_testing_folders='03222_list_testing_folders.txt'
+    assessment={}
+    for line in open(list_testing_folders,'r'):
+        #0) tesing results folder
+        line=line.strip('\n')
+        [sensor_config, testing_folder]=line.split('\t')
+        print(testing_folder)
+
+        #1) load testing results
+        testing_results=os.path.join(testing_folder,'test_results.h5')
+        with h5py.File(testing_results,'r') as fd:
+            features=fd['features'][:,:]
+            predictions=fd['predictions'][:,:]
+            labels=fd['labels'][:,:]
+        
+        #2) visulize estimation results
+        #i) plot curves
+        #plot_prediction(features,labels,predictions,testing_folder)
+        #ii) collect results
+        assessment[sensor_config]=es_as.get_scores(labels,predictions)
+
+    index=['r2','mae','rmse','r_rmse']
+    pd_assessment=pd.DataFrame(assessment,index=index)
+    pd_assessment=pd_assessment.T
+    pd_assessment=pd_assessment.reset_index();pd_assessment.rename({'index':'Sensor configurations'},axis='columns',inplace=True)
+    pd_assessment=pd_assessment.melt(id_vars=['Sensor configurations'],var_name='Metrics',value_name='Value')
+
+    sns.catplot(data=pd_assessment[pd_assessment['Metrics']=='r2'],x='Sensor configurations',y='Value',hue='Metrics',kind='bar')
+    plt.show()
+
+
+    pd_assessment.to_csv("assessment.csv")
+        
 if __name__=='__main__':
-
-    #0) Train and test model or testing existing model
-    if(False):#retrain model
-        training_folder, testing_folder, xy_test, scaler =  main()
-    else:# plot existing model
-        hyperparams=initParameters()
-        if(not "testing_folder" in locals().keys()):
-            testing_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/test_115856/test_1')
-            training_folder = os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/2022-01-24/training_115856/')
-
-    #1) load testing results
-    testing_results=os.path.join(testing_folder,'test_results.h5')
-    #print(testing_results)
-    with h5py.File(testing_results,'r') as fd:
-        features=fd['features'][:,:]
-        predictions=fd['predictions'][:,:]
-        labels=fd['labels'][:,:]
+    #deploy_sensor_combination()
+    display_testing_results()
     
-    #2) visulize estimation results
-    #i) plot curves
-    plot_prediction(features,labels,predictions,testing_folder)
-    #ii) statistical estimation results
-    plot_prediction_statistic(features, labels, predictions,testing_folder)
-    
-    
-
