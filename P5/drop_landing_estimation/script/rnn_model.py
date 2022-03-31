@@ -21,7 +21,7 @@ import copy
 import re
 
 from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
-from vicon_imu_data_process.const import DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
+from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
 
@@ -50,6 +50,7 @@ def initParameters(labels_names=None,features_names=None):
     # hyper parameters
     hyperparams={}
     
+    # specify labels and features names
     if(labels_names==None):
         labels_names=LABELS_FIELDS
     else:
@@ -60,23 +61,22 @@ def initParameters(labels_names=None,features_names=None):
     else:
         features_names=features_names
 
-
-
+    # specify other paramters
     columns_names=features_names+labels_names
     hyperparams['features_num']=len(features_names)
     hyperparams['labels_num']=len(labels_names)
     hyperparams['features_names']=features_names;
     hyperparams['labels_names']=labels_names
-    hyperparams['learning_rate']=10e-2
+    hyperparams['learning_rate']=1e-2
     hyperparams['batch_size']=4
     hyperparams['window_size']=DROPLANDING_PERIOD
     hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=20
+    hyperparams['epochs']=15
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
-    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
-    hyperparams['sub_idx']={}
-    hyperparams=pro_rd.setHyperparams_subject(hyperparams)
+    hyperparams['subjects_trials']={}
+    subjects_list=['P_08','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    hyperparams=pro_rd.setHyperparams_subject(hyperparams,subjects_list)
     
     return hyperparams
 
@@ -606,9 +606,9 @@ Normalize all subject data
 
 '''
 def normalize_subjects_data(hyperparams):
-    sub_idxs=hyperparams['sub_idx']
+    sub_idxs=hyperparams['subjects_trials']
     if(isinstance(sub_idxs,list)):
-        hyperparams['sub_idx'] = ['sub_'+str(ii) for ii in sub_idxs]
+        hyperparams['subjects_trials'] = ['sub_'+str(ii) for ii in sub_idxs]
         xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams)
         subject_data_len=pro_rd.all_datasets_len
     
@@ -639,7 +639,7 @@ def normalize_subjects_data(hyperparams):
 Main rountine for developing ANN model for biomechanic variable estimations
 
 '''
-def train_test_loop(hyperparams=None):
+def train_test_loops(hyperparams=None):
     #1) Set hyper parameters
     if(hyperparams==None):
         hyperparams=initParameters()
@@ -647,13 +647,13 @@ def train_test_loop(hyperparams=None):
         hyperparams=hyperparams
     
     #2) Create a list of training and testing files
-    train_test_folder= os.path.join(EXPERIMENT_RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
+    train_test_folder= os.path.join(RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%y-%m-%d", localtimepkg.localtime())))
     if(os.path.exists(train_test_folder)==False):
         os.makedirs(train_test_folder)    
-    train_test_folder_log=train_test_folder+"/train_test_folder.log"
-    if(os.path.exists(train_test_folder_log)):
-        os.remove(train_test_folder_log)
-    log_dict={'training_folder':[],'testing_folder':[]}
+    train_test_folders_log=os.path.join(train_test_folder,"train_test_folders.log")
+    if(os.path.exists(train_test_folders_log)):
+        os.remove(train_test_folders_log)
+    dict_log={'training_folder':[],'testing_folder':[]}
     
     #3) Load and normalize datasets for training and testing
     norm_trials_data,scaler=normalize_subjects_data(hyperparams)
@@ -661,16 +661,21 @@ def train_test_loop(hyperparams=None):
 
     #4) leave-one-out cross-validation
     loo = LeaveOneOut()
-    #loo = KFold(40) # trial number of a subject
-    applied_dataset_trials = range(len(norm_trials_data.keys())-40)
-    for train_index, test_index in loo.split(applied_dataset_trials):
+    loo_times=0
+    for train_sub_index, test_sub_index in loo.split(list(hyperparams['subjects_trials'].keys())):
+        loop_times=loop_times+1
+
         #i) decide train and test subject dataset 
-        #print("train set:", train_index, "test set:", test_index)
-        hyperparams['train_sub_idx']=[str(ii) for ii in  train_index] # the values of params should be str or int types
-        hyperparams['test_sub_idx']=[str(ii) for ii in test_index]
-        xy_train=[norm_trials_data['trial_'+str(ii)] for ii in train_index]
-        xy_valid=[norm_trials_data['trial_'+str(ii)] for ii in test_index]
-        xy_test=[norm_trials_data['trial_598']]
+        print("train subject set:", train_sub_index, "test subject set:", test_sub_index)
+
+        train_index  = [str(sub_idx*len(TRIALS)+trial_idx) for sub_idx in train_sub_index for trial_idx in range(len(TRIALS))]
+        test_index  = [str(sub_idx*len(TRIALS)+trial_idx) for sub_idx in test_sub_index for trial_idx in range(len(TRIALS))]
+        hyperparams['train_sub_idx'] = train_index
+        hyperparams['test_sub_idx'] = test_index
+
+        xy_train=[norm_trials_data['trial_'+ ii] for ii in train_index]
+        xy_valid=[norm_trials_data['trial_'+ test_index[0]]]
+        xy_test=[norm_trials_data['trial_'+ test_index[1]]]
         
         xy_train=np.concatenate(xy_train,axis=0)
         xy_valid=np.concatenate(xy_valid,axis=0)
@@ -693,22 +698,23 @@ def train_test_loop(hyperparams=None):
         
         #v) test model
         features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
-        log_dict['training_folder'].append(training_folder)
-        log_dict['testing_folder'].append(testing_folder)
+        dict_log['training_folder'].append(training_folder)
+        dict_log['testing_folder'].append(testing_folder)
         print("scores (r2, rmse, mae, r_rmse):", es_as.get_scores(labels,predictions))
 
         #vi) Plot estimation results
 
         #plot_prediction(features,labels,predictions,testing_folder)
         #plot_prediction_statistic(features, labels, predictions,testing_folder)
-        break;# only run a leave-one-out a time
+        if loop_times>5: # only repeat 4 times
+            break;# only run a leave-one-out a time
     
     
     #5) save train and test folder path
-    with open(train_test_folder_log,'w') as fd:
-        yaml.dump(log_dict,fd)
+    with open(train_test_folders_log,'w') as fd:
+        yaml.dump(dict_log,fd)
 
-    return training_folder, testing_folder, xy_test, scaler
+    return dict_log, xy_test, scaler
 
 
 
@@ -716,11 +722,16 @@ def deploy_sensor_combination():
 
     # sensor placement configurations
     list_testing_folders={}
-    study_id='03222'
     sensor_placement_combination_dict = {
-                                   'C1': ['L_FOOT'],
+                                   'C1_1': ['L_FOOT'],
+                                   'C1_2': ['L_SHANK'],
+                                   'C1_3': ['L_THIGH'],
+                                   'C1_4': ['WAIST'],
+                                   'C1_5': ['CHEST'],
                                    'C2_1': ['L_FOOT','L_SHANK'],
                                    'C2_2': ['L_FOOT','L_THIGH'],
+                                   'C2_3': ['L_FOOT','WAIST'],
+                                   'C2_4': ['L_FOOT','CHEST'],
                                    'C3_1': ['L_FOOT','L_SHANK','L_THIGH'], 
                                    'C3_2': ['L_FOOT','L_THIGH','WAIST'], 
                                    'C3_3': ['L_FOOT','WAIST','CHEST'], 
@@ -728,28 +739,31 @@ def deploy_sensor_combination():
                                    'C4_2': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
                                    'C5': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']
                                   }
-    
     # train and test model
     for config, sensor_list in sensor_placement_combination_dict.items():
         print("Sensor is:",sensor_list)
         features_fields = const.extract_imu_fields(sensor_list, const.IMU_RAW_FIELDS)
         hyperparams=initParameters(labels_names=LABELS_FIELDS, features_names=features_fields)
         print('features are:', hyperparams['features_names'])
-        training_folder, testing_folder, xy_test, scaler =  train_test_loop(hyperparams)
-        list_testing_folders[config]=testing_folder
+        dict_log, xy_test, scaler =  train_test_loops(hyperparams)
+        list_testing_folders[config]=dict_log
 
     # save testing folders
-    with open(study_id+"_list_testing_folders.txt",'a') as f:
-        for config, testing_folder in list_testing_folders.items():
-            f.write(config+'\t'+testing_folder+'\n')
+    overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/"+str(localtimepkg.strftime("%H%M%S", localtimepkg.localtime()))+'.txt')
+    if(os.path.exists(overall_metrics_file)==False):
+        with open(overall_metrics_file,'a') as f:
+            for config, dict_log in list_testing_folders.items():
+                for testing_folder in dict_log["testing_folder"]: # in a loops which has many train and test loop 
+                    f.write(config+'\t'+testing_folder+'\n')
+
+    return overall_metrics_file
 
 
 
-def display_testing_results():
+def display_testing_results(overall_metrics_file):
     # open testing folder
-    list_testing_folders='03222_list_testing_folders.txt'
     assessment={}
-    for line in open(list_testing_folders,'r'):
+    for line in open(overall_metrics_file,'r'):
         #0) tesing results folder
         line=line.strip('\n')
         [sensor_config, testing_folder]=line.split('\t')
@@ -772,15 +786,22 @@ def display_testing_results():
     pd_assessment=pd.DataFrame(assessment,index=index)
     pd_assessment=pd_assessment.T
     pd_assessment=pd_assessment.reset_index();pd_assessment.rename({'index':'Sensor configurations'},axis='columns',inplace=True)
+    pd_assessment.to_csv(re.search("[\s\S]+(\d)+",overall_metrics_file).group()+ "_metrics.csv")
     pd_assessment=pd_assessment.melt(id_vars=['Sensor configurations'],var_name='Metrics',value_name='Value')
 
-    sns.catplot(data=pd_assessment[pd_assessment['Metrics']=='r2'],x='Sensor configurations',y='Value',hue='Metrics',kind='bar')
+    figwidth=10;figheight=10
+    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
+    g=sns.catplot(data=pd_assessment,x='Sensor configurations',y='Value',col='Metrics',col_wrap=2,kind='bar',height=3, aspect=0.8,sharey=False)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=0.1, wspace=0.15)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    [ax.yaxis.grid(True) for ax in g.axes]
     plt.show()
+    g.savefig(re.search("[\s\S]+(\d)+",overall_metrics_file).group()+ "_metrics.svg")
 
 
-    pd_assessment.to_csv("assessment.csv")
         
 if __name__=='__main__':
-    #deploy_sensor_combination()
-    display_testing_results()
+    overall_metrics_file=deploy_sensor_combination()
+    #overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/195758.txt")
+    display_testing_results(overall_metrics_file)
     

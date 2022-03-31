@@ -51,9 +51,9 @@ from scipy import stats
 from statannotations.Annotator import Annotator
 
 if __name__=='__main__':
-    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, EXPERIMENT_RESULTS_PATH
+    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, RESULTS_PATH
 else:
-    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,EXPERIMENT_RESULTS_PATH
+    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,RESULTS_PATH
 
 
 from sklearn.preprocessing import StandardScaler
@@ -169,7 +169,7 @@ def read_rawdata(row_idx: int,col_names: list,raw_datasets_path=None,**args)-> n
             
 def load_normalize_data(hyperparams,scaler=None,**args):
 
-    sub_idx=hyperparams['sub_idx']
+    sub_idx=hyperparams['subjects_trials']
     
     [SINGLE_MODE, MULTI_NUM_MODE, MULTI_NAME_MODE, MULTI_NAME_TRIAL_MODE]=range(4)
     #**** Single subject test
@@ -332,7 +332,7 @@ def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_typ
         
 
 
-def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/')):
+def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(RESULTS_PATH,'models_parameters_results/')):
     '''
     Create folder and sub folder for training, as well as model source code and super parameters
 
@@ -420,7 +420,7 @@ def save_training_process(training_folder, loss):
 
 
 
-def create_testing_files(training_folder, base_folder=os.path.join(EXPERIMENT_RESULTS_PATH,'models_parameters_results/')):
+def create_testing_files(training_folder, base_folder=os.path.join(RESULTS_PATH,'models_parameters_results/')):
 
     # Create top folder based on date
     date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
@@ -665,44 +665,26 @@ def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:
         plt.text(idx-100, -1.5,idx[0],fontsize='small',rotation='vertical')
     plt.ylim(-2,2)
     #plt.xlim(900,5000)
-    plt.savefig(os.path.joint(EXPERIMENT_RESULTS_PATH,'models_parameters_results/split_droplanding.svg'))
+    plt.savefig(os.path.joint(RESULTS_PATH,'models_parameters_results/split_droplanding.svg'))
     return (start_drop,end_drop)
 
 
 
-#sub_idx=2
-#start_drop, end_drop=extract_subject_drop_landing_data(sub_idx)
-
-def drop_landing_range():
-
-    # subject 0
-    Up_sub0  = [1012, 1804,2594,3419,4157,4933,5695,6460]
-    Down_sub0= [1173,1974,2755,3565,4306,5100,5863,6625]
-
-    #subject 1
-    Up_sub1   =[1268,2148,2970,3731,4453,5311,6312,6903]
-    Down_sub1 =[1374,2355,3130,3904,4628,5473,6476,7090]
 
 
+def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, displayed_variables, subjects: list, trial_categories,plot_type='catbox'):
 
-
-
-
-
-def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name, subjects: list, categories,plot_type='catbox'):
-
-    phi={}
-    for cat_idx, category in enumerate(categories):# trial types
-        phi[category]={}
-        for sub_idx, subject in enumerate(subjects):# subjects
-            phi[category][subject]=[]
-            one_subject_data=data[sub_idx]
-            for idx in range(5*cat_idx,5*(cat_idx+1)):# trials
+    variables={}
+    for sub_idx, subject in enumerate(subjects):# subjects
+        variables[subject]={}
+        one_subject_data=data[sub_idx]
+        for trial_idx, trial in enumerate(trial_categories):# trial types/categories
+            variables[subject][trial]=[]
+            for idx in range(5*trial_idx,5*(trial_idx+1)):# trial numbers
                 pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
-                temp_left=pd_temp_data[display_name[0]]
-                temp_right=pd_temp_data[display_name[1]]
-                phi[category][subject].append(max([max(temp_right),max(temp_left)]))
-                print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,phi[category][subject][-1]))
+                displayed_values=pd_temp_data[displayed_variables]
+                variables[subject][trial].append(displayed_values.max().values.max())
+                print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,trial,variables[subject][trial][-1]))
 
     
     #2) plot
@@ -713,33 +695,24 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
     axs=[]
     axs.append(fig.add_subplot(gs1[0:6,0]))
 
-    FPA=[ str(ll) for ll in categories]
+    FPA=[ str(ll) for ll in trial_categories]
     print(FPA)
-    ind= np.arange(len(categories))
+    ind= np.arange(len(trial_categories))
+    
+    # transfer variables dict into pandas
+    pd_variables=pd.DataFrame(variables).T
+    for col in pd_variables.columns.values:
+        pd_variables=pd_variables.explode(col)
+    pdb.set_trace()
 
 
     #3.1) plot 
-    phi_values=[]
-    pd_phi_values_list=[]
-    subject_names=list(phi[categories[0]].keys())
-    for idx,subject_name in enumerate(subject_names):
-        phi_values.append([])
-        for category in categories:
-            phi_values[idx].append(phi[category][subject_name])
-            temp=pd.DataFrame(data=phi[category][subject_name],columns=["values"])
-            temp.insert(1,'categories',category)
-            temp.insert(2,'subject_names',subject_name)
-            pd_phi_values_list.append(temp)
-    
-    pd_phi_values=pd.concat(pd_phi_values_list)
-
-
     if(plot_type=='catbox'):
         idx=0
         boxwidth=0.05
         box=[]
         for box_idx in range(len(subject_names)):
-            box.append(axs[idx].boxplot(phi_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
+            box.append(axs[idx].boxplot(variables_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
            # fill with colors
         colors = ['lightblue', 'lightgreen','wheat']
         import matplotlib._color_data as mcd
@@ -764,13 +737,13 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
         idx=0
         sns.set_theme(style='whitegrid')
         pdb.set_trace()
-        g=sns.catplot(x='categories',y='values',hue='subject_names',data=pd_phi_values,kind='point')
-        #g=sns.catplot(x='categories',y='values',data=pd_phi_values,kind='point')
+        g=sns.catplot(x='trial_categories',y='values',hue='subject_names',data=pd_variables_values,kind='point')
+        #g=sns.catplot(x='trial_categories',y='values',data=pd_variables_values,kind='point')
 
 
         
-        g=sns.FacetGrid(pd_phi_values,col='subject_names',col_wrap=4,sharex=False,sharey=False)
-        g.map(sgs.catplot,'categories','values')
+        g=sns.FacetGrid(pd_variables_values,col='subject_names',col_wrap=4,sharex=False,sharey=False)
+        g.map(sgs.catplot,'trial_categories','values')
 
         g.ax.grid(which='both',axis='x',color='k',linestyle=':')
         g.ax.grid(which='both',axis='y',color='k',linestyle=':')
@@ -780,7 +753,7 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
         #axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
         g.ax.set_xticks(ind)
         g.ax.set_xticklabels(FPA)
-        g.ax.set_ylabel(r'Peak knee moment [BW.BH], display_name')
+        g.ax.set_ylabel(r'Peak knee moment [BW.BH], displayed_variables')
         g.ax.set_xlabel(r'FPA')
 
 
@@ -792,7 +765,7 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, display_name
 
 
 
-def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, subjects: list, categories,plot_type='catbox'):
+def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variables, subjects: list, trial_categories,plot_type='catbox'):
     '''
     Description: Plot peak values of various biomechanic variables for different trials, subjects under various foot progression angles (FPA)
     Parameters: data, a numpy array with three dimensions
@@ -804,7 +777,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     for sub_idx, subject in enumerate(subjects):# subjects
         biomechanic_variables[subject]={}
         static_calibration_value[subject]={}# the variable values in static phase in baseline trial
-        for cat_idx, category in enumerate(categories):# trial types
+        for cat_idx, category in enumerate(trial_categories):# trial types
             biomechanic_variables[subject][category]=[]
             static_calibration_value[subject][category]=[]# the variable values in static phase in baseline trial
             one_subject_data=data[sub_idx]
@@ -813,7 +786,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
                 peak_temp = {}
                 static_temp = {}
                 touch_moment_index=int(DROPLANDING_PERIOD/4) #- check wearable_toolkit, line 173, which define the formula of tocuh_moment 
-                for display in display_name: # biomechanic variables 
+                for display in displayed_variables: # biomechanic variables 
                     #-- calculate peak values
                     if(re.search('FPA',display)): #FPA
                         peak_temp['TOUCH_'+display]=pd_temp_data[display][touch_moment_index]
@@ -847,7 +820,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     # 2)  Tansfer the dict data into pandas dataframe
     pd_biomechanic_variables_list=[]
     for idx,subject in enumerate(subjects):
-        for category in categories:
+        for category in trial_categories:
             temp=pd.DataFrame(data=biomechanic_variables[subject][category])
             pd_biomechanic_variables_list.append(temp)
     
@@ -859,7 +832,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
     # 2.1  Tansfer the static dict data into pandas dataframe
     pd_static_value_list=[]
     for idx,subject in enumerate(subjects):
-        for category in categories:
+        for category in trial_categories:
             temp=pd.DataFrame(data=static_calibration_value[subject][category])
             pd_static_value_list.append(temp)
     
@@ -1252,10 +1225,10 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, display_name, sub
 
 
 
-#- set hyperparaams: sub_idx. subject_name: trial
-def setHyperparams_subject(hyperparams,subject_list=None):
-    if(subject_list==None):
-        subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+#- set hyperparaams: subjects_trials. subject_name: trial
+def setHyperparams_subject(hyperparams,subjects_list=None):
+    if(subjects_list==None):
+        subjects_list=['P_08','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
 
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
     subject_names=[ss for ss in subject_infos.index]
@@ -1264,7 +1237,7 @@ def setHyperparams_subject(hyperparams,subject_list=None):
             if(re.search(subject_idx,subject_name)!=None): # checking the sub_idx_id is in subject_infos
                 subject_idx_name=subject_name
                 break
-        hyperparams['sub_idx'][subject_idx_name]=TRIALS
+        hyperparams['subjects_trials'][subject_idx_name]=TRIALS
 
     return hyperparams
 
@@ -1292,24 +1265,28 @@ hyperparams={
 
 
 if __name__=='__main__':
+
+    #-- define hyper parameters
     multi_subject_data=[]
+    hyperparams={}
+    hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
 
-    #-- list subject names
-    subjects_list=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
-    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
-    subject_names_column=[ss for ss in subject_infos.index]
+    #-- select subjects 
+    selected_subject_ids=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
+    subject_id_names=[ss for ss in subject_infos.index]
 
-    #-- define subject names and load subject dataset
-    subject_names=[]
-    for subject_idx in subjects_list:
-        for subject_name in subject_names_column:
-            if(re.search(subject_idx,subject_name)!=None):
-                subject_idx_name=subject_name
+    #-- choose the selected subjects and load their dataset
+    selected_subject_ids_names=[]
+    for selected_subject_id in selected_subject_ids:
+        for subject_id_name in subject_id_names:
+            if(re.search(selected_subject_id,subject_id_name)!=None):
+                selected_subject_id_name=subject_id_name
                 break
-        print(subject_idx_name)
-        subject_names.append(subject_idx_name)
+        print(selected_subject_id_name)
+        selected_subject_ids_names.append(selected_subject_id_name)
         #-- define hyperparams values: subject, columns_names
-        hyperparams['sub_idx']={subject_idx_name:TRIALS}
+        hyperparams['subjects_trials']={selected_subject_id_name:TRIALS}
         #hyperparams['columns_names']=['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y','L_FPA_Z','R_FPA_Z']
         hyperparams['columns_names']=['L_FPA_Z','R_FPA_Z','L_FPA_X','R_FPA_X',
                             'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
@@ -1320,20 +1297,20 @@ if __name__=='__main__':
                             'PELVIS_ANGLE_X','THORAX_ANGLE_X'
                            ]
         #-- load multiple subject data, the output series columns with indicated sequences
-        series, scaled_series,scaler=load_normalize_data(sub_idx={subject_idx_name:TRIALS},scaler='minmax',hyperparams=hyperparams,assign_trials=True)
+        series, scaled_series,scaler=load_normalize_data(sub_idx={selected_subject_id_name:TRIALS},scaler='minmax',hyperparams=hyperparams,assign_trials=True)
         multi_subject_data.append(series)
     
+
     #-- subject height
-    subject_heights=[float(subject_infos['Unnamed: 3'][sub_name]) for sub_name in subject_names]
+    subject_heights=[float(subject_infos['body height'][sub_name]) for sub_name in selected_subject_ids_names]
     #-- subject mass
-    subject_masses=[float(subject_infos['Unnamed: 2'][sub_name]) for sub_name in subject_names]
+    subject_masses=[float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
 
 
     #-- plot statistic knee moment under various fpa
-    categories=['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
-    display_names=['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
-    #plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],display_names,subjects_list,categories,plot_type="s")
-
+    trial_categories=['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    displayed_variables=['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
+    plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],displayed_variables,selected_subject_ids,trial_categories,plot_type="s")
 
 
     #-- display time-based curves of the dataset
@@ -1341,7 +1318,7 @@ if __name__=='__main__':
 
 
     #-- display statistic peak value under various fpa
-    categories = ['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    trial_categories = ['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
     display_bio_variables = ['L_FPA_Z','R_FPA_Z',
                             'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
                             'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
@@ -1352,7 +1329,7 @@ if __name__=='__main__':
     display_bio_variables = ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
 
 
-    plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, subjects_list, categories, plot_type="s")
+    plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, selected_subject_ids, trial_categories, plot_type="s")
 
     #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
     #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)

@@ -7,14 +7,10 @@ OPENPOSE_MODEL_PATH = os.environ.get('OPENPOSE_MODEL_PATH')
 VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 
 
-#DATA_PATH = os.environ.get('KAM_DATA_PATH')
-#DATA_VISULIZATION_PATH=os.path.join(DATA_PATH,'dataset_visulization')
 
-#TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
-TRIAL_NUM=40
-TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]
-SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon']
-#SESSIONS=['20211026_vicon']
+TRIAL_NUM=30
+TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
+SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon'] # vicon experiment sessions
 
 
 #XSEN_IMU_ID={'MASTER':'0120092C','L_THIGH':'00B44910','L_SHANK':'00B4490A','R_THIGH':'00B44912','R_SHANK':'00B44916'} # for lower body plugin gait
@@ -47,7 +43,7 @@ SUBJECTS = [
 
 
 
-DYNAMIC_TRIALS = ['baseline', 'parallel', 'toe_in', 'toe_out']
+#DYNAMIC_TRIALS = ['baseline', 'parallel', 'toe_in', 'toe_out']
 DYNAMIC_TRIALS = ['baseline', 'fpa_01', 'fpa_02','fpa_03','fpa_04','fpa_05','single']
 STATIC_TRIALS = ['static']
 
@@ -214,6 +210,7 @@ DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验�
 这三个变量的设置 需要一致
 """
 DATA_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/D drop landing"
+
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 
 
@@ -229,17 +226,15 @@ V3D_LABELS_FIELDS = ['LON','RON']+['L_'+ temp + dire for temp in BIOMECHANICS_VA
 
 
 # experimental results are stored at this path
-EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/Experimental_Results"
-EXPERIMENT_RESULTS_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results"
+RESULTS_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results"
 
-DATA_VISULIZATION_PATH=os.path.join(EXPERIMENT_RESULTS_PATH,'datasets_files','dataset_visulization')
+DATA_VISULIZATION_PATH=os.path.join(RESULTS_PATH,'datasets_files','dataset_visulization')
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 #LABELS_FIELDS= ['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','L_KNEE_MOMENT_Z']
 LABELS_FIELDS= ['L_GRF_X','L_GRF_Y','L_GRF_Z']
 
-
-
+# subjects with wrong trial data
 WRONG_TRIALS={subject:[] for subject in SUBJECTS}
 WRONG_TRIALS['P_09_libang']=['09']

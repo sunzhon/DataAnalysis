@@ -1,9 +1,0 @@
-C1	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_162611/test_1
-C2_1	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_162735/test_1
-C2_2	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_162857/test_1
-C3_1	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163019/test_1
-C3_2	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163141/test_1
-C3_3	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163303/test_1
-C4_1	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163425/test_1
-C4_2	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163547/test_1
-C5	/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-03-22/test_163710/test_1
