@@ -1,20 +1,18 @@
 import os
 import pdb
 
-GRAVITY = 9.81
 VIDEO_PATH = os.environ.get('VIDEO_DATA_PATH')
 OPENPOSE_MODEL_PATH = os.environ.get('OPENPOSE_MODEL_PATH')
 VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 
 
-
-TRIAL_NUM=30
-TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
-SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon'] # vicon experiment sessions
-
-
+GRAVITY = 9.81
 #XSEN_IMU_ID={'MASTER':'0120092C','L_THIGH':'00B44910','L_SHANK':'00B4490A','R_THIGH':'00B44912','R_SHANK':'00B44916'} # for lower body plugin gait
 XSEN_IMU_ID={'MASTER':'0120092C','CHEST':'00B44914','WAIST':'00B44918','L_THIGH':'00B44915','L_SHANK':'00B44909','L_FOOT':'00B44907','R_THIGH':'00B4490C','R_SHANK':'00B4490E','R_FOOT':'00B44911'}
+
+
+SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','20211026_vicon'] # vicon experiment sessions
+
 
 
 SUBJECTS = [
@@ -40,6 +38,8 @@ SUBJECTS = [
             ]
 
 
+TRIAL_NUM=30
+TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
 
 
 

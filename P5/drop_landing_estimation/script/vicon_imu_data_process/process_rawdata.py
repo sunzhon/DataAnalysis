@@ -38,6 +38,7 @@ import pdb
 import re
 import warnings
 import termcolor
+import matplotlib._color_data as mcd
 
 import datetime
 
@@ -515,98 +516,46 @@ def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.nd
 
 
 
-def display_rawdatase(datasets_ranges,col_names,norm_type='mean_std',**args):
+def plot_rawdataset_curves(datasets, col_names=None, figwidth=8.5,figheight=3,figtitle="Figure",show=False,**args):
     '''
-    Params: datasets_ranges: a two dimension numpy or a range 
+    Params: datasets: a two dimension numpy: experiment trial
 
     '''
     #0) read datasets
-    print(isinstance(datasets_ranges,np.ndarray))
-
-    #-- input datasets
-    if(isinstance(datasets_ranges, np.ndarray)):# load dataset from a numpy array
-        datasets=copy.deepcopy(datasets_ranges)
-    else:#-- load dataset from a h5 file 
-        if('raw_datasets_path' in args.keys()):
-            raw_datasets_path=args['raw_datasets_path']
-        else:
-            raw_datasets_path="./datasets_files/raw_datasets.hdf5"
-        datasets=read_rawdata(range(datasets_ranges[0],datasets_ranges[1]),col_names,raw_datasets_path)
-    
-    #1) data process
-    if datasets.ndim>=3:# 如果是三维，说明有多个trials, 将他们按行合并
-        datasets=datasets.reshape(-1,datasets.shape[-1])
-    #-- normalize datasets if speified
-    if(norm_type!=None):
-        datasets_norm=norm_datasets(datasets,col_names,norm_type)
-        pd_datasets=pd.DataFrame(data=datasets_norm,columns=col_names)
-        print('plot normalized raw datasets')
-    else:
+    if(isinstance(datasets,np.ndarray)):
         pd_datasets=pd.DataFrame(data=datasets,columns=col_names)
-        print('plot raw datasets without normalization')
+    if(isinstance(datasets,pd.DataFrame)):
+        pd_datasets=datasets
+
+    # add time column
+    pd_datasets['time']=np.linspace(0,DROPLANDING_PERIOD/100,DROPLANDING_PERIOD)
+    pd_datasets=pd_datasets.melt(id_vars=['time'],var_name='cols',value_name='vals')
+
 
     #2) plots
-    figsize=(14,16)
-    fig=plt.figure(figsize=figsize)
-    plot_method='seaborn'
-    if(plot_method=='matplotlib'):#绘制的方法
-        display_rows=args['display_rows']#绘制的行数
-        display_cols=args['display_cols']#绘制的列数
-        gs1=gridspec.GridSpec(2*len(display_rows),len(display_cols))#13
-        gs1.update(hspace=0.1,wspace=0.15,top=0.95,bottom=0.05,left=0.04,right=0.98)
-        axs=[]
-        for plot_col in range(2):
-            for plot_row in range(len(display_rows)):
-                axs.append(fig.add_subplot(gs1[2*plot_row:2*plot_row+2,plot_col]))
+    # plot configuration
+    subplot_left=0.08; subplot_right=0.95; subplot_top=0.9;subplot_bottom=0.1; hspace=0.12; wspace=0.12
 
-        print(pd_datasets.shape)
-        axs=np.array(axs).reshape(2,-1).T
-        freq=100.0;
-        Time=np.linspace(0,pd_datasets.shape[0]/freq,num=pd_datasets.shape[0])
-        for plot_col in range(2):# Left and ight
-            axs[0,plot_col].set_title(args['plot_title'])
-            if plot_col==0:
-                prefix="L_"
-            else:
-                prefix="R_"
-            for plot_idx, plot_row in enumerate(display_rows):
-                axs[plot_idx,plot_col].plot(Time,pd_datasets[prefix+plot_row])
-                axs[plot_idx,plot_col].legend([prefix+plot_row])
+    # plot
+    g=sns.FacetGrid(pd_datasets,col='cols',col_wrap=3,height=2,sharey=False)
+    g.map_dataframe(sns.lineplot,'time','vals')
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=hspace,wspace=wspace)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    g.set_titles(col_template=figtitle+" {col_name}")
+    g.set(xticks=np.linspace(0,0.8,9))# xticks
+    # add grid on every axs
+    [ax.grid(which='both',axis='both',color='k',linestyle=':') for ax in g.axes]
 
-                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1]])
-                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+2]])
-                #axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+3]])
-                #axs[plot_idx,plot_col].legend(col_names[3*plot_idx+plot_col*len(FEATURES_FIELDS)+1:3*plot_idx+plot_col*len(FEATURES_FIELDS)+4],ncol=3)
-                axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
-                axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
-                #axs[plot_idx].set_ylabel()
-                axs[plot_idx,plot_col].set_xticklabels([])
-            # plot targets
-            #for plot_idx in range(6,9):
-            #    axs[plot_idx,plot_col].plot(Time,pd_datasets[col_names[plot_idx-(12-3*plot_idx)]])
-            #    axs[plot_idx,plot_col].legend([col_names[plot_idx-(12-plot_col*3)]])
-            #    axs[plot_idx,plot_col].grid(which='both',axis='x',color='k',linestyle=':')
-            #    axs[plot_idx,plot_col].grid(which='both',axis='y',color='k',linestyle=':')
-            #    axs[plot_idx,plot_col].set_xticklabels(labels=[])
-            
-            xticks=axs[plot_idx,plot_col].get_xticks()
-            #axs[plot_idx,plot_col].set_ylim((-10,120))
-            #axs[plot_idx,plot_col].set_xticklabels([str(round(tt,1)) for tt in xticks])
-            axs[plot_idx,plot_col].set_xlabel("Time [s]")
+    # save file
+    datasets_visulization_folder=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d_%H")))
+    if(not os.path.exists(datasets_visulization_folder)):
+        os.makedirs(datasets_visulization_folder)
+    datasets_visulization_path=os.path.join(datasets_visulization_folder,str(localtimepkg.strftime("%M_%S", localtimepkg.localtime()))+"_rawdata_curves.svg")
+    g.savefig(datasets_visulization_path)
+    if(show):
+        plt.show()
 
-    if(plot_method=='seaborn'):
-        pd_datasets['time']=np.linspace(0,DROPLANDING_PERIOD/100,DROPLANDING_PERIOD)
-        reshape_pd_datasets=pd_datasets.melt(id_vars=['time'],var_name='cols',value_name='vals')
-        #sns.lineplot(data=reshape_pd_datasets,x='time',y='vals',hue='cols')
-        g=sns.FacetGrid(reshape_pd_datasets,col='cols',col_wrap=4,height=2)
-        g.map_dataframe(sns.lineplot,'time','vals')
-
-
-    datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
-    plt.savefig(datasets_visulization_path)
-    plt.show()
-    #data_mean, data_std = normalization_parameters(200,features_names)    
-    #print(data_std)
+    plt.close("all")
 
 
 
@@ -670,94 +619,57 @@ def extract_subject_drop_landing_data(sub_idx: int)->np.ndarray:
 
 
 
-
-
-def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, displayed_variables, subjects: list, trial_categories,plot_type='catbox'):
-
+def calculate_statistic_variable(data: list, col_names:list, displayed_variables, subjects: list, trial_categories, statistic_methods='max',statistic_value_name='KAM'):
+    # retrieve variables of subjects' trials for display from "data"
     variables={}
-    for sub_idx, subject in enumerate(subjects):# subjects
+    for subject in subjects:# subjects
         variables[subject]={}
-        one_subject_data=data[sub_idx]
+        one_subject_data=data[subject]
         for trial_idx, trial in enumerate(trial_categories):# trial types/categories
             variables[subject][trial]=[]
             for idx in range(5*trial_idx,5*(trial_idx+1)):# trial numbers
                 pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
                 displayed_values=pd_temp_data[displayed_variables]
-                variables[subject][trial].append(displayed_values.max().values.max())
-                print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,trial,variables[subject][trial][-1]))
+                ## get the max value of displayed variables ###
+                if(statistic_methods=='max'):
+                    variables[subject][trial].append(displayed_values.max().values.max())
 
-    
-    #2) plot
-    figsize=(8,4)
-    fig = plt.figure(figsize=figsize,constrained_layout=False)
-    gs1=gridspec.GridSpec(6,1)#13
-    gs1.update(hspace=0.18,top=0.95,bottom=0.16,left=0.12,right=0.89)
-    axs=[]
-    axs.append(fig.add_subplot(gs1[0:6,0]))
+                print("The trial:{} of subject:{} in session:{} has values: {}".format(idx, subject,trial,variables[subject][trial]))
 
-    FPA=[ str(ll) for ll in trial_categories]
-    print(FPA)
-    ind= np.arange(len(trial_categories))
-    
+
     # transfer variables dict into pandas
     pd_variables=pd.DataFrame(variables).T
     for col in pd_variables.columns.values:
         pd_variables=pd_variables.explode(col)
-    pdb.set_trace()
 
+    pd_variables=pd_variables.reset_index().rename(columns={'index':'subject names'}).melt(id_vars='subject names',var_name='trial categories', value_name=statistic_value_name)
 
-    #3.1) plot 
-    if(plot_type=='catbox'):
-        idx=0
-        boxwidth=0.05
-        box=[]
-        for box_idx in range(len(subject_names)):
-            box.append(axs[idx].boxplot(variables_values[box_idx],widths=boxwidth, positions=ind+(box_idx-int(len(subject_names)/2))*boxwidth ,vert=True,patch_artist=True,meanline=True,showmeans=True,showfliers=False)) 
-           # fill with colors
-        colors = ['lightblue', 'lightgreen','wheat']
-        import matplotlib._color_data as mcd
-        overlap = {name for name in mcd.CSS4_COLORS if "xkcd:" + name in mcd.XKCD_COLORS}
-        colors=[mcd.CSS4_COLORS[color_name] for color_name in overlap]
-
-        for bplot, color in zip(box,colors[0:len(box)]):
-            for patch in bplot['boxes']:
-                patch.set_facecolor(color)
-
-        axs[idx].grid(which='both',axis='x',color='k',linestyle=':')
-        axs[idx].grid(which='both',axis='y',color='k',linestyle=':')
-        #axs[idx].set_yticks([0,0.1,0.2,0.3])
-        #axs[idx].set(ylim=[-0.01,0.3])
-        legend_names=[name for name in subject_names]
-        axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
-        axs[idx].set_xticks(ind)
-        axs[idx].set_xticklabels(FPA)
-        axs[idx].set_ylabel(r'Knee Moment [weight*NM]')
-        axs[idx].set_xlabel(r'FPA')
-    else:
-        idx=0
-        sns.set_theme(style='whitegrid')
-        pdb.set_trace()
-        g=sns.catplot(x='trial_categories',y='values',hue='subject_names',data=pd_variables_values,kind='point')
-        #g=sns.catplot(x='trial_categories',y='values',data=pd_variables_values,kind='point')
-
-
-        
-        g=sns.FacetGrid(pd_variables_values,col='subject_names',col_wrap=4,sharex=False,sharey=False)
-        g.map(sgs.catplot,'trial_categories','values')
-
-        g.ax.grid(which='both',axis='x',color='k',linestyle=':')
-        g.ax.grid(which='both',axis='y',color='k',linestyle=':')
-        #axs[idx].set_yticks([0,0.1,0.2,0.3])
-        #axs[idx].set(ylim=[-0.01,0.3])
-        legend_names=[name for name in subject_names]
-        #axs[idx].legend([bx['boxes'][0] for bx in box],legend_names[0:len(box)],ncol=4)
-        g.ax.set_xticks(ind)
-        g.ax.set_xticklabels(FPA)
-        g.ax.set_ylabel(r'Peak knee moment [BW.BH], displayed_variables')
-        g.ax.set_xlabel(r'FPA')
+    return pd_variables
+    
 
 
 
+
+def plot_statistic_variables(pd_variables,x='trial categories',y='PKAM',hue=None,col=None,col_wrap=None,kind='bar'):
+
+    #1) plot configuration
+    figwidth=12.3;figheight=12.4
+    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
+
+    # x axis labels
+    FPA=[ str(ll) for ll in trial_categories]
+    print(FPA)
+    ind= np.arange(len(trial_categories))
+    
+    sns.set_theme(style='whitegrid')
+
+    #2) plot
+    g=sns.catplot(data=pd_variables, x=x,y=y,col=col,col_wrap=col_wrap,sharey=False,kind=kind)
+    g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+    
+    # add grid on every axs
+    [ax.grid(which='both',axis='x',color='k',linestyle=':') for ax in g.axes]
 
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+".svg")
     plt.savefig(datasets_visulization_path)
@@ -765,7 +677,7 @@ def plot_statistic_kneemoment_under_fpa(data: list, col_names:list, displayed_va
 
 
 
-def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variables, subjects: list, trial_categories,plot_type='catbox'):
+def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variables, subjects: list, trial_categories):
     '''
     Description: Plot peak values of various biomechanic variables for different trials, subjects under various foot progression angles (FPA)
     Parameters: data, a numpy array with three dimensions
@@ -776,11 +688,11 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
     static_calibration_value={}# the variable values in static phase in baseline trial
     for sub_idx, subject in enumerate(subjects):# subjects
         biomechanic_variables[subject]={}
+        one_subject_data=data[subject]
         static_calibration_value[subject]={}# the variable values in static phase in baseline trial
         for cat_idx, category in enumerate(trial_categories):# trial types
             biomechanic_variables[subject][category]=[]
             static_calibration_value[subject][category]=[]# the variable values in static phase in baseline trial
-            one_subject_data=data[sub_idx]
             for idx in range(5*cat_idx,5*(cat_idx+1)):# trials number
                 pd_temp_data= pd.DataFrame(data=one_subject_data[idx,:,:],columns=col_names)
                 peak_temp = {}
@@ -849,6 +761,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
     #-- reset the FPA class 
     FPA_categories=['F1','F2','F3','F4']
 
+    # calibrate the values by substract static calibration value
     pd_temp2=[]
     for subject in subjects:
         pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z'] = pd_biomechanic_variables.loc[pd_biomechanic_variables['subjects']==subject,'TOUCH_LR_FPA_Z']-baseline_trial_data_mean['TOUCH_LR_FPA_Z'][subject] # ALL FPA subtract mean FPA
@@ -909,14 +822,15 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
 
 
 
-        pdb.set_trace()
+    # save peak metrics
+    peak_metrics_data_path=os.path.join(RESULTS_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_peak_metrics.csv")
+    pd_biomechanic_variables.to_csv(peak_metrics_data_path)
     
     #2) plot
-    
     # paraemter setup for plot
     test_method = 'Mann-Whitney'
     figwidth=12.3;figheight=12.4
-    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
+    subplot_left=0.08; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06; hspace=0.12; wspace=0.12
     xticklabels=FPA_categories
     sns.set_theme(style='whitegrid')
     pairs=[('FPA_01','FPA_02'),('FPA_02','FPA_03'),('FPA_03','FPA_04'),('FPA_04','FPA_05'),('FPA_05','FPA_06')]
@@ -935,7 +849,7 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
     #annotator.apply_and_annotate()
     g.set_axis_labels("FPA", r"Knee flexion angle [deg]")
     g.set_xticklabels(xticklabels)
-    plt.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom)
+    plt.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=hspace,wspace=wspace)
     g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
     datasets_visulization_path=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime()))+"_KFA.svg")
     plt.savefig(datasets_visulization_path)
@@ -1237,7 +1151,10 @@ def setHyperparams_subject(hyperparams,subjects_list=None):
             if(re.search(subject_idx,subject_name)!=None): # checking the sub_idx_id is in subject_infos
                 subject_idx_name=subject_name
                 break
-        hyperparams['subjects_trials'][subject_idx_name]=TRIALS
+        hyperparams['subjects_trials'][subject_idx_name]=TRIALS # TRIALS is "01", "02", ...
+    
+    # particular subjects with some trials not useful
+    hyperparams['subjects_trials']['P_19_xiongyihui']=TRIALS[1:]
 
     return hyperparams
 
@@ -1267,18 +1184,21 @@ hyperparams={
 if __name__=='__main__':
 
     #-- define hyper parameters
-    multi_subject_data=[]
+    multi_subject_data={}
     hyperparams={}
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
 
     #-- select subjects 
     selected_subject_ids=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    #-- subject info
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
     subject_id_names=[ss for ss in subject_infos.index]
+
 
     #-- choose the selected subjects and load their dataset
     selected_subject_ids_names=[]
     for selected_subject_id in selected_subject_ids:
+        # check whether the selected subject is in subject_infos.csv
         for subject_id_name in subject_id_names:
             if(re.search(selected_subject_id,subject_id_name)!=None):
                 selected_subject_id_name=subject_id_name
@@ -1288,6 +1208,7 @@ if __name__=='__main__':
         #-- define hyperparams values: subject, columns_names
         hyperparams['subjects_trials']={selected_subject_id_name:TRIALS}
         #hyperparams['columns_names']=['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y','L_FPA_Z','R_FPA_Z']
+        """
         hyperparams['columns_names']=['L_FPA_Z','R_FPA_Z','L_FPA_X','R_FPA_X',
                             'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
                             'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
@@ -1296,27 +1217,46 @@ if __name__=='__main__':
                             'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
                             'PELVIS_ANGLE_X','THORAX_ANGLE_X'
                            ]
+        """
+        hyperparams['columns_names']=FEATURES_FIELDS+LABELS_FIELDS
         #-- load multiple subject data, the output series columns with indicated sequences
         series, scaled_series,scaler=load_normalize_data(sub_idx={selected_subject_id_name:TRIALS},scaler='minmax',hyperparams=hyperparams,assign_trials=True)
-        multi_subject_data.append(series)
-    
+        multi_subject_data[selected_subject_id]=series
 
+    
     #-- subject height
     subject_heights=[float(subject_infos['body height'][sub_name]) for sub_name in selected_subject_ids_names]
     #-- subject mass
     subject_masses=[float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
 
 
+    
+    data=pd.DataFrame(data=multi_subject_data['P_11'][1],columns=hyperparams['columns_names'])
+    data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z']]
+    plot_rawdataset_curves(data,figheight=6,figtitle='P_19 trial 02',show=True)
+
+    pdb.set_trace()
+
+    #---------------------------------PLOT 1 ----------------------------#
+    # checking dataset of each trials of each subjects
+    for subject in selected_subject_ids:
+        for trial in TRIALS:
+            data=pd.DataFrame(data=multi_subject_data[subject][int(trial)-1],columns=hyperparams['columns_names'])
+            data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z']]
+            plot_rawdataset_curves(data,figheight=6,figtitle=subject+"_"+trial)
+
+
+
+
+    #---------------------------------PLOT 1 ----------------------------#
     #-- plot statistic knee moment under various fpa
-    trial_categories=['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
-    displayed_variables=['L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y']
-    plot_statistic_kneemoment_under_fpa(multi_subject_data,hyperparams['columns_names'],displayed_variables,selected_subject_ids,trial_categories,plot_type="s")
+    trial_categories = ['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
+    displayed_variables = ['L_GRF_Z']
+    #pd_statistic_variables = calculate_statistic_variable(multi_subject_data,hyperparams['columns_names'],displayed_variables,selected_subject_ids,trial_categories)
+    #plot_statistic_variables(pd_statistic_variables,x='trial categories',y='KAM',col='subject names',col_wrap=len(selected_subject_ids)//4)
 
 
-    #-- display time-based curves of the dataset
-    #display_rawdatase(series[0,:,:], hyperparams['columns_names'], norm_type=None)
-
-
+    #---------------------------------PLOT 1 ----------------------------#
     #-- display statistic peak value under various fpa
     trial_categories = ['baseline','fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
     display_bio_variables = ['L_FPA_Z','R_FPA_Z',
@@ -1327,13 +1267,7 @@ if __name__=='__main__':
                             'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
                            ]
     display_bio_variables = ['L_FPA_Z','R_FPA_Z', 'L_FPA_X','R_FPA_X',  'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y',  'R_KNEE_MOMENT_Z','L_KNEE_MOMENT_Z',  'L_KNEE_MOMENT_Y','L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y',  'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X',   'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z' ,'PELVIS_ANGLE_X','THORAX_ANGLE_X']
+    #plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, selected_subject_ids, trial_categories)
 
-
-    plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, selected_subject_ids, trial_categories, plot_type="s")
-
-    #dp_lib.display_rawdatase(scaled_series[6000:6250,:], columns_names, norm_type=None, raw_datasets_path=raw_dataset_path,plot_title='sub_'+str(sub_idx))
-    #dp_lib.display_rawdatase(scaler.inverse_transform(scaled_series[6000:6250,:]), columns_names, norm_type=None, raw_datasets_path=raw_dataset_path)
-    #dp_lib.display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')
-    #display_rawdatase(datasets_ranges, columns_names, norm_type='mean_std', raw_datasets_path=raw_dataset_path,plot_title='raw data')
     
 
