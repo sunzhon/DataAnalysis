@@ -353,24 +353,26 @@ def create_training_files(model_object=None, hyperparams={'lr':0},base_folder='.
 
     '''
 
-    # Create top folder based on date
+    # create top folder based on date
     date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
     if(os.path.exists(date_base_folder)==False):
         os.makedirs(date_base_folder)
-    # Create training sub folder
+
+    # create training sub folder
     training_folder=date_base_folder+"/training_"+ str(localtimepkg.strftime("%H%M%S", localtimepkg.localtime()))
     if(os.path.exists(training_folder)==False):
         os.makedirs(training_folder)
 
-    # Create train process sub folder
+    # create train process sub folder
     training_process_folder=training_folder+"/train_process"
     if(os.path.exists(training_process_folder)==False):
         os.makedirs(training_process_folder)
-    # sub folder for loss plots
+
+    # create sub folder for loss plots
     training_process_folder_lossplots=training_process_folder+"/lossplots/"
     os.makedirs(training_process_folder_lossplots)
 
-    # Create train results sub folder
+    # create train results sub folder
     training_results_folder=training_folder+"/train_results"
     if(os.path.exists(training_results_folder)==False):
         os.makedirs(training_results_folder)
@@ -383,7 +385,7 @@ def create_training_files(model_object=None, hyperparams={'lr':0},base_folder='.
         with open(model_file, 'w') as fd:
             fd.write(source)
 
-    # save hyper parameters to hyperparam.yaml
+    # save hyper parameters of training to hyperparam.yaml
     hyperparams_file=training_folder+"/hyperparams.yaml"
     with open(hyperparams_file,'w') as fd:
         yaml.dump(hyperparams,fd)
@@ -437,22 +439,30 @@ def save_training_process(training_folder, loss):
 
 def create_testing_files(training_folder, base_folder='./models_parameters_results/'):
 
-    # Create top folder based on date
-    date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
-    if(os.path.exists(date_base_folder)==False):
+    # create top folder based on date
+    date_base_folder = base_folder + str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
+    if(os.path.exists(date_base_folder) == False):
         os.makedirs(date_base_folder)
-    # Create testing sub folder
-    training_id=re.search(r"\d+$",training_folder).group()
-    testing_folder=date_base_folder+"/test_"+training_id
-    if(os.path.exists(testing_folder)==False):
+
+    # create testing sub folder
+    training_id = re.search(r"\d+$",training_folder).group()
+    testing_folder = date_base_folder + "/test_" + training_id
+    if(os.path.exists(testing_folder) == False):
         os.makedirs(testing_folder)
 
-    #Ceate testing sub folder for each test
-    test_id=len(os.listdir(testing_folder))+1
-    each_testing_folder=testing_folder+"/test_"+str(test_id)
+    # ceate testing sub folder for each test
+    test_id = len(os.listdir(testing_folder)) + 1
+    each_testing_folder = testing_folder + "/test_" + str(test_id)
     if(os.path.exists(each_testing_folder)==False):
         os.makedirs(each_testing_folder)
     
+
+    # save hyper parameters of testing to hyperparam.yaml
+    hyperparams_file = each_testing_folder + "/hyperparams.yaml"
+    pdb.set_trace()
+    with open(hyperparams_file, 'w') as fd:
+        yaml.dump(hyperparams, fd)
+
     return each_testing_folder
     
 

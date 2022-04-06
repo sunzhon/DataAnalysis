@@ -11,14 +11,38 @@ import copy
 import re
 
 from sklearn.metrics import r2_score, mean_squared_error as mse
-def get_scores(y_true, y_pred):
+
+
+def calculate_scores(y_true, y_pred):
     r2 = r2_score(y_true, y_pred)
     rmse = np.sqrt(mse(y_true, y_pred))
     mae = np.mean(abs((y_true - y_pred)))
     r_rmse = rmse / (y_true.max() - y_true.min())
 
     return r2, rmse, mae, r_rmse
-    
+ 
+def get_estimation_metrics(labels, predictions, labels_names):
+    '''
+    labels and predictions are numpy array
+    labels_names indicate the fields
+
+    '''
+    #i) pandas DataFrame of the above datasets
+    pd_labels = pd.DataFrame(labels,columns=labels_names)
+    pd_predictions = pd.DataFrame(data=predictions,columns=labels_names)
+
+    #ii) calculate metrics
+    scores={}
+    for label in labels_names:
+        scores[label] = list(calculate_scores(pd_labels[label].values,pd_predictions[label].values))
+        print("{}: scores (r2, rmse, mae, r_rmse):".format(label), scores[label][0], scores[label][1], scores[label][2], scores[label][3])
+
+    metrics = pd.DataFrame(data=scores, index=['r2','rmse','mae','r_rmse'])
+    metrics = metrics.reset_index().rename(columns={'index':'metrics'})
+    metrics = metrics.melt(id_vars='metrics',var_name='fields',value_name='scores') 
+
+    return metrics
+
 
 def combine_actual_prediction_data(labels,predictions,labels_names,fig_save_folder=None,**args):
     """
@@ -31,9 +55,6 @@ def combine_actual_prediction_data(labels,predictions,labels_names,fig_save_fold
     #i) Pandas DataFrame of the above datasets
     pd_labels = pd.DataFrame(labels,columns=labels_names)
     pd_predictions = pd.DataFrame(data=predictions,columns=labels_names)
-
-    for idx in range(pd_labels.values.shape[1]):
-        print("scores (r2, rmse, mae, r_rmse):", get_scores(pd_labels.values[:,idx],pd_predictions.values[:,idx]))
 
 
     #ii) add time and legends to pd_labels and pd_predictions
@@ -83,6 +104,7 @@ def plot_estimation_comparison(labels,predictions,labels_names,fig_save_folder=N
     else:
         figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H:%M:%S", localtimepkg.localtime())) + '_test_prediction.svg'
     plt.savefig(figPath)
+    plt.close()
 
 
 def plot_estimation_error(labels,predictions,labels_names,fig_save_folder=None,**args):

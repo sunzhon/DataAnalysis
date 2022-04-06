@@ -326,6 +326,44 @@ def train_model(model,hyperparams, train_loader,eval_loader):
 
 
 
+'''
+Split datasets into train, valid and test
+
+'''
+def split_dataset(scaled_series,sub_idx):
+    #suntao experiment data
+    if(isinstance(sub_idx,dict)):# split multiple subject data (dict), using leave-one-out cross-validtion
+        train_split=scaled_series.shape[0]-2*DROPLANDING_PERIOD
+        valid_split=scaled_series.shape[0]-DROPLANDING_PERIOD
+    
+    xy_train = scaled_series[:train_split,:]
+    xy_valid = scaled_series[train_split:valid_split,:]
+    xy_test = scaled_series[valid_split:,:]
+    
+    
+    # Sensor segment calibration transfer process
+    Init_stage_calibration=False
+    if(Init_stage_calibration):
+        np.random.seed(101)
+        transfer_weight=np.random.randn(features_num,features_num)
+        transfer_temp=np.dot(scaled_init_stage_sub_data['sub_'+str(sub_idx)][:,:features_num],transfer_weight)
+        xy_train[:,:features_num]=xy_train[:,:features_num]+np.tanh(transfer_temp)
+        xy_valid[:,:features_num]=xy_valid[:,:features_num]+np.tanh(transfer_temp)
+        xy_test[:,:features_num]=xy_test[:,:features_num]+np.tanh(transfer_temp)
+        # init info fom calibration stage 
+        xy_train_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_train.shape)
+        xy_valid_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_valid.shape)
+        xy_test_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_test.shape)
+    
+    print("Subject {:} dataset".format(sub_idx))
+    print("xy_train shape:",xy_train.shape)
+    print("xy valid shape:",xy_valid.shape)
+    print("xy_test shape:",xy_test.shape)
+    
+    return xy_train, xy_valid,xy_test
+    
+    
+
 
 
 

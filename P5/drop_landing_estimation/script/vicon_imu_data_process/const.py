@@ -38,14 +38,18 @@ SUBJECTS = [
             ]
 
 
-TRIAL_NUM=30
+# trials performed in drop landing experiments
+TRIAL_NUM=40
 TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
 
-
-
-#DYNAMIC_TRIALS = ['baseline', 'parallel', 'toe_in', 'toe_out']
+# trial types in dynamic movements
 DYNAMIC_TRIALS = ['baseline', 'fpa_01', 'fpa_02','fpa_03','fpa_04','fpa_05','single']
+# trial type in static calbration stage
 STATIC_TRIALS = ['static']
+
+# TRIALS used for training deep neural network model
+TRAIN_USED_TRIAL_NUM=30
+TRAIN_USED_TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRAIN_USED_TRIAL_NUM+1,1)]  #trial number
 
 STEP_TYPES = STANCE, STANCE_SWING = range(2)
 STEP_TYPE = STANCE

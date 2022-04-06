@@ -21,13 +21,12 @@ import copy
 import re
 import json
 
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
 
 from sklearn.preprocessing import StandardScaler
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRIALS
 
 
 from sklearn.model_selection import LeaveOneOut
@@ -46,7 +45,11 @@ print(cpus,gpus)
 Set hyper parameters
 
 '''
-def initParameters(labels_names=None,features_names=None):
+
+
+
+
+def initParameters(labels_names=None,features_names=None,subject_ids=None):
     # hyper parameters
     hyperparams={}
     
@@ -61,64 +64,26 @@ def initParameters(labels_names=None,features_names=None):
     else:
         features_names=features_names
 
+    if(subject_ids==None):
+        subject_ids=['P_08','P_10', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23']
+
     # specify other paramters
     columns_names=features_names+labels_names
     hyperparams['features_num']=len(features_names)
     hyperparams['labels_num']=len(labels_names)
-    hyperparams['features_names']=features_names;
+    hyperparams['features_names']=features_names
     hyperparams['labels_names']=labels_names
-    hyperparams['learning_rate']=8e-2
+    hyperparams['learning_rate']=10e-2
     hyperparams['batch_size']=20
     hyperparams['window_size']=DROPLANDING_PERIOD
     hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=30
+    hyperparams['epochs']=10
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
-    hyperparams['subjects_trials']={}
-    subjects_list=['P_08','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
-    hyperparams=pro_rd.setHyperparams_subject(hyperparams,subjects_list)
+    hyperparams['subjects_trials']=pro_rd.select_valid_subjects_trials(subject_ids)
     
     return hyperparams
 
-
-
-'''
-Split datasets into train, valid and test
-
-'''
-def split_dataset(scaled_series,sub_idx):
-    #suntao experiment data
-    if(isinstance(sub_idx,dict)):# split multiple subject data (dict), using leave-one-out cross-validtion
-        train_split=scaled_series.shape[0]-2*DROPLANDING_PERIOD
-        valid_split=scaled_series.shape[0]-DROPLANDING_PERIOD
-    
-    xy_train = scaled_series[:train_split,:]
-    xy_valid = scaled_series[train_split:valid_split,:]
-    xy_test = scaled_series[valid_split:,:]
-    
-    
-    # Sensor segment calibration transfer process
-    Init_stage_calibration=False
-    if(Init_stage_calibration):
-        np.random.seed(101)
-        transfer_weight=np.random.randn(features_num,features_num)
-        transfer_temp=np.dot(scaled_init_stage_sub_data['sub_'+str(sub_idx)][:,:features_num],transfer_weight)
-        xy_train[:,:features_num]=xy_train[:,:features_num]+np.tanh(transfer_temp)
-        xy_valid[:,:features_num]=xy_valid[:,:features_num]+np.tanh(transfer_temp)
-        xy_test[:,:features_num]=xy_test[:,:features_num]+np.tanh(transfer_temp)
-        # init info fom calibration stage 
-        xy_train_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_train.shape)
-        xy_valid_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_valid.shape)
-        xy_test_init=scaled_init_stage_sub_data['sub_'+str(sub_idx)]*np.ones(xy_test.shape)
-    
-    print("Subject {:} dataset".format(sub_idx))
-    print("xy_train shape:",xy_train.shape)
-    print("xy valid shape:",xy_valid.shape)
-    print("xy_test shape:",xy_test.shape)
-    
-    return xy_train, xy_valid,xy_test
-    
-    
 
 '''
 Packing data into windows 
@@ -318,44 +283,43 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
 
 
 '''
-def save_trained_model(trained_model,history_dict,training_folder,**args):
+def save_trained_model(trained_model,history_dict,training_folder,**kwargs):
 
-    # Load hyperparameters 
+    # load hyperparameters 
     hyperparams_file=training_folder+"/hyperparams.yaml"
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
         fr.close()
+    else:
+        print("Not Found hyper params file at {}".format(hyperparams_file))
+        exit()
 
-    # use the subjects' index as the saved file' name
-    train_sub_idx=hyperparams['train_sub_idx']
-    train_sub_idx_str=train_sub_idx[0]+train_sub_idx[-1]
 
-
-    # Save weights and models
+    #-----save trained model and parameters----------#
     
-    # checkpoints
-    checkpoint_folder=os.path.join(train_sub_idx_str,'checkpoints')
+    # save checkpoints
+    checkpoint_folder=os.path.join(training_folder,'checkpoints')
     if(os.path.exists(checkpoint_folder)==False):
         os.makedirs(checkpoint_folder)
-    checkpoint_name='my_checkpoint_'+train_sub_idx_str+'.ckpt'
+    checkpoint_name='my_checkpoint.ckpt'
     checkpoint=tf.train.Checkpoint(myAwesomeModel=trained_model)
     checkpoint_manager=tf.train.CheckpointManager(checkpoint,directory=checkpoint_folder,
                                                   checkpoint_name=checkpoint_name,max_to_keep=20)
     checkpoint_manager.save()
     
         
-    #saved_model
+    #save trained model
     saved_model_folder=os.path.join(training_folder,'trained_model')
     if(os.path.exists(saved_model_folder)==False):
         os.makedirs(saved_model_folder)
-    saved_model_file=saved_model_folder+'/my_model_'+train_sub_idx_str+'.h5'
+    saved_model_file=saved_model_folder+'/my_model.h5'
     trained_model.save(saved_model_file)
     
-    # save history
+    # save training history
     # Get the dictionary containing each metric and the loss for each epoch
     history_folder = os.path.join(training_folder,'train_process')
-    history_file = history_folder +'/my_history_'+train_sub_idx_str
+    history_file = history_folder +'/my_history'
     # Save it under the form of a json file
     with open(history_file,'w') as fd:
         json.dump(history_dict, fd)
@@ -397,60 +361,67 @@ def plot_history(history_dict):
 '''
 Testing model
 '''
-def test_model(training_folder, xy_test,scaler,**args):
+def test_model(training_folder, xy_test, scaler, **kwargs):
     
-    #1) Crerate test results folder
+    #1) create test results folder
     testing_folder=pro_rd.create_testing_files(training_folder)
     
-    #2) Load hyperparameters, Note the values in hyperparams become string type
+    #2) load hyperparameters, note that the values in hyperparams become string type
     hyperparams_file=os.path.join(training_folder,"hyperparams.yaml")
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
         fr.close()
+    else:
+        print("Not Found hyper params file at {}".format(hyperparams_file))
+        exit()
 
-    
-    #3) use subjects idx of trainning as file names
-    train_sub_idx=hyperparams['train_sub_idx']
-    train_sub_idx_str=train_sub_idx[0]+train_sub_idx[-1]
-
-    #4) load model
-    saved_model_file=os.path.join(training_folder,'trained_model','my_model_'+train_sub_idx_str+'.h5')
-    #print(saved_model_file)
-    trained_model=tf.keras.models.load_model(saved_model_file)
+    #4) load trained model
+    trained_model_file=os.path.join(training_folder,'trained_model','my_model.h5')
+    trained_model=tf.keras.models.load_model(trained_model_file)
     
     #5) test data
     model_output = model_forecast(trained_model, xy_test, hyperparams)
     model_prediction=np.row_stack([model_output[:-1,0,:],model_output[-1,0:,:]])
     
-    
-    #print("Test dataset shape:",xy_test.shape)
-    #print("Model output shape",model_output.shape)
-    #print("Model prediction shape",model_prediction.shape)
-    
-    #6) Reshape and inverse normalization
-    prediction_xy_test=copy.deepcopy(xy_test) # deep copy of test data
+    #6) reshape and inverse normalization
+    prediction_xy_test = copy.deepcopy(xy_test) # deep copy of test data
     prediction_xy_test[:,-int(hyperparams['labels_num']):]=model_prediction # using same shape with all datasets
     predictions = scaler.inverse_transform(prediction_xy_test)[:,-int(hyperparams['labels_num']):] # inversed norm predition
     labels  = scaler.inverse_transform(xy_test)[:,-int(hyperparams['labels_num']):]
     features= scaler.inverse_transform(xy_test)[:,:-int(hyperparams['labels_num'])]
     
-    save_test_result(features,labels,predictions,testing_folder)
+    # save params in testing
+    hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
+    with open(hyperparams_file,'w') as fd:
+        yaml.dump(hyperparams,fd)
     
+    # save testing results
+    save_test_result(features, hyperparams['features_names'], labels, hyperparams['labels_names'], predictions, testing_folder)
+    save_test_metrics(features, hyperparams['features_names'], labels, hyperparams['labels_names'], predictions, testing_folder)
+
     return features,labels,predictions,testing_folder
 
 '''
 save test results
 '''
-def save_test_result(features,labels,predictions,testing_folder):
-    saved_test_results_file=testing_folder+"/test_results"+'.h5'
+def save_test_result(features, features_names, labels, labels_names, predictions, testing_folder):
+    saved_test_results_file = os.path.join(testing_folder, "test_results.h5")
     with h5py.File(saved_test_results_file,'w') as fd:
         fd.create_dataset('features',data=features)
         fd.create_dataset('labels',data=labels)
         fd.create_dataset('predictions',data=predictions)
+        fd['features'].attrs['features_names'] = features_names
+        fd['labels'].attrs['labels_names'] = labels_names
 
 
+def save_test_metrics(features, features_names, labels, labels_names, predictions, testing_folder):
+    metrics_file = os.path.join(testing_folder, "test_metrics.csv")
 
+    metrics = es_as.get_estimation_metrics(labels, predictions, labels_names)
+
+    metrics.to_csv(metrics_file)
+    
 
 
 '''
@@ -466,12 +437,8 @@ def plot_prediction(features,labels,predictions,testing_folder):
     
     #2) preparation
 
-    #i) load hyperparameters, Note: the values in hyperparams become string type
-    if(re.search('test_\d',testing_folder)!=None):
-        testing_folder=os.path.dirname(testing_folder) # 父目录
-
-    training_folder=testing_folder+"/../training_"+re.search("\d+$",testing_folder).group()
-    hyperparams_file=training_folder+"/hyperparams.yaml"
+    #i) load hyper parameters
+    hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
@@ -483,13 +450,9 @@ def plot_prediction(features,labels,predictions,testing_folder):
     
     
     #iii) create file name to save plot results
-    test_sub_idx=hyperparams['test_sub_idx']
-    test_sub_idx_str=''
-    for ii in test_sub_idx:
-        test_sub_idx_str+='_'+str(ii)
-        
-    prediction_file=testing_folder+'/sub'+test_sub_idx_str+'_estimation.svg'
-    prediction_error_file=testing_folder+'/sub'+test_sub_idx_str+'_estimation_error.svg'
+    test_subject_ids = hyperparams['test_subject_ids']
+    prediction_file = os.path.join(testing_folder, test_subject_ids[0] + '_estimation.svg')
+    prediction_error_file = os.path.join(testing_folder, test_subject_ids[0] + '_estimation_error.svg')
     
     
     #iv) plot the estimation results and errors
@@ -515,12 +478,8 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     This function calculate the error between predicted and ground truth, and plot them for comparison
     '''
     
-    if(re.search('test_\d',testing_folder)!=None):
-        testing_folder=os.path.dirname(testing_folder) # 父目录
-
-    # Load hyperparameters, Note the values in hyperparams become string type
-    training_folder=testing_folder+"/../training"+re.search(r"_\d+$",testing_folder).group()
-    hyperparams_file=training_folder+"/hyperparams.yaml"
+    # load hyperparameters, Note the values in hyperparams become string type
+    hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
@@ -532,10 +491,10 @@ def plot_prediction_statistic(features, labels, predictions,testing_folder):
     
     
     # test subject idx, which one is for testing
-    test_sub_idx=hyperparams['test_sub_idx']
-    test_sub_idx_str=''
-    for ii in test_sub_idx:
-        test_sub_idx_str+='_'+str(ii)
+    test_subject_ids=hyperparams['test_subject_ids']
+    test_subject_ids_str=''
+    for ii in test_subject_ids:
+        test_subject_ids_str+='_'+str(ii)
 
     pd_error, pd_NRMSE = estimation_accuracy(predictions,labels,labels_names)
 
@@ -561,15 +520,15 @@ def plot_estimation_accuracy(pd_error, pd_NRMSE):
     sns.set_style(style[4],{'grid.color':'k'})
     sns.catplot(data=pd_error,kind='bar', palette="Set3").set(ylabel='Absolute error [deg]')
     #plt.text(2.3,1.05, r"$\theta_{ae}(t)=abs(\hat{\theta}(t)-\theta)(t)$",horizontalalignment='center', fontsize=20)
-    test_sub_idx=hyperparams['test_sub_idx']
-    savefig_file=testing_folder+'/sub'+str(test_sub_idx_str)+'_mae.svg'
+    test_subject_ids=hyperparams['test_subject_ids']
+    savefig_file=testing_folder+'/sub'+str(test_subject_ids_str)+'_mae.svg'
     plt.savefig(savefig_file)
     
     # NRMSE
     fig=plt.figure(figsize=(10,3))
     sns.catplot(data=pd_NRMSE,kind='bar', palette="Set3").set(ylabel='NRMSE [%]')
     #plt.text(2.3, 2.6, r"$NRMSE=\frac{\sqrt{\sum_{t=0}^{T}{\theta^2_{ae}(t)}/T}}{\theta_{max}-\theta_{min}} \times 100\%$",horizontalalignment='center', fontsize=20)
-    savefig_file=testing_folder+'/sub'+str(test_sub_idx_str)+'_nrmse.svg'
+    savefig_file=testing_folder+'/sub'+str(test_subject_ids_str)+'_nrmse.svg'
     plt.savefig(savefig_file)
     
 
@@ -581,32 +540,23 @@ Normalize all subject data
 
 '''
 def normalize_subjects_data(hyperparams):
-    sub_idxs=hyperparams['subjects_trials']
-    if(isinstance(sub_idxs,list)):
-        hyperparams['subjects_trials'] = ['sub_'+str(ii) for ii in sub_idxs]
-        xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams)
-        subject_data_len=pro_rd.all_datasets_len
+    subjects_trials=hyperparams['subjects_trials']
     
-        norm_trials_data={}
-        start,end=0,0
-        for ii, sub_idx in enumerate(sub_idxs):
-            sub_idx_str='trial_'+str(sub_idx)
-            if(ii==0):
-                start=0
-            else:
-                start=end
-            end+=subject_data_len[sub_idx_str]
-            
-            norm_trials_data[sub_idx_str]=xy_data[start:end,:]
-        return norm_trials_data, scaler
+    assert(subjects_trials,dict)
+
+    # load and normalize dataset, scaled_xy_data is a three dimension matrics, the first dimensioin is trials
+    xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams,assign_trials=True)
+    scaled_subjects_trials={}
+
+    # trasnfer list of trials to a dictory of subjects
+    idx=0
+    for subject_id_name, trials in subjects_trials.items():
+        scaled_subjects_trials[subject_id_name] = {}
+        for trial in trials:
+            scaled_subjects_trials[subject_id_name][trial]=scaled_xy_data[idx,:,:]
+            idx=idx+1
     
-    # suntao experimental data
-    if(isinstance(sub_idxs,dict)):
-        xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams,assign_trials=True)
-        norm_trials_data={}
-        for idx in range(scaled_xy_data.shape[0]):# trasnfer list of trials to a dictory of trials
-            norm_trials_data['trial_'+str(idx)]=scaled_xy_data[idx,:,:]
-        return norm_trials_data, scaler
+    return scaled_subjects_trials, scaler
 
 
 
@@ -615,13 +565,13 @@ Main rountine for developing ANN model for biomechanic variable estimations
 
 '''
 def train_test_loops(hyperparams=None):
-    #1) Set hyper parameters
+    #1) set hyper parameters
     if(hyperparams==None):
         hyperparams=initParameters()
     else:
         hyperparams=hyperparams
     
-    #2) Create a list of training and testing files
+    #2) create a list of training and testing files
     train_test_folder= os.path.join(RESULTS_PATH,"models_parameters_results/"+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
     if(os.path.exists(train_test_folder)==False):
         os.makedirs(train_test_folder)    
@@ -631,27 +581,30 @@ def train_test_loops(hyperparams=None):
     dict_log={'training_folder':[],'testing_folder':[]}
     
     #3) Load and normalize datasets for training and testing
-    norm_trials_data,scaler=normalize_subjects_data(hyperparams)
+    norm_subjects_trials_data,scaler=normalize_subjects_data(hyperparams)
 
 
     #4) leave-one-out cross-validation
     loo = LeaveOneOut()
-    loop_times=0
-    for train_sub_index, test_sub_index in loo.split(list(hyperparams['subjects_trials'].keys())):
+    loop_times = 0
+    subjects_trials = hyperparams['subjects_trials']
+    subjects=list(subjects_trials.keys())
+    for train_subject_ids, test_subject_ids in loo.split(subjects):
         loop_times=loop_times+1
 
+        #i) subjects for train and test
+        train_subjects=[subjects[subject_id] for subject_id in train_subject_ids]
+        test_subjects=[subjects[subject_id] for subject_id in test_subject_ids]
+
         #i) decide train and test subject dataset 
-        print("train subject set:", train_sub_index, "test subject set:", test_sub_index)
-        hyperparams['train_sub_idx'] = [str(idx) for idx in train_sub_index]
-        hyperparams['test_sub_idx'] = [str(idx) for idx in test_sub_index]
+        print("train subject set:", train_subject_ids, "test subject set:", test_subject_ids)
+        hyperparams['train_subject_ids'] = train_subjects
+        hyperparams['test_subject_ids'] = test_subjects
 
-        # tran and test data trails index
-        train_trial_index  = [str(sub_idx*len(TRIALS)+trial_idx) for sub_idx in train_sub_index for trial_idx in range(len(TRIALS))]
-        test_trial_index  = [str(sub_idx*len(TRIALS)+trial_idx) for sub_idx in test_sub_index for trial_idx in range(len(TRIALS))]
-
-        xy_train=[norm_trials_data['trial_'+ ii] for ii in train_trial_index]
-        xy_valid=[norm_trials_data['trial_'+ test_trial_index[0]]]
-        xy_test=[norm_trials_data['trial_'+ test_trial_index[1]]]
+        # data from train and test subjects and their trials
+        xy_train = [norm_subjects_trials_data[subject_id_name][trial] for subject_id_name in train_subjects for trial in subjects_trials[subject_id_name]]
+        xy_valid = [norm_subjects_trials_data[subject_id_name][trial] for subject_id_name in test_subjects for trial in subjects_trials[subject_id_name]]
+        xy_test=[xy_valid[1]]
         
         xy_train=np.concatenate(xy_train,axis=0)
         xy_valid=np.concatenate(xy_valid,axis=0)
@@ -663,27 +616,26 @@ def train_test_loops(hyperparams=None):
         print("Train set shape",xy_train.shape)
         print("Valid set shape",xy_valid.shape)
         print("Test set shape",xy_test.shape)
-        #print("X Shape for a iteration train",list(train_set.as_numpy_iterator())[0][0].shape)
-        #print("Y Shape for a iteration train",list(train_set.as_numpy_iterator())[0][1].shape)
+
 
         #iii) declare model
         model=model_v1(hyperparams)
 
         #iv) train model
-        trained_model,history_dict,training_folder=train_model(model,hyperparams,train_set,valid_set)
+        trained_model,history_dict,training_folder = train_model(model,hyperparams,train_set,valid_set)
         
         #v) test model
         features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
         dict_log['training_folder'].append(training_folder)
         dict_log['testing_folder'].append(testing_folder)
-        print("scores (r2, rmse, mae, r_rmse):", es_as.get_scores(labels,predictions))
+        es_as.get_estimation_metrics(labels, predictions, hyperparams['labels_names'])
 
         #vi) Plot estimation results
-
         #plot_prediction(features,labels,predictions,testing_folder)
         #plot_prediction_statistic(features, labels, predictions,testing_folder)
-        if loop_times>4: # only repeat 4 times
-            break;# only run a leave-one-out a time
+        
+        #if loop_times > 0: # only repeat 4 times
+        #   break;# only run a leave-one-out a time
     
     
     #5) save train and test folder path
@@ -696,37 +648,38 @@ def train_test_loops(hyperparams=None):
 
 def deploy_sensor_combination():
 
-    # sensor placement configurations
+    #1) sensor placement configurations
     list_testing_folders={}
     sensor_placement_combination_dict = {
                                    'F': ['L_FOOT'],
-                                   'S': ['L_SHANK'],
-                                   'T': ['L_THIGH'],
-                                   'W': ['WAIST'],
-                                   'C': ['CHEST'],
-                                   'FS': ['L_FOOT','L_SHANK'],
-                                   'FT': ['L_FOOT','L_THIGH'],
-                                   'FW': ['L_FOOT','WAIST'],
-                                   'FC': ['L_FOOT','CHEST'],
-                                   'FST': ['L_FOOT','L_SHANK','L_THIGH'], 
-                                   'FTW': ['L_FOOT','L_THIGH','WAIST'], 
-                                   'FWC': ['L_FOOT','WAIST','CHEST'], 
-                                   'FSTW': ['L_FOOT','L_SHANK','L_THIGH','WAIST'], 
-                                   'FSTC': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
+                                  # 'S': ['L_SHANK'],
+                                  # 'T': ['L_THIGH'],
+                                  # 'W': ['WAIST'],
+                                  # 'C': ['CHEST'],
+                                  # 'FS': ['L_FOOT','L_SHANK'],
+                                  # 'FT': ['L_FOOT','L_THIGH'],
+                                  # 'FW': ['L_FOOT','WAIST'],
+                                  # 'FC': ['L_FOOT','CHEST'],
+                                  # 'FST': ['L_FOOT','L_SHANK','L_THIGH'], 
+                                  # 'FTW': ['L_FOOT','L_THIGH','WAIST'], 
+                                  # 'FWC': ['L_FOOT','WAIST','CHEST'], 
+                                  # 'FSTW': ['L_FOOT','L_SHANK','L_THIGH','WAIST'], 
+                                  # 'FSTC': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
                                    'FSTWC': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']
                                   }
     #sensor_placement_combination_dict = {'F': ['L_FOOT']}
     #model_size_dict = {'layer_size': 3}
-    # train and test model
+
+    #2) train and test model
     for config, sensor_list in sensor_placement_combination_dict.items():
         print("Sensor is:",sensor_list)
-        features_fields = const.extract_imu_fields(sensor_list, const.IMU_RAW_FIELDS)
+        features_fields = const.extract_imu_fields(sensor_list, const.ACC_GYRO_FIELDS)
         hyperparams=initParameters(labels_names=LABELS_FIELDS, features_names=features_fields)
         print('features are:', hyperparams['features_names'])
         dict_log, xy_test, scaler =  train_test_loops(hyperparams)# model traning
         list_testing_folders[config]=dict_log
 
-    # save testing folders
+    #3) save testing folders
     overall_metrics_folder= os.path.join(RESULTS_PATH,"overall_metrics_results",str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())), str(localtimepkg.strftime("%H%M%S", localtimepkg.localtime())))
     if(not os.path.exists(overall_metrics_folder)):
         os.makedirs(overall_metrics_folder)
@@ -741,7 +694,10 @@ def deploy_sensor_combination():
     return overall_metrics_file
 
 
+'''
 
+
+'''
 def display_testing_results(overall_metrics_file):
     # open testing folder
     assessment=[]
@@ -750,43 +706,75 @@ def display_testing_results(overall_metrics_file):
         line=line.strip('\n')
         [sensor_config, testing_folder]=line.split('\t')
         print(testing_folder)
+        test_id=re.search("test_([0-9])+",testing_folder).group(0)
 
         #1) load testing results
-        testing_results=os.path.join(testing_folder,'test_results.h5')
+        testing_results = os.path.join(testing_folder,'test_results.h5')
         with h5py.File(testing_results,'r') as fd:
             features=fd['features'][:,:]
             predictions=fd['predictions'][:,:]
             labels=fd['labels'][:,:]
-        
+            labels_names=fd['labels'].attrs['labels_names']
+
         #2) estimation results
         #i) plot curves
         plot_prediction(features,labels,predictions,testing_folder)
-        #ii) collect results
-        temp=list(es_as.get_scores(labels,predictions));temp.insert(0,sensor_config)
-        assessment.append(temp)
+        #ii) collect metric results
+        metrics = es_as.get_estimation_metrics(labels, predictions, labels_names)
 
-    # statistically results
-    columns=['Sensor configurations','r2','mae','rmse','r_rmse']
-    pd_assessment=pd.DataFrame(assessment,columns=columns)
-    pd_assessment.to_csv(re.search("[\s\S]+(\d)+",overall_metrics_file).group()+ "_metrics.csv")
-    pd_assessment=pd_assessment.melt(id_vars=['Sensor configurations'],var_name='Metrics',value_name='Value')
+        metrics['Sensor configurations'] = sensor_config
+        metrics['Test ID'] = test_id
+        assessment.append(metrics)
 
+    # concate to a pandas dataframe
+    pd_assessment=pd.concat(assessment, axis=0)
 
+    # save pandas DataFrame
+    overall_metrics_folder=re.search("[\s\S]+(\d)+",overall_metrics_file).group()
+    pd_assessment.to_csv(os.path.join(overall_metrics_folder,"metrics.csv"))
+    
     # plot statistical results
     figwidth=13;figheight=10
     subplot_left=0.06; subplot_right=0.97; subplot_top=0.95;subplot_bottom=0.06
-    g=sns.catplot(data=pd_assessment,x='Sensor configurations',y='Value',col='Metrics',col_wrap=2,kind='bar',height=3, aspect=0.8,sharey=False)
+    g=sns.catplot(data=pd_assessment,x='Sensor configurations',y='scores',col='metrics',col_wrap=2,kind='bar',hue='fields',height=3, aspect=0.8,sharey=False)
     g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=0.1, wspace=0.1)
     g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
     [ax.yaxis.grid(True) for ax in g.axes]
-    plt.show()
-    file=re.search("[\s\S]+(\d)+",overall_metrics_file).group()
-    g.savefig(re.search("[\s\S]+(\d)+",overall_metrics_file).group()+ "_metrics.svg")
+    g.savefig(overall_metrics_folder+ "/metrics.svg")
 
+def check_model_test(training_folder):
+
+    #1) load and normalize datasets for training and testing
+    # load hyperparameters 
+    hyperparams_file=training_folder+"/hyperparams.yaml"
+    if os.path.isfile(hyperparams_file):
+        fr = open(hyperparams_file, 'r')
+        hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
+        fr.close()
+    else:
+        print("Not Found hyper params file at {}".format(hyperparams_file))
+        exit()
+
+    #2) load dataset
+    norm_subjects_trials_data,scaler = normalize_subjects_data(hyperparams)
+
+
+    #2) subject and trials for testing
+    subject_id_name = 'P_24_liziqing'
+    trial='03'
+    xy_test = norm_subjects_trials_data[subject_id_name][trial]
+
+    # testing model
+    features, labels, predictions, testing_folder = test_model(training_folder,xy_test,scaler)
+    
+    # plot testing results
+    plot_prediction(features,labels,predictions,testing_folder)
 
         
 if __name__=='__main__':
     #overall_metrics_file=deploy_sensor_combination()
-    overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/2022-04-03/220718/testing_result_folders.txt")
-    display_testing_results(overall_metrics_file)
+    overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/2022-04-06/220449/testing_result_folders.txt")
+    #display_testing_results(overall_metrics_file)
     
+    training_folder = "/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-04-06/training_224518"
+    check_model_test(training_folder)

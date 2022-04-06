@@ -233,10 +233,10 @@ def transfer_allsubject_to_a_h5():
     # save the h5 file
     with h5py.File(h5format_dataset, "w") as f:
         features_data={}
-        for subject in SUBJECTS:
+        for subject in SUBJECTS: # subjects
             sub=f.create_group(subject)
             f.attrs['subjects']=SUBJECTS
-            for session in SESSIONS:
+            for session in SESSIONS: # sessions which specifies trial types
                 features_path=os.path.join(DATA_PATH,subject,re.sub('vicon','xsen',session),'features_rawdataset.hdf5')
                 labels_path=os.path.join(DATA_PATH,subject,re.sub('vicon','v3d',session),'labels_rawdataset.hdf5')
                 if(os.path.exists(features_path) and os.path.exists(labels_path)):
@@ -244,7 +244,7 @@ def transfer_allsubject_to_a_h5():
                     try:
                         with h5py.File(features_path,'r') as ff:
                             with h5py.File(labels_path,'r') as fl:
-                                for trial in TRIALS:
+                                for trial in TRIALS: # trial numbers
                                     if(trial not in WRONG_TRIALS[subject]): #give up the trials with wrong data collect
                                         # - combine features and labels along with columns
                                         if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):# features and labels should have same row nummber
@@ -263,6 +263,18 @@ def transfer_allsubject_to_a_h5():
 
 """
 配置文件在const 中
+
+features_labels_rawdataset.h5 文件的数据保存格式：
+
+subject 1: ['01','02',..]
+          attrs: fields
+subject 2: ['01','02',..]
+          attrs: fields
+subject 3: ['01','02',..]
+          attrs: fields
+...
+..
+
 
 """
     
