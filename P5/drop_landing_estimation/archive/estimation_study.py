@@ -28,7 +28,6 @@ from vicon_imu_data_process import const
 
 from sklearn.preprocessing import StandardScaler
 
-
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import KFold
 import time as localtimepkg
@@ -45,7 +44,6 @@ print(cpus,gpus)
 Set hyper parameters
 
 '''
-
 
 
 
@@ -74,10 +72,10 @@ def initParameters(labels_names=None,features_names=None,subject_ids=None):
     hyperparams['features_names']=features_names
     hyperparams['labels_names']=labels_names
     hyperparams['learning_rate']=10e-2
-    hyperparams['batch_size']=20
-    hyperparams['window_size']=DROPLANDING_PERIOD
-    hyperparams['shift_step']=DROPLANDING_PERIOD
-    hyperparams['epochs']=10
+    hyperparams['batch_size']=40
+    hyperparams['window_size']=1
+    hyperparams['shift_step']=1
+    hyperparams['epochs']=20
     hyperparams['columns_names']=columns_names
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
     hyperparams['subjects_trials']=pro_rd.select_valid_subjects_trials(subject_ids)
@@ -91,7 +89,7 @@ Packing data into windows
 
 '''
 
-def windowed_dataset(series, hyperparams,shuffle_buffer):
+def windowed_dataset(series, hyperparams,shuffle_buffer=1000):
     window_size=hyperparams['window_size']
     batch_size=hyperparams['batch_size']
     shift_step=hyperparams['shift_step']
@@ -99,9 +97,9 @@ def windowed_dataset(series, hyperparams,shuffle_buffer):
     
     #series = tf.expand_dims(series, axis=-1)
     ds = tf.data.Dataset.from_tensor_slices(series)
-    ds = ds.window(window_size, shift=shift_step, drop_remainder=True)
+    ds = ds.window(window_size, shift=shift_step, stride=1, drop_remainder=True)
     ds = ds.flat_map(lambda w: w.batch(window_size))
-    ds = ds.shuffle(shuffle_buffer)
+    #ds = ds.shuffle(shuffle_buffer)
     ds = ds.map(lambda w: (w[:,:-labels_num], w[:,-labels_num:]))
     ds = ds.batch(batch_size).prefetch(1)
     #print(list(ds.as_numpy_iterator())[0])
@@ -129,17 +127,10 @@ Model_V1 definition
 '''
 def model_v1(hyperparams):
     model = tf.keras.models.Sequential([
-      tf.keras.layers.Conv1D(filters=60, kernel_size=6,
-                          strides=1, padding="causal",
-                          activation="selu",
-                          input_shape=[None, hyperparams['features_num']]),
-      #tf.keras.layers.LSTM(60, return_sequences=True),
-      tf.keras.layers.LSTM(60, return_sequences=True),
-      #tf.keras.layers.Flatten(),
-      tf.keras.layers.Dense(60, activation="relu"),
-      tf.keras.layers.Dense(30, activation="relu"),
+      #tf.keras.layers.Conv1D(filters=60, kernel_size=6,strides=1, padding="causal",activation="selu",input_shape=[None, hyperparams['features_num']]),
+      tf.keras.layers.Dense(units=60, input_shape=[None,hyperparams['features_num']]),
+      tf.keras.layers.LSTM(30, return_sequences=True),
       tf.keras.layers.Dense(hyperparams['labels_num'])
-      #tf.keras.layers.Lambda(lambda x: x *180)
     ])
     return model
 
@@ -152,72 +143,6 @@ class myCallback(tf.keras.callbacks.Callback):
         if(logs.get('loss')<0.003):
             print('\nLoss is low so cancelling training!')
             self.model.stop_training = True
-
-
-    
-'''
-
-Model_V2 definition
-
-'''
-def model_v2():
-    print(tf.__version__)
-    ####定义一个方便构造常规 Sequential() 网络的函数
-    def DNN_A_Graph(x,n_input=36,n_output=6,name='Transfer_graph'):
-        tf.random.set_seed(50)
-        np.random.seed(50)
-        he = tf.initializers.he_normal()
-        elu = tf.nn.elu
-        x=Dense(n_input, kernel_initializer=he, activation=elu,name=name+'_1')(x)
-        x=Dense(n_output,kernel_initializer=he, activation=elu,name=name+'_2')(x)
-        return(x)
-    
-    def DNN_B_Graph(x,n_input=36,n_output=6,name='Main_graph'):
-        ##
-        x=tf.keras.layers.Conv1D(filters=60, kernel_size=5,
-                          strides=1, padding="causal",
-                          activation="relu",
-                          input_shape=[window_size, features_num],name='Conv1D')(x)
-        x=tf.keras.layers.LSTM(60, return_sequences=True,name='lstm_1')(x)
-        x=tf.keras.layers.LSTM(60, return_sequences=True,name='lstm_2')(x)
-        x=tf.keras.layers.Flatten()(x)
-        x=tf.keras.layers.Dense(60, activation="relu")(x)
-        x=tf.keras.layers.Dense(30)(x)
-        x=tf.keras.layers.Dense(6)(x)
-        return(x)
-        
-        
-    #### 构造并联网络图
-    ##需要并联的两个网络的输入
-    input_a=tf.keras.layers.Input(shape=[features_num],name='Input_A')
-    input_b=tf.keras.layers.Input(shape=[hyperparams['window_size'],features_num],name='Input_B')
-    window_size=hyperparams['window_size']
-    ##构造两个需要并联的子网络结构
-    dnn_a=DNN_A_Graph(input_a,n_input=features_num,n_output=labels_num,name="DNN_A")
-    dnn_b=DNN_B_Graph(input_b,n_input=features_num,n_output=labels_num,name="DNN_B")
-    ##concat操作
-    concat=tf.keras.layers.concatenate([dnn_a,dnn_b],axis=-1,name="Concat_Layer")
-    ##在concat基础上继续添加一些层
-    output=Dense(labels_num,name="Output_Layer")(concat)
-    ##这一步很关键：这一步相当于把输入和输出对应起来，形成系统认识的一个完整的图。
-    model_v2=Model(inputs=[input_a,input_b],outputs=[output])
-    model_v2.get_layer('DNN_A_1').trainable=False
-    model_v2.get_layer('DNN_A_2').trainable=False
-    
-    ##网络的其他组件
-    optimizer=tf.keras.optimizers.Adam()
-    loss_fn=tf.keras.losses.mean_squared_error
-    model_v2.compile(loss=loss_fn,
-                  optimizer=optimizer,
-                  metrics=['accuracy'],
-                  )
-    
-    model_v2.summary()
-    #### 训练和测试：这里的x1,x2,对应前述的input_a和input_b
-    #model.fit(x=[x1,x2],y=y,epochs=10,batch_size=500,verbose=2)
-    
-    #model.evaluate(x=[x1_test,x2_test],y=y_test,verbose=2)
-    return model_v2
 
 
 
@@ -251,7 +176,6 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
                       optimizer=optimizer,
                       metrics=["mae"])
         history = model.fit(train_set,epochs=hyperparams['epochs'],validation_data=valid_set,callbacks=[callbacks])
-        history_dict=history.history
     """ Specified mode   """
     if training_mode=='Manual_way':
         tf.summary.trace_on(profiler=True) # 开启trace
@@ -273,8 +197,8 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
     
     
     # Save trained model, its parameters, and training history 
-    save_trained_model(model,history_dict,training_folder)
-    return model, history_dict, training_folder
+    save_trained_model(model,history,training_folder)
+    return model, history, training_folder
 
 
 
@@ -283,7 +207,7 @@ def train_model(model,hyperparams,train_set,valid_set,training_mode='Integrative
 
 
 '''
-def save_trained_model(trained_model,history_dict,training_folder,**kwargs):
+def save_trained_model(trained_model,history,training_folder,**kwargs):
 
     # load hyperparameters 
     hyperparams_file=training_folder+"/hyperparams.yaml"
@@ -297,7 +221,6 @@ def save_trained_model(trained_model,history_dict,training_folder,**kwargs):
 
 
     #-----save trained model and parameters----------#
-    
     # save checkpoints
     checkpoint_folder=os.path.join(training_folder,'checkpoints')
     if(os.path.exists(checkpoint_folder)==False):
@@ -320,41 +243,36 @@ def save_trained_model(trained_model,history_dict,training_folder,**kwargs):
     # Get the dictionary containing each metric and the loss for each epoch
     history_folder = os.path.join(training_folder,'train_process')
     history_file = history_folder +'/my_history'
+
     # Save it under the form of a json file
     with open(history_file,'w') as fd:
-        json.dump(history_dict, fd)
+        json.dump(history.history, fd)
+
     # load history
-    #history_dict = json.load(open(history_path, 'r'))
+    #history = json.load(open(history_path, 'r'))
     
-    
-    
-'''
-Training model_v2
-
-'''
-def train_model_v2():
-    # train model_v2
-    tf.keras.backend.clear_session()
-    tf.random.set_seed(51)
-    np.random.seed(51)
-    callbacks=myCallback()
-    history = model_v2.fit([xy_train_init,train_set],epochs=150),#validation_data=[valid_set_init,valid_set],callbacks=[callbacks])
-    return history
-
 
 '''
 Plot the history metrics in training process
 
 '''
-def plot_history(history_dict):
+
+def plot_history(history):
+
+    history_dict = history
     print(history_dict.keys())
     plt.plot(history_dict['loss'],'r')
     plt.plot(history_dict['val_loss'],'g')
-    plt.plot(history_dict['mae'])
-    plt.legend(['train loss', 'valid loss','mae'])
+    plt.grid(True)
+    plt.legend(['train loss', 'valid loss'])
+
+    plt.figure()
+    plt.plot(history_dict['mae'],'r')
+    plt.plot(history_dict['val_mae'],'g')
+    plt.grid(True)
+    plt.legend(['train mae', 'valid mae'])
     
-    #plt.axis([0,150, 0.0,0.035])
-    print('max train MAE: {:.4f} and max val MAE: {:.4f}'.format(max(history_dict['mae']),max(history_dict['val_mae'])))
+    print('Max train and validtion MAE: {:.4f} and {:.4f}'.format(max(history_dict['mae']),max(history_dict['val_mae'])))
 
 
 
@@ -430,13 +348,6 @@ Plot the estimation results
 '''
 def plot_prediction(features,labels,predictions,testing_folder):
     
-    #1) evaluate using two metrics, mae and mse
-    mae=tf.keras.metrics.mean_absolute_error(labels, predictions).numpy()
-    mse=tf.keras.metrics.mean_squared_error(labels, predictions).numpy()
-    print('Mean absolute error: {:.3f}, mean root squard error:{:.3f} in a period'.format(np.mean(mae),np.mean(np.sqrt(mse))))
-    
-    #2) preparation
-
     #i) load hyper parameters
     hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
     if os.path.isfile(hyperparams_file):
@@ -460,18 +371,6 @@ def plot_prediction(features,labels,predictions,testing_folder):
                                   prediction_file=prediction_file,prediction_error_file=prediction_error_file)
 
     
-    
-def plot_history(history_dict):
-    print(history_dict.keys())
-    plt.plot(history_dict['loss'],'r')
-    plt.plot(history_dict['val_loss'],'g')
-    plt.plot(history_dict['mae'])
-    plt.legend(['train loss', 'valid loss','mae'])
-    
-    #plt.axis([0,150, 0.0,0.035])
-    print('max train MAE: {:.4f} and max val MAE: {:.4f}'.format(max(history_dict['mae']),max(history_dict['val_mae'])))
-
-
     
 def plot_prediction_statistic(features, labels, predictions,testing_folder):
     '''
@@ -542,8 +441,6 @@ Normalize all subject data
 def normalize_subjects_data(hyperparams):
     subjects_trials=hyperparams['subjects_trials']
     
-    assert(subjects_trials,dict)
-
     # load and normalize dataset, scaled_xy_data is a three dimension matrics, the first dimensioin is trials
     xy_data, scaled_xy_data, scaler = pro_rd.load_normalize_data(hyperparams,assign_trials=True)
     scaled_subjects_trials={}
@@ -583,18 +480,17 @@ def train_test_loops(hyperparams=None):
     #3) Load and normalize datasets for training and testing
     norm_subjects_trials_data,scaler=normalize_subjects_data(hyperparams)
 
-
     #4) leave-one-out cross-validation
     loo = LeaveOneOut()
     loop_times = 0
     subjects_trials = hyperparams['subjects_trials']
-    subjects=list(subjects_trials.keys())
+    subjects = list(subjects_trials.keys())
     for train_subject_ids, test_subject_ids in loo.split(subjects):
         loop_times=loop_times+1
 
         #i) subjects for train and test
-        train_subjects=[subjects[subject_id] for subject_id in train_subject_ids]
-        test_subjects=[subjects[subject_id] for subject_id in test_subject_ids]
+        train_subjects = [subjects[subject_id] for subject_id in train_subject_ids]
+        test_subjects = [subjects[subject_id] for subject_id in test_subject_ids]
 
         #i) decide train and test subject dataset 
         print("train subject set:", train_subject_ids, "test subject set:", test_subject_ids)
@@ -606,20 +502,19 @@ def train_test_loops(hyperparams=None):
         xy_valid = [norm_subjects_trials_data[subject_id_name][trial] for subject_id_name in test_subjects for trial in subjects_trials[subject_id_name]]
         xy_test=[xy_valid[1]]
         
-        xy_train=np.concatenate(xy_train,axis=0)
-        xy_valid=np.concatenate(xy_valid,axis=0)
-        xy_test=np.concatenate(xy_test,axis=0)
-        
+        xy_train = np.concatenate(xy_train,axis=0)
+        xy_valid = np.concatenate(xy_valid,axis=0)
+        xy_test = np.concatenate(xy_test,axis=0)
         #ii) load train and test dataset
-        train_set = windowed_dataset(xy_train, hyperparams,   shuffle_buffer=1000)
-        valid_set = windowed_dataset(xy_valid, hyperparams,   shuffle_buffer=1000)
+        train_set = windowed_dataset(xy_train, hyperparams)
+        valid_set = windowed_dataset(xy_valid, hyperparams)
         print("Train set shape",xy_train.shape)
         print("Valid set shape",xy_valid.shape)
         print("Test set shape",xy_test.shape)
 
 
         #iii) declare model
-        model=model_v1(hyperparams)
+        model = model_v1(hyperparams)
 
         #iv) train model
         trained_model,history_dict,training_folder = train_model(model,hyperparams,train_set,valid_set)
@@ -630,12 +525,8 @@ def train_test_loops(hyperparams=None):
         dict_log['testing_folder'].append(testing_folder)
         es_as.get_estimation_metrics(labels, predictions, hyperparams['labels_names'])
 
-        #vi) Plot estimation results
-        #plot_prediction(features,labels,predictions,testing_folder)
-        #plot_prediction_statistic(features, labels, predictions,testing_folder)
-        
-        #if loop_times > 0: # only repeat 4 times
-        #   break;# only run a leave-one-out a time
+        if loop_times > 0: # only repeat 4 times
+           break;# only run a leave-one-out a time
     
     
     #5) save train and test folder path
@@ -651,7 +542,7 @@ def deploy_sensor_combination():
     #1) sensor placement configurations
     list_testing_folders={}
     sensor_placement_combination_dict = {
-                                   'F': ['L_FOOT'],
+                                  # 'F': ['L_FOOT'],
                                   # 'S': ['L_SHANK'],
                                   # 'T': ['L_THIGH'],
                                   # 'W': ['WAIST'],
@@ -744,9 +635,8 @@ def display_testing_results(overall_metrics_file):
 
 def check_model_test(training_folder):
 
-    #1) load and normalize datasets for training and testing
-    # load hyperparameters 
-    hyperparams_file=training_folder+"/hyperparams.yaml"
+    #1) load hyperparameters 
+    hyperparams_file = training_folder+"/hyperparams.yaml"
     if os.path.isfile(hyperparams_file):
         fr = open(hyperparams_file, 'r')
         hyperparams = yaml.load(fr,Loader=yaml.BaseLoader)
@@ -758,10 +648,9 @@ def check_model_test(training_folder):
     #2) load dataset
     norm_subjects_trials_data,scaler = normalize_subjects_data(hyperparams)
 
-
-    #2) subject and trials for testing
-    subject_id_name = 'P_24_liziqing'
-    trial='03'
+    #3) subject and trials for testing
+    subject_id_name = 'P_08_zhangboyuan'
+    trial='01'
     xy_test = norm_subjects_trials_data[subject_id_name][trial]
 
     # testing model
@@ -772,9 +661,8 @@ def check_model_test(training_folder):
 
         
 if __name__=='__main__':
-    #overall_metrics_file=deploy_sensor_combination()
-    overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/2022-04-06/220449/testing_result_folders.txt")
-    #display_testing_results(overall_metrics_file)
-    
-    training_folder = "/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-04-06/training_224518"
-    check_model_test(training_folder)
+    overall_metrics_file=deploy_sensor_combination()
+    #overall_metrics_file= os.path.join(RESULTS_PATH,"overall_metrics_results/2022-04-06/220449/testing_result_folders.txt")
+    display_testing_results(overall_metrics_file)
+    #training_folder = "/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results/models_parameters_results/2022-04-08/training_200647"
+    #check_model_test(training_folder)

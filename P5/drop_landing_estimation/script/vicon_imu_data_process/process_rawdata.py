@@ -9,14 +9,12 @@ Email: suntao.hn@gmail.com
 Date: 2021-07-01
 
 """
-import numpy
 import pandas as pd
+import numpy as np
 import os
 import h5py
 import re
 
-import pandas as pd
-import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -27,15 +25,11 @@ from matplotlib import gridspec
 import copy
 import matplotlib.pyplot as plt
 import time as localtimepkg
-import os
-import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
 import math
 import inspect
 import yaml
 import pdb
-import re
 import warnings
 import termcolor
 import matplotlib._color_data as mcd
@@ -52,9 +46,9 @@ from scipy import stats
 from statannotations.Annotator import Annotator
 
 if __name__=='__main__':
-    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, RESULTS_PATH
+    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, RESULTS_PATH,IMU_SENSOR_LIST, IMU_RAW_FIELDS, ACC_GYRO_FIELDS, SYN_DROPLANDING_PERIOD
 else:
-    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS,TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,RESULTS_PATH
+    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,RESULTS_PATH, IMU_SENSOR_LIST,IMU_RAW_FIELDS, ACC_GYRO_FIELDS,SYN_DROPLANDING_PERIOD
 
 
 from sklearn.preprocessing import StandardScaler
@@ -62,68 +56,47 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import RobustScaler
 
 
-def read_subject_trials(trials: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:
+def read_subject_trials(subject_id_name: str, trials: int, data_fields: list, raw_datasets_path=None, **kwargs):
     """
     @Description:
-    To read raw data of a subject from h5 file and normalize the features and labels.
+    To read raw data of a subject from a h5 file
     @Parameters:
     trials: sepcify the data of trial 
-    col_names: the names of columns. data type is string
-
-    args['assign'], which  concate the data in three dimensions, the first dimension is trial numbers
+    data_fields: the names of columns. data type is string, the sequence of the field in data_fields determines the value sequences
+    kwargs['assign'], which  concate the data in three dimensions, the first dimension is trial numbers
     
     """
-    assert(type(col_names)==list)
+    assert(isinstance(data_fields,list))
     assert(isinstance(trials,list))
+
     #1) read h5 data file
     with h5py.File(raw_datasets_path, 'r') as fd:
-        # get all subject names, e.g., P_09_libang
-        subject_ids_names=list(fd.keys())
+        #i) get all subject names, e.g., [P_01_suntao, ..., P_09_libang, P_24_XX]
+        subject_ids_names = list(fd.keys())
 
-        # get all data feilds: the features and labels
-        all_data_fields=fd[subject_ids_names[0]].attrs.get('columns')
+        #ii) get all data feilds: the features and labels
+        all_data_fields = fd[subject_ids_names[0]].attrs.get('columns')
 
-        dataset_of_trials=[]
+        trials_data={}
 
-        #- specified subject name
-        subject_name=args['subject_name']
-        if(subject_name not in subject_ids_names):
-            print("This subject:{subject_name} is not in datasets, see line 91 in process_rawdata.py".format(subject_name))
+        #iii) check the specified subject name
+        if(subject_id_name not in subject_ids_names):
+            print("This subject:{} is not in datasets, see line 91 in process_rawdata.py".format(subject_name))
             exit()
 
-        #-- get each trial data with specified columns of a subject (subject_name)
+        #iv) get each trial data with specified columns (data fields) of a subject (subject_id_name)
         for trial in trials: 
             try:
-                #- get all column data of a trial of a subject into a dataframe
-                data = fd[subject_name][trial]
-                columns=fd[subject_name].attrs['columns']
-                temp_pd_data=pd.DataFrame(data=np.array(data),columns=columns)
+                #a) get all column data of a trial of a subject into a dataframe
+                data = fd[subject_id_name][trial]
+                columns = fd[subject_id_name].attrs['columns']
+                temp_pd_data = pd.DataFrame(data=np.array(data), columns=columns)
+                #b) retrive specified columns by parameter: data_fields
+                trials_data[trial] = temp_pd_data[data_fields].values
             except Exception as e:
-                print(e," Error in line 101 of process_raw_data.py, no trial in {}".format(subject_name))
+                print(e," Error in line 101 of process_raw_data.py, no trial in : {}".format(trial))
 
-            #retrive specified columns by parameter: col_names
-            temp_necessary_data=temp_pd_data[col_names].values
-
-            dataset_of_trials.append(temp_necessary_data)
-
-        # extract the drop landing trials, the output is a numpy matrix with three dimensions, the first dimension is trial times
-        try:
-            if('assign_trials' in args.keys()):
-                all_datasets_np=np.array(dataset_of_trials)
-            else:
-                if(sum([len(trial) for trial in dataset_of_trials])%DROPLANDING_PERIOD==0):# checking each trial data has same dimensions (row and column number)
-                    all_datasets_np=np.concatenate(dataset_of_trials,axis=0) # concate into 2 dimension along with row
-                else:
-                    warnings.warm(termcolor.colored("Trials have different time step numbers, please use a small DROPLANDING_PERIOD"))
-        except Exception as e:
-            print(e,"Trials have different counts")
-
-        # return 3D shape numpy dataset
-        return all_datasets_np
-
-
-
-
+    return trials_data # a dictory with trials' data in form of numpy array
 
 
 
@@ -132,7 +105,7 @@ def read_subject_trials(trials: int,col_names: list,raw_datasets_path=None,**arg
 suntao drop landing experiment data
 '''
 
-def read_rawdata(trials: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:
+def read_rawdata(trials: int,col_names: list,raw_datasets_path=None,**args)-> np.ndarray:
     """
     @Description:
     To read raw data of a subject from h5 file and normalize the features and labels.
@@ -181,7 +154,7 @@ def read_rawdata(trials: int,col_names: list,raw_datasets_path=None,**args)-> nu
             if('assign_trials' in args.keys()):
                 all_datasets_np=np.array(dataset_of_trials)
             else:
-                if(sum([len(trial) for trial in dataset_of_trials])%DROPLANDING_PERIOD==0):# checking each trial data has same dimensions (row and column number)
+                if(sum([len(trial) for trial in dataset_of_trials])%len(dataset_of_trials[0])==0):# checking each trial data has same dimensions (row and column number)
                     all_datasets_np=np.concatenate(dataset_of_trials,axis=0) # concate into 2 dimension along with row
                 else:
                     warnings.warm(termcolor.colored("Trials have different time step numbers, please use a small DROPLANDING_PERIOD"))
@@ -197,7 +170,7 @@ def read_rawdata(trials: int,col_names: list,raw_datasets_path=None,**args)-> nu
 read bingfei drop landing experiment data
 '''
 
-def read_bingfei_experiment_data(data_range: int,col_names: list,raw_datasets_path=None,**args)-> numpy.ndarray:
+def read_bingfei_experiment_data(data_range: int,col_names: list,raw_datasets_path=None,**args)-> np.ndarray:
     """
     @Description:
     To read raw data of a subject from h5 file and normalize the features and labels.
@@ -260,99 +233,6 @@ def read_bingfei_experiment_data(data_range: int,col_names: list,raw_datasets_pa
             # 6) return datasets of multiple rows
             return all_datasets[subject_trials][:,col_idxs]
 
-
-        
-            
-def load_normalize_data(hyperparams,scaler='standard',**args):
-
-    subject_trials=hyperparams['subjects_trials']
-    
-    [SINGLE_MODE, MULTI_NUM_MODE, MULTI_NAME_MODE, MULTI_NAME_TRIAL_MODE]=range(4)
-
-    #1) load raw datasets
-    #**** Single subject test
-    if(isinstance(subject_trials,int)):
-        row_mode=SINGLE_MODE
-        start=all_datasets_ranges['sub_'+str(subject_trials-1)]
-        end=all_datasets_ranges['sub_'+str(subject_trials)]
-        series=read_rawdata(range(start,end),hyperparams['columns_names'],hyperparams['raw_dataset_path'])
-        print("Raw data of subject {:}, rows from {:} to {:}".format(subject_trials,start,end))
-    
-    #**** Multiple subject data indexed by numbers
-    if(isinstance(subject_trials,list) and isinstance(subject_trials[0],int)):
-        row_mode=MULTI_NUM_MODE
-        start_sub_num=int(subject_trials[0])
-        end_sub_num=int(subject_trials[-1])
-        start=all_datasets_ranges['sub_'+str(start_sub_num-1)]
-        end=all_datasets_ranges['sub_'+str(end_sub_num)]
-        series=read_rawdata(range(start,end),hyperparams['columns_names'],hyperparams['raw_dataset_path'])
-        print("Raw data of subject {:}, rows from {:} to {:}".format(subject_trials,start,end))
-    
-    #**** Multiple subject data indexed by "sub_num"
-    if(isinstance(subject_trials,list) and isinstance(subject_trials[0],str)):
-        row_mode=MULTI_NAME_MODE
-        series_temp=[]
-        for idx in subject_trials:
-            assert(isinstance(idx,str))
-            series_temp.append(read_rawdata(idx,hyperparams['columns_names'],hyperparams['raw_dataset_path']))
-        series=np.concatenate(series_temp,axis=0)
-        print("Raw data of subject {:}".format(subject_trials))
-        
-    #**** Multiple subject and trial data indexed by "subs, trials, trial"
-    # This is for process suntao experimental datasets
-    if(isinstance(subject_trials,dict)):
-        row_mode=MULTI_NAME_TRIAL_MODE
-        series_temp=[]
-        #-- extract the trials as the first dimension 
-        if('assign_trials' in args.keys()):
-            for subject_name,trials in subject_trials.items():# subject_trials-> {sub_name:trials, sub_name:trials,...}
-                assert(isinstance(trials,list))
-                # this output is list contain many three dimension array
-                series_temp.append(read_subject_trials(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name, assign_trials=True))
-
-            #print("Raw data of subject {:}".format(subject_trials))
-        else: # - not extract drop landing period
-            for subject_name,trials in subject_trials.items():
-                assert(isinstance(trials,list))
-                series_temp.append(read_subject_trials(trials,hyperparams['columns_names'],hyperparams['raw_dataset_path'],subject_name=subject_name))
-
-        # concate them into a numpy for scale
-        series=np.concatenate(series_temp,axis=0)
-
-    
-
-    # 2) normalizate data
-    if scaler=='standard':
-        scaler=StandardScaler()
-    if scaler=='minmax':
-        scaler=MinMaxScaler()
-    if scaler=='robust':
-        scaler=RobustScaler()
-
-    dim=series.shape
-    reshape_series=series.reshape(-1,dim[-1])
-    try:
-        scaler.fit(reshape_series)
-        scaled_series=scaler.transform(reshape_series.astype(np.float32))
-    except Exception as e:
-        print(e)
-        pdb.set_trace()
-
-    # 3) reshape scaled datasets
-    scaled_series=scaled_series.reshape(dim)
-
-    if(row_mode!=MULTI_NAME_TRIAL_MODE):
-        # Get the initial stage data of every subjects
-        init_stage_sub_ranges={keys:range(all_datasets_ranges['sub_'+str(int(keys[4:])-1)],all_datasets_ranges['sub_'+str(int(keys[4:])-1)]+300)
-                      for keys in ['sub_'+str(idx) for idx in range(14)]}
-        init_stage_sub_data={keys:read_rawdata(values,hyperparams['columns_names'],hyperparams['raw_dataset_path']) for keys, values in init_stage_sub_ranges.items()}
-        # Normalization of init-stage data
-        scaled_init_stage_sub_data={keys:scaler.transform(values).mean(axis=0,keepdims=True) 
-                                    for keys, values in init_stage_sub_data.items()}
-        #empirically_orientation=[-2.32, 2.77,-3.5,  -8.65, 4.0, 3.01, -0.22, -2.11, 5.29, -9.47, -2.85, -1.33]
-    return series, scaled_series, scaler
-
-    
 
 def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_type="mean_std", raw_datasets_path="./datasets_files/raw_datasets.hdf5"):
     """
@@ -425,14 +305,14 @@ def normalization_parameters(row_idx,col_names,datarange="all_subject", norm_typ
         
 
 
-def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os.path.join(RESULTS_PATH,'models_parameters_results/')):
+def create_training_files(model_object=None, hyperparams={'lr':0}, base_folder=os.path.join(RESULTS_PATH,'training_testing/')):
     '''
     Create folder and sub folder for training, as well as model source code and super parameters
 
     '''
 
     # create top folder based on date
-    date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
+    date_base_folder = base_folder + str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
     if(os.path.exists(date_base_folder)==False):
         os.makedirs(date_base_folder)
 
@@ -464,8 +344,8 @@ def create_training_files(model_object=None, hyperparams={'lr':0},base_folder=os
             fd.write(source)
 
     # save hyper parameters to hyperparam.yaml
-    hyperparams_file=training_folder+"/hyperparams.yaml"
-    with open(hyperparams_file,'w') as fd:
+    hyperparams_file = training_folder + "/hyperparams.yaml"
+    with open(hyperparams_file, 'w') as fd:
         yaml.dump(hyperparams,fd)
 
     return training_folder
@@ -516,7 +396,7 @@ def save_training_process(training_folder, loss):
 
 
 
-def create_testing_files(training_folder, base_folder=os.path.join(RESULTS_PATH,'models_parameters_results/')):
+def create_testing_files(training_folder, base_folder=os.path.join(RESULTS_PATH,'training_testing/')):
 
     # create top folder based on date
     date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
@@ -612,21 +492,22 @@ def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.nd
 
 
 
-def plot_rawdataset_curves(datasets, col_names=None, figwidth=8.5,figheight=3,figtitle="Figure",show=False,**args):
+def plot_rawdataset_curves(datasets, col_names=None, figwidth=9.5,figheight=3,figtitle="Figure",show=False,**args):
     '''
     Params: datasets: a two dimension numpy: experiment trial
 
     '''
     #0) read datasets
     if(isinstance(datasets,np.ndarray)):
-        pd_datasets=pd.DataFrame(data=datasets,columns=col_names)
+        pd_datasets = pd.DataFrame(data=datasets,columns=col_names)
     if(isinstance(datasets,pd.DataFrame)):
-        pd_datasets=datasets
+        pd_datasets = copy.deepcopy(datasets)
 
+    dim = pd_datasets.shape
     # add time column
-    pd_datasets['time']=np.linspace(0,DROPLANDING_PERIOD/100,DROPLANDING_PERIOD)
-    pd_datasets=pd_datasets.melt(id_vars=['time'],var_name='cols',value_name='vals')
-
+    pd_datasets['time'] = np.linspace(0,dim[0]/100.0,dim[0])
+    max_time_tick = max(pd_datasets['time'].values)
+    pd_datasets = pd_datasets.melt(id_vars=['time'],var_name='cols',value_name='vals')
 
     #2) plots
     # plot configuration
@@ -638,15 +519,18 @@ def plot_rawdataset_curves(datasets, col_names=None, figwidth=8.5,figheight=3,fi
     g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=hspace,wspace=wspace)
     g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
     g.set_titles(col_template=figtitle+" {col_name}")
-    g.set(xticks=np.linspace(0,0.8,9))# xticks
+    g.set(xticks=np.linspace(0,max_time_tick,int(max_time_tick*10+1)))# xticks
     # add grid on every axs
     [ax.grid(which='both',axis='both',color='k',linestyle=':') for ax in g.axes]
 
     # save file
-    datasets_visulization_folder=os.path.join(DATA_VISULIZATION_PATH,str(localtimepkg.strftime("%Y-%m-%d_%H")))
+    # create folder
+    datasets_visulization_folder = os.path.join(DATA_VISULIZATION_PATH, str(localtimepkg.strftime("%Y-%m-%d_%H")))
     if(not os.path.exists(datasets_visulization_folder)):
         os.makedirs(datasets_visulization_folder)
-    datasets_visulization_path=os.path.join(datasets_visulization_folder,str(localtimepkg.strftime("%M_%S", localtimepkg.localtime()))+"_rawdata_curves.svg")
+
+    # create file
+    datasets_visulization_path=os.path.join(datasets_visulization_folder,figtitle+'_'+str(localtimepkg.strftime("%M_%S", localtimepkg.localtime()))+"_rawdata_curves.svg")
     g.savefig(datasets_visulization_path)
     if(show):
         plt.show()
@@ -823,8 +707,6 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
                 static_calibration_value[subject][category].append(static_temp)# the variable values in static phase in baseline trial
                 print("The trial:{} of subject:{} in session:{} has max value: {}".format(idx, subject,category,biomechanic_variables[subject][category][-1]))
     
-
-
     # 2)  Tansfer the dict data into pandas dataframe
     pd_biomechanic_variables_list=[]
     for idx,subject in enumerate(subjects):
@@ -834,7 +716,6 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
     
     pd_biomechanic_variables=pd.concat(pd_biomechanic_variables_list)
     pd_biomechanic_variables.reset_index(inplace=True)# index from 0 to few hundreds
-
 
 
     # 2.1  Tansfer the static dict data into pandas dataframe
@@ -1234,32 +1115,313 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
 
 
 '''
-select valid subjects and their trials
+
+Select valid subjects and their trials,
+
+inputs are subjects, can be subject ids e.g., [P_01], or subject_ids_names, e.g. [P_01_suntao]
 
 '''
-def select_valid_subjects_trials(subject_ids=None):
+def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_legs'):
     
-    valid_subjects_trials={}
+    valid_subjects_trials = {}
 
-    if(subject_ids==None):
-        subject_ids=['P_08','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
-    
-    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
-    subject_ids_names=[ss for ss in subject_infos.index]
-    for subject_id in subject_ids:
+    if (landing_manner=='double_legs'):
+        if(subject_ids==None):
+            subject_ids=['P_08', 'P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+         
+        # get subject_ids_names based on subject_ids
+        subject_ids_names = get_subject_ids_names(subject_ids)
+        # set trials of subjects'
         for subject_id_name in subject_ids_names:
-            if(re.search(subject_id,subject_id_name)!=None): # checking the sub_idx_id is in subject_infos
-                valid_subjects_trials[subject_id_name]=copy.deepcopy(TRAIN_USED_TRIALS) # TRIALS is "01", "02", ...
-                break;
-    
-    # particular subjects with some trials not useful
-    if('P_19' in subject_ids):
-        valid_subjects_trials['P_19_xiongyihui'].remove('01')
-    if('P_09' in subject_ids):
-        valid_subjects_trials['P_09_libang'].remove('09')
+            valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS) # TRIALS is "01", "02", ... '30'
+
+
+        # load_rawdata.py did not load P_09_plibang 09
+        if('P_09' in subject_ids) or ('P_09_libang' in subject_ids):
+            valid_subjects_trials['P_09_libang'].remove('09')
+
+        if(selected==True):
+            # particular subjects with some trials not useful
+            # load_rawdata.py did not load P_09_plibang 09
+            if('P_09' in subject_ids) or ('P_09_libang' in subject_ids):
+                valid_subjects_trials['P_09_libang']=['01','02','03','04','06']
+
+            if('P_11' in subject_ids) or ('P_11_liuchunyu' in subject_ids):
+                valid_subjects_trials['P_11_liuchunyu'].remove('18')
+                valid_subjects_trials['P_11_liuchunyu'].remove('20')
+
+            if('P_12' in subject_ids) or ('P_12_fuzijun' in subject_ids):
+                valid_subjects_trials['P_12_fuzijun'].remove('04')
+
+            if('P_14' in subject_ids) or ('P_14_hunan' in subject_ids):
+                valid_subjects_trials['P_14_hunan'].remove('05')
+                valid_subjects_trials['P_14_hunan'].remove('06') # CHEST, Accel_Y
+                valid_subjects_trials['P_14_hunan'].remove('27') # CHESK, Accel_Y
+
+            if('P_16' in subject_ids) or ('P_16_zhangjinduo' in subject_ids):
+                valid_subjects_trials['P_16_zhangjinduo'] = ['01','03','04','06','07','08','09','11','12','13','14','16','18','19','21','22','23','25','26','28','29','30']
+
+            if('P_19' in subject_ids) or ('P_19_xiongyihui' in subject_ids):
+                valid_subjects_trials['P_19_xiongyihui'].remove('01') # L_FOOT_Z Accel Z is wrong
+                valid_subjects_trials['P_19_xiongyihui'].remove('12') # L_FOOT_Z Accel Z is wrong
+                valid_subjects_trials['P_19_xiongyihui'].remove('22') # L_FOOT_Z Accel Z is wrong, CHEST Accel_Y
+
+
+    elif (landing_manner=='single_leg_R'):
+        if(subject_ids==None):
+            subject_ids=['P_08', 'P_10', 'P_13', 'P_15','P_16','P_19','P_20','P_21','P_22', 'P_24']
+
+        # get subject_ids_names based on subject_ids
+        subject_ids_names = get_subject_ids_names(subject_ids)
+        # set trials of subjects'
+        for subject_id_name in subject_ids_names:
+            valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS_SINGLE_LEG) # TRIALS is "31", "32", ... '40'
+
+    elif (landing_manner=='single_leg_L'):
+        if(subject_ids==None):
+            subject_ids=['P_09', 'P_11', 'P_12', 'P_14','P_17','P_18','P_23']
+
+        # get subject_ids_names based on subject_ids
+        subject_ids_names = get_subject_ids_names(subject_ids)
+        # set trials of subjects'
+        for subject_id_name in subject_ids_names:
+            valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS_SINGLE_LEG) # TRIALS is "31", "32", ... '40'
+
+    else:
+        print("WRONG DROP LANDING MANNER!")
+        exit()
 
     return valid_subjects_trials
 
+'''
+        subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
+        subject_ids_names =[ss for ss in subject_infos.index]
+        for subject_id in subject_ids:
+            for subject_id_name in subject_ids_names:
+                if(re.search(subject_id, subject_id_name)!=None): # checking the sub_idx_id is in subject_infos
+                    valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS_SINGLE_LEG) # TRIALS is "31", "32", ... '40'
+                    break;
+'''
+
+
+'''
+----------------------          START  -------------------------------
+----------------------    Dataset process  -------------------------------
+
+Normalize all subject data for model training
+# This is for process suntao experimental datasets
+
+'''
+
+
+def load_normalize_data(hyperparams, scaler='standard', **kwargs):
+
+    subjects_trials = hyperparams['subjects_trials']
+    
+    #0) load raw datasets
+    subjects_trials_data = {}
+    subject_ids_names = []
+    assert(isinstance(subjects_trials, dict))
+    # extract the trials as the first dimension 
+    for subject_id_name, trials in subjects_trials.items():# subjects_trials-> {sub_name:trials, sub_name:trials,...}
+        subject_ids_names.append(subject_id_name)
+        # this output is list contain many three dimension array
+        subject_trials_data = read_subject_trials(
+                                                 subject_id_name, 
+                                                 trials, 
+                                                 hyperparams['columns_names'], 
+                                                 hyperparams['raw_dataset_path']
+                                                 )
+
+        subjects_trials_data[subject_id_name] = {}
+        for trial in trials:
+            try:
+                subjects_trials_data[subject_id_name][trial] = subject_trials_data[trial]
+            except Exception as e:
+                print(e)
+                pdb.set_trace()
+
+    #1) synchronize (scaled) features and labels based on the event: touch index
+    if('syn_features_labels' in kwargs.keys()):   
+        if(kwargs['syn_features_labels']==True):
+            syn_subjects_trials_data = syn_features_lables_events(subjects_trials_data, hyperparams)
+            subjects_trials_data = copy.deepcopy(syn_subjects_trials_data)
+
+    #2) concate them into a numpy for scale
+    np_subjects_trials_data = np.concatenate([subjects_trials_data[subject_id_name][trial] for subject_id_name in subject_ids_names for trial in subjects_trials[subject_id_name] ],axis=0)
+    
+    #3) normalizate data
+    #i) normalization method
+    if scaler=='standard':
+        scaler=StandardScaler()
+    if scaler=='minmax':
+        scaler=MinMaxScaler()
+    if scaler=='robust':
+        scaler=RobustScaler()
+
+    try:
+        scaler.fit(np_subjects_trials_data)
+        scaled_np_subjects_trials_data = scaler.transform(np_subjects_trials_data.astype(np.float32))
+    except Exception as e:
+        print(e)
+        pdb.set_trace()
+
+    #4) trasnfer scaled subjects trials data into a dictory of subjects and trials
+    scaled_subjects_trials_data={}
+    idx = 0 # trial index
+    for subject_id_name in subject_ids_names:
+        scaled_subjects_trials_data[subject_id_name] = {}
+        for trial in subjects_trials[subject_id_name]:
+            a_trial_data_row_num = subjects_trials_data[subject_id_name][trial].shape[0] # data shape of a trial
+            scaled_subjects_trials_data[subject_id_name][trial] = scaled_np_subjects_trials_data[idx*a_trial_data_row_num:(idx+1)*a_trial_data_row_num,:]
+            idx = idx + 1
+    
+    return subjects_trials_data, scaled_subjects_trials_data, scaler
+
+
+
+
+'''
+synchronize features and lables data using their own touch moment event
+
+The touch moment event of IMU can be recongnized by its maximum Acc value of left foot
+
+The touch moment event of Force plate is 1/4* DROPLANDING_PERIOD
+
+'''
+
+def syn_features_lables_events(subjects_trials_data, hyperparams):
+    
+    assert(SYN_DROPLANDING_PERIOD < DROPLANDING_PERIOD)
+
+    syn_subjects_trials_data={}
+    for subject, trials in subjects_trials_data.items():
+        syn_subjects_trials_data[subject]={}
+        for trial, data in trials.items():
+            # transfer the data into pandas
+            pd_trial_data = pd.DataFrame(data=data, columns=hyperparams['columns_names'])
+            pd_features_data = pd_trial_data[hyperparams['features_names']]
+            pd_labels_data = pd_trial_data[hyperparams['labels_names']]
+
+            # imu sensor list, how many imu are used 
+            imu_sensor_list=[]
+            for imu in IMU_SENSOR_LIST:
+                if(imu in ''.join(hyperparams['features_names'])):
+                    imu_sensor_list.append(imu)
+
+            # calculate norm of each acceleteor and their peak value index
+            peak_accelvalue_index = 0
+            croped_features_data = []
+            prefix_frames, suffix_frames = 10, SYN_DROPLANDING_PERIOD-10-1
+            # crop features data (IMU sensor data)
+            for sensor in imu_sensor_list:
+                # accelemeter fields
+                target_leg = hyperparams['target_leg']# left(L), right(R) or double
+                landing_manner = hyperparams['landing_manner'] # single or double legs
+                if target_leg + '_FOOT_Accel_Z' in pd_features_data.columns:
+                    sensor_accel_fields = ['L_FOOT' + '_Accel_Z']
+                elif target_leg + '_SHANK' in imu_sensor_list:
+                    sensor_accel_fields = ['L_SHANK' + '_Accel_Y']
+                elif target_leg + '_THIGH' in imu_sensor_list:
+                    sensor_accel_fields = ['L_THIGH' + '_Accel_Y']
+                elif 'WAIST' in imu_sensor_list:
+                    sensor_accel_fields = ['WAIST' + '_Accel_Y']
+                elif 'CHEST' in imu_sensor_list:
+                    sensor_accel_fields = ['CHEST' + '_Accel_Y']
+                else:
+                    sensor_accel_fields = [sensor+'_Accel_X', sensor+'_Accel_Y', sensor+'_Accel_Z']
+
+
+                # imu fields of a sensor
+                if('Mag' in ''.join(hyperparams['features_names'])):# include magnetometer
+                    sensor_fields = [sensor+ "_" + imu_field for imu_field in IMU_RAW_FIELDS]
+                else:
+                    sensor_fields = [sensor+ "_" + imu_field for imu_field in ACC_GYRO_FIELDS]
+
+                # norm of accelemeter fields
+                sensor_norm = np.linalg.norm(pd_features_data[sensor_accel_fields].values, axis=1)
+
+                # index of the peak norm 
+                #peak_accelvalue_index = np.argmax(sensor_norm, axis=0)
+                peak_accelvalue_index = np.argmax(pd_features_data[sensor_accel_fields].values,axis=0)[0]
+
+                # check whether the index of the peak value is proper
+                if((peak_accelvalue_index < prefix_frames) or ((peak_accelvalue_index+suffix_frames) >= DROPLANDING_PERIOD)):
+                    print("peak value index: {}  is out boardary in {} of {}".format(peak_accelvalue_index, subject,trial))
+                    pdb.set_trace()
+
+                # crop features data (imu data) based on the accelemeter norm
+                try:
+                    a_sensor_features = pd_features_data.loc[peak_accelvalue_index - prefix_frames : peak_accelvalue_index + suffix_frames, sensor_fields]
+                except Exception as e:
+                    print(e)
+                    pdb.set_trace()
+                
+                # remove index of the dataframe
+                a_sensor_features = a_sensor_features.reset_index(drop=True) # remove the old index and reset the index from 0 to end
+                croped_features_data.append(a_sensor_features)
+
+            # crop labels data
+            croped_labels_data = pd_labels_data.loc[int(DROPLANDING_PERIOD/4)-prefix_frames:int(DROPLANDING_PERIOD/4)+suffix_frames,:]
+            croped_labels_data = croped_labels_data.reset_index(drop=True) # remove the old index and reset the index from 0 to the end
+
+            # merge croped features (IMU sensor data) and labels data
+            croped_trial_data = [temp  for temp in croped_features_data]
+            croped_trial_data.append(croped_labels_data)
+            pd_syn_trial_data = pd.concat(croped_trial_data, axis=1)
+            
+            # checking whether there are NULL in datasets, if so, the index is out of boundary
+            if(pd_syn_trial_data.isnull().values.any()):
+                print("There are some NaN in datasets, please check syn function in line 1335")
+                pdb.set_trace()
+                exit()
+
+            syn_trial_data = pd_syn_trial_data[hyperparams['columns_names']].values
+            syn_subjects_trials_data[subject][trial]=syn_trial_data
+
+    return syn_subjects_trials_data
+
+
+
+
+
+
+'''
+    if(row_mode!=MULTI_NAME_TRIAL_MODE):
+        # Get the initial stage data of every subjects
+        init_stage_sub_ranges={keys:range(all_datasets_ranges['sub_'+str(int(keys[4:])-1)],all_datasets_ranges['sub_'+str(int(keys[4:])-1)]+300)
+                      for keys in ['sub_'+str(idx) for idx in range(14)]}
+        init_stage_sub_data={keys:read_rawdata(values,hyperparams['columns_names'],hyperparams['raw_dataset_path']) for keys, values in init_stage_sub_ranges.items()}
+        # Normalization of init-stage data
+        scaled_init_stage_sub_data={keys:scaler.transform(values).mean(axis=0,keepdims=True) 
+                                    for keys, values in init_stage_sub_data.items()}
+        #empirically_orientation=[-2.32, 2.77,-3.5,  -8.65, 4.0, 3.01, -0.22, -2.11, 5.29, -9.47, -2.85, -1.33]
+'''
+
+
+def get_subject_ids_names(selected_subject_ids):
+    '''
+    Get subjects' ids and names ([P_01_suntao, P_02_liyan]) based on listed subjects_ids [P_01, P_02] and subject_info.csv
+
+    '''
+
+    # load subject info from a file
+    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
+    subject_ids_names = [ss for ss in subject_infos.index]
+
+
+    selected_subject_ids_names=[]
+    for selected_subject_id in selected_subject_ids:
+        #i) check whether the selected subject is in subject_infos.csv
+        for subject_id_name in subject_ids_names:
+            if(re.search(selected_subject_id,subject_id_name)!=None):
+                selected_subject_id_name = subject_id_name
+                break
+
+        print(selected_subject_id_name)
+        selected_subject_ids_names.append(selected_subject_id_name)
+
+    return selected_subject_ids_names
 
 
 
@@ -1272,67 +1434,52 @@ if __name__=='__main__':
     hyperparams['raw_dataset_path']= os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
 
     #-- select subjects 
-    selected_subject_ids=['P_08','P_09','P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+    selected_subject_ids=['P_08','P_09','P_10', 'P_11', 'P_12', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+
     #-- subject info
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
-    subject_id_names=[ss for ss in subject_infos.index]
+    subject_ids_names = [ss for ss in subject_infos.index]
 
+    # select subjects
+    selected_subject_ids_names = get_subject_ids_names(selected_subject_ids)
 
-    #-- choose the selected subjects and load their dataset
-    selected_subject_ids_names=[]
-    for selected_subject_id in selected_subject_ids:
-        #i) check whether the selected subject is in subject_infos.csv
-        for subject_id_name in subject_id_names:
-            if(re.search(selected_subject_id,subject_id_name)!=None):
-                selected_subject_id_name=subject_id_name
-                break
-        print(selected_subject_id_name)
-        selected_subject_ids_names.append(selected_subject_id_name)
-        #ii) define hyperparams values: subject, columns_names
-        hyperparams['subjects_trials']=select_valid_subjects_trials([selected_subject_id])
-
-        #hyperparams['columns_names']=['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','R_KNEE_MOMENT_X','R_KNEE_MOMENT_Y','L_FPA_Z','R_FPA_Z']
-        """
-        hyperparams['columns_names']=['L_FPA_Z','R_FPA_Z','L_FPA_X','R_FPA_X',
-                            'L_GRF_X', 'R_GRF_X', 'L_GRF_Y', 'R_GRF_Y', 'L_GRF_Z', 'R_GRF_Z',
-                            'L_ANKLE_ANGLE_X','R_ANKLE_ANGLE_X', 'L_ANKLE_ANGLE_Y','R_ANKLE_ANGLE_Y', 'L_ANKLE_ANGLE_Z','R_ANKLE_ANGLE_Z',
-                            'L_ANKLE_MOMENT_X','R_ANKLE_MOMENT_X', 'L_ANKLE_MOMENT_Y','R_ANKLE_MOMENT_Y', 'L_ANKLE_MOMENT_Z','R_ANKLE_MOMENT_Z',
-                            'L_KNEE_ANGLE_X','R_KNEE_ANGLE_X', 'L_KNEE_ANGLE_Y','R_KNEE_ANGLE_Y', 'L_KNEE_ANGLE_Z','R_KNEE_ANGLE_Z',
-                            'L_KNEE_MOMENT_X','R_KNEE_MOMENT_X', 'L_KNEE_MOMENT_Y','R_KNEE_MOMENT_Y', 'L_KNEE_MOMENT_Z','R_KNEE_MOMENT_Z',
-                            'PELVIS_ANGLE_X','THORAX_ANGLE_X'
-                           ]
-        """
-        hyperparams['columns_names']=FEATURES_FIELDS+LABELS_FIELDS
-        #iii) load multiple subject data, the output series columns with indicated sequences
-        series, scaled_series,scaler=load_normalize_data(hyperparams=hyperparams,scaler='minmax', assign_trials=True)
-        multi_subject_data[selected_subject_id]=series
-
+    #for selected_subject_id_name in selected_subject_ids_names:
+    #i) define hyperparams values: subject, columns_names
+    hyperparams['subjects_trials'] = set_subjects_trials(selected=True, landing_manner='single_leg_R')
     
+    #ii) set data fields in 'columns_names'
+    labels_fields = ['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X','R_GRF_Y','R_GRF_Z']
+    hyperparams['features_names'] = FEATURES_FIELDS
+    hyperparams['labels_names'] = labels_fields
+    hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
+
+    #iii) load multiple subject data, the output subjects trials data columns with indicated sequences
+    subjects_trials_data, scaled_subjects_trials_data, scaler = load_normalize_data(hyperparams=hyperparams, scaler='standard', syn_features_labels=False)
+
+    print(selected_subject_ids_names)
     #-- subject height
-    subject_heights=[float(subject_infos['body height'][sub_name]) for sub_name in selected_subject_ids_names]
+    subject_heights = [float(subject_infos['body height'][sub_name]) for sub_name in selected_subject_ids_names]
     #-- subject mass
-    subject_masses=[float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
+    subject_masses = [float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
 
-
-    
     #---------------------------------PLOT 1 ----------------------------#
-    data=pd.DataFrame(data=multi_subject_data['P_11'][0],columns=hyperparams['columns_names'])
-    #data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z']]
-    data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','L_GRF_X','L_GRF_Y','L_GRF_Z']]
-    plot_rawdataset_curves(data,figheight=6,figtitle='P_11 trial 01',show=True)
+    #data=pd.DataFrame(data=subjects_trials_data['P_11_liuchunyu']['31'],columns=hyperparams['columns_names'])
+    #displayed_data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
+    #displayed_data=data[['L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z','L_GRF_X','L_GRF_Y','L_GRF_Z']]
+    #displayed_data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
+    #plot_rawdataset_curves(displayed_data,figheight=6,figtitle='P_11 trial 01',show=True)
 
-    pdb.set_trace()
-
+    #pdb.set_trace()
     #---------------------------------PLOT 2 ----------------------------#
     # checking dataset of each trials of each subjects
-    for subject in selected_subject_ids:
-        for trial in TRIALS:
-            data=pd.DataFrame(data=multi_subject_data[subject][int(trial)-1],columns=hyperparams['columns_names'])
-            data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z']]
-            plot_rawdataset_curves(data,figheight=6,figtitle=subject+"_"+trial)
+    for subject, trials in hyperparams['subjects_trials'].items():
+        for trial in trials:
+            data = pd.DataFrame(data=subjects_trials_data[subject][trial], columns=hyperparams['columns_names'])
+            #displayed_data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
+            displayed_data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
+            plot_rawdataset_curves(displayed_data, figheight=6, figtitle=subject+"_"+trial)
 
-
-
+    pdb.set_trace()
     #---------------------------------PLOT 3 ----------------------------#
     #-- plot statistic knee moment under various fpa
     trial_categories = ['fpa_01','fpa_02','fpa_03','fpa_04','fap_05']
