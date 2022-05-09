@@ -5,6 +5,7 @@ VIDEO_PATH = os.environ.get('VIDEO_DATA_PATH')
 OPENPOSE_MODEL_PATH = os.environ.get('OPENPOSE_MODEL_PATH')
 VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 
+SAMPLE_FREQUENCY=100.0 # 100 Hz
 
 GRAVITY = 9.81
 #XSEN_IMU_ID={'MASTER':'0120092C','L_THIGH':'00B44910','L_SHANK':'00B4490A','R_THIGH':'00B44912','R_SHANK':'00B44916'} # for lower body plugin gait
@@ -50,6 +51,7 @@ STATIC_TRIALS = ['static']
 # TRIALS used for training deep neural network model
 TRAIN_USED_TRIAL_NUM=30
 TRAIN_USED_TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRAIN_USED_TRIAL_NUM+1,1)]  #trial number
+TRAIN_USED_TRIALS_SINGLE_LEG = [str(idx) for idx in range(31,41,1)]  #trial number
 
 STEP_TYPES = STANCE, STANCE_SWING = range(2)
 STEP_TYPE = STANCE
@@ -192,10 +194,6 @@ NEEDED_FORCE_PLATED_DATA_FIELDS=['- Force', '- CoP']
 FORCE_DATA_FIELDS=  [lr + 'Force' + dire for lr in LEFT_RIGHT for dire in DIRECTIONS]
 KNEE_DATA_FIELDS = [lr + knee + dire for lr in LEFT_RIGHT for knee in KNEE_VALUES for dire in DIRECTIONS[:2]]
 
-
-
-
-
 # This one got from v3d output file (csv), this should match the file
 
 #V3D_DATA_FIELDS=['LON','RON','RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_ANGLE.1',  'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'FP1', 'FP1.1','FP1.2','LEFT_KNEE_ANGLE', 'LEFT_KNEE_ANGLE.1',  'LEFT_KNEE_MOMENT', 'LEFT_KNEE_MOMENT.1', 'FP2','FP2.1','FP2.2']
@@ -209,12 +207,17 @@ V3D_DATA_FIELDS=['LON','RON'] + ['LEFT_'+ temp for temp in BASIC_V3D_DATA_FIELDS
 
 
 DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验的时间范围
-
+SYN_DROPLANDING_PERIOD=60 # synchronize imus and GRFs by shift and crop them into this period
 """
 这三个变量的设置 需要一致
 """
-DATA_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/D drop landing"
 
+#MEDIA_NAME = "/media/sun/My Passport/"
+MEDIA_NAME = "/media/sun/DATA/"
+#MEDIA_NAME = "/mnt/sun/My Passport/"
+DATA_PATH= MEDIA_NAME + "Drop_landing_workspace/suntao/D drop landing"
+
+#SELECTED_IMU_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 
 
@@ -230,15 +233,59 @@ V3D_LABELS_FIELDS = ['LON','RON']+['L_'+ temp + dire for temp in BIOMECHANICS_VA
 
 
 # experimental results are stored at this path
-RESULTS_PATH="/media/sun/My Passport/DropLanding_workspace/suntao/Results/Experimental_Results"
+RESULTS_PATH = MEDIA_NAME + "Drop_landing_workspace/suntao/Results/Experiment_results"
 
-DATA_VISULIZATION_PATH=os.path.join(RESULTS_PATH,'datasets_files','dataset_visulization')
+DATA_VISULIZATION_PATH = os.path.join(RESULTS_PATH,'datasets_files','dataset_visulization')
 
 # these are for training ann model
 FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 #LABELS_FIELDS= ['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','L_KNEE_MOMENT_Z']
-LABELS_FIELDS= ['L_GRF_X','L_GRF_Y','L_GRF_Z']
+#LABELS_FIELDS= ['L_GRF_X','L_GRF_Y', 'L_GRF_Z']
+LABELS_FIELDS= ['L_GRF_Z']
 
 # subjects with wrong trial data
 WRONG_TRIALS={subject:[] for subject in SUBJECTS}
 WRONG_TRIALS['P_09_libang']=['09']
+
+
+ESTIMATION_SENSOR_CONFIGURATIONS = {
+                               'F': ['L_FOOT'],
+                               'S': ['L_SHANK'],
+                               'T': ['L_THIGH'],
+                               'W': ['WAIST'],
+                               'C': ['CHEST'],
+                                
+                               'FS': ['L_FOOT','L_SHANK'],
+                               'FT': ['L_FOOT','L_THIGH'],
+                               'FW': ['L_FOOT','WAIST'],
+                               'FC': ['L_FOOT','CHEST'],
+                               'ST': ['L_SHANK','L_THIGH'],
+                               'SW': ['L_SHANK','WAIST'],
+                               'SC': ['L_SHANK','CHEST'],
+                               'TW': ['L_THIGH','WAIST'], 
+                               'TC': ['L_THIGH', 'CHEST'],
+                               'WC': ['WAIST', 'CHEST'],
+                               
+                                
+                               'FST': ['L_FOOT','L_SHANK','L_THIGH'], 
+                               'FSW': ['L_FOOT','L_SHANK','WAIST'],
+                               'FSC': ['L_FOOT','L_SHANK','CHEST'],
+                                
+                               'FTW': ['L_FOOT','L_THIGH','WAIST'],
+                               'FTC': ['L_FOOT','L_THIGH','CHEST'],
+                               
+                               'FWC': ['L_FOOT','WAIST', 'CHEST'],
+                                
+                               'STW': ['L_SHANK','L_THIGH','WAIST' ],
+                               'STC': ['L_SHANK','L_THIGH','CHEST' ],
+                               'SWC': ['L_SHANK','WAIST','CHEST' ],
+                               'TWC': ['L_THIGH','WAIST', 'CHEST'],
+                                
+                               'FSTW': ['L_FOOT','L_SHANK','L_THIGH','WAIST'], 
+                               'FSTC': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
+                               'FSWC': ['L_FOOT','L_SHANK','WAIST', 'CHEST'],
+                               'FTWC': ['L_FOOT','L_THIGH','WAIST', 'CHEST'],
+                               'STWC': ['L_SHANK','L_THIGH','WAIST', 'CHEST'],
+                                
+                               'FSTWC': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']
+                              }

@@ -38,7 +38,6 @@ else:
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
             KNEE_DATA_FIELDS, WRONG_TRIALS
 
-subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
 
  
 class XsenReader():
@@ -88,12 +87,12 @@ AUthor: suntao
 class V3DReader():
 
     def __init__(self,subject_info,session):
-        self.subject_name=subject_info.name
+        self.subject_name = subject_info.name
         v3d_calibrate_data_path = os.path.join(DATA_PATH, self.subject_name, session, self.subject_name+'static' + '.csv')
         self.v3d_data={}
-        self.subject_name=subject_info.name
-        self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
-        self.session_trial_exists=False
+        self.subject_name = subject_info.name
+        self.folder_path = os.path.join(DATA_PATH,self.subject_name,session)
+        self.session_trial_exists = False
         for trial in TRIALS:
             for trial_type in DYNAMIC_TRIALS:
                 v3d_data_path = os.path.join(self.folder_path, self.subject_name + ' ' + trial_type +' '+ trial + '.csv')
@@ -175,6 +174,7 @@ Save each subject experiment data into two h5 data fromat (features and labels)
 
 '''
 def transfer_rawdata_to_h5():
+    subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
     for subject in SUBJECTS: # subjects
         for session in SESSIONS:# trial types
             #- load subject information

@@ -40,54 +40,6 @@ else:
 
 
 
-
-class VideoCsvReader:
-    """
-    read video exported csv file by openPose.
-    """
-
-    def __init__(self, file_path):
-        self.data_frame = pd.read_csv(file_path, index_col=0)
-
-    def get_column_position(self, marker_name):
-        return self.data_frame[marker_name]
-
-    def get_rshank_angle(self):
-        ankle = self.data_frame[['RAnkle_x', 'RAnkle_y']]
-        knee = self.data_frame[['RKnee_x', 'RKnee_y']]
-        vector = knee.values - ankle.values
-        return np.arctan2(-vector[:, 1], vector[:, 0])
-
-    def fill_low_probability_data(self):
-        columns_label = self.data_frame.columns.values.reshape([-1, 3]).tolist()
-        for x, y, probability in columns_label:
-            self.data_frame.loc[self.data_frame[probability] < 0.5, [x, y, probability]] = np.nan
-        self.data_frame = self.data_frame.interpolate(method='linear', axis=0)
-
-    def low_pass_filtering(self, cut_off_fre, sampling_fre, filter_order):
-
-        # plt.figure()
-        # plt.plot(self.data_frame['RKnee_x'])
-        # plt.plot(data_filter(self.data_frame['RKnee_x'], 15, 100, 2))
-        # plt.plot(data_filter(self.data_frame['RKnee_x'], 10, 100, 2))
-        # plt.show()
-
-        self.data_frame.loc[:, :] = data_filter(self.data_frame.values, cut_off_fre, sampling_fre, filter_order)
-
-    def resample_to_100hz(self):
-        target_sample_rate = 100.
-        x, step = np.linspace(0., 1., self.data_frame.shape[0], retstep=True)
-        # new_x = np.linspace(0., 1., int(self.data_frame.shape[0]*target_sample_rate/VIDEO_ORIGINAL_SAMPLE_RATE))
-        new_x = np.arange(0., 1., step*VIDEO_ORIGINAL_SAMPLE_RATE/target_sample_rate)
-        f = interp1d(x, self.data_frame, axis=0)
-        self.data_frame = pd.DataFrame(f(new_x), columns=self.data_frame.columns)
-
-    def crop(self, start_index):
-        # keep index after start_index
-        self.data_frame = self.data_frame.loc[start_index:]
-        self.data_frame.index = range(self.data_frame.shape[0])
-
-
 class Visual3dCsvReader:
     """
     read v3d export data. It should contain LEFT_KNEE_MOMENT,LEFT_KNEE_ANGLE etc.
@@ -160,6 +112,7 @@ class Visual3dCsvReader:
         self.data_frame.index = range(self.data_frame.shape[0])
         print('v3d croped data frame shape:', self.data_frame.shape)
 
+
     def extract_droplanding_period(self):
         '''
         #- Get necessary drop landing period
@@ -189,24 +142,23 @@ class Visual3dCsvReader:
         print('v3d touch moment: {}'.format(self.combined_touch_moment))
 
         #-- determine start_index and end_index, the drop landing
-        start_index=self.combined_touch_moment-DROPLANDING_PERIOD/4
-        end_index=self.combined_touch_moment+DROPLANDING_PERIOD/4*3-1
+        start_index = self.combined_touch_moment-DROPLANDING_PERIOD/4
+        end_index = self.combined_touch_moment+DROPLANDING_PERIOD/4*3-1
 
 
         #-- check row_range is in start_index and end_index
-        row_length=self.data_frame.shape[0]
-        if((start_index<0) or (end_index>row_length)):
+        row_length = self.data_frame.shape[0]
+        if((start_index < 0) or (end_index > row_length)):
             print(termcolor.colored("Trial: {} of subject: {} extract period is out the effective data period".format(self.trial,self.subject_name),'red'))
             pdb.set_trace()
 
         #-- extract drop landing period data
-        self.data_frame=self.data_frame.loc[start_index:end_index]
-        if(self.data_frame.shape[0]!=DROPLANDING_PERIOD):
+        self.data_frame = self.data_frame.loc[start_index:end_index]
+        if(self.data_frame.shape[0] != DROPLANDING_PERIOD):
             print("data_frame row is less than sepcified DROPLANDING_PERIOD")
             pdb.set_trace()
 
         print('v3d extracted data frame shape:', self.data_frame.shape)
-
 
 
     def create_step_id(self, step_type):
@@ -335,11 +287,6 @@ class XsenTxtReader():
         self.data_frame.interpolate(inplace=True)
         '''
 
-
-
-
-
-
     def crop(self, start_index, end_index):
         '''
 
@@ -386,10 +333,10 @@ class XsenTxtReader():
         # So this class should be instanlizated after Visual3DCsvReader
 
         # if there is no touch moment, then set it to a big value , eg. 1000000
-        left_touch_moment=left_touch_moment if left_touch_moment >1 else 1000000
-        right_touch_moment=right_touch_moment if right_touch_moment >1 else 1000000
+        left_touch_moment = left_touch_moment if left_touch_moment >1 else 1000000
+        right_touch_moment = right_touch_moment if right_touch_moment >1 else 1000000
         try:
-            combined_touch_moment=int(min([left_touch_moment,right_touch_moment]))
+            combined_touch_moment = int(min([left_touch_moment,right_touch_moment]))
             if(combined_touch_moment==0) or (combined_touch_moment==1000000):
                 print(termcolor.colored("The trial has no right touch moment",'red'))
                 pdb.set_trace()
@@ -398,8 +345,8 @@ class XsenTxtReader():
         print('xsen touch moment: {}'.format(combined_touch_moment))
 
         #-- determine start_index and end_index, the drop landing
-        start_index=combined_touch_moment-DROPLANDING_PERIOD/4 
-        end_index=combined_touch_moment+DROPLANDING_PERIOD/4*3 - 1
+        start_index = combined_touch_moment - DROPLANDING_PERIOD/4 
+        end_index = combined_touch_moment + DROPLANDING_PERIOD/4*3 - 1
 
         #-- check row_range is in start_index and end_index
         row_length=self.data_frame.shape[0]
