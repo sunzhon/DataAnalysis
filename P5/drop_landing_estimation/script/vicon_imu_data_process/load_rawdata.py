@@ -30,13 +30,13 @@ if __name__ == "__main__":
     import wearable_math as wearable_math
     from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS, WRONG_TRIALS
+            KNEE_DATA_FIELDS, WRONG_TRIALS, SAMPLE_FREQUENCY
 else:
     import vicon_imu_data_process.wearable_toolkit as wearable_toolkit
     import vicon_imu_data_process.wearable_math as wearable_math
     from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS, WRONG_TRIALS
+            KNEE_DATA_FIELDS, WRONG_TRIALS, SAMPLE_FREQUENCY
 
 
  
@@ -52,7 +52,7 @@ class XsenReader():
             xsen_data_path = os.path.join(self.folder_path)
             if os.path.exists(xsen_data_path):
                 print(xsen_data_path,trial)
-                self.xsen_data[trial]=wearable_toolkit.XsenTxtReader(self.folder_path,self.subject_name,trial)
+                self.xsen_data[trial] = wearable_toolkit.XsenTxtReader(self.folder_path,self.subject_name,trial)
                 self.session_trial_exists=(self.session_trial_exists or True)
             else:
                 self.session_trial_exists=(self.session_trial_exists or False)
@@ -69,8 +69,8 @@ class XsenReader():
     
         # save the h5 file
         with h5py.File(h5format_dataset, "w") as f:
-            f.attrs['columns']=list(self.xsen_data['01'].data_frame.columns)
-            subject_h5dataset=f.create_group(self.subject_name)
+            f.attrs['columns'] = list(self.xsen_data['01'].data_frame.columns)
+            subject_h5dataset = f.create_group(self.subject_name)
             for trial in TRIALS:
                 subject_h5dataset.create_dataset(trial,data=self.xsen_data[trial].data_frame)
 
@@ -135,22 +135,21 @@ class ViconReader():
         self.subject_name=subject_info.name
         vicon_calibrate_data_path = os.path.join(DATA_PATH, self.subject_name, session, self.subject_name+'static' + '.csv')
         self.vicon_data={}
-        self.subject_name=subject_info.name
-        self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
+        self.subject_name = subject_info.name
+        self.folder_path = os.path.join(DATA_PATH,self.subject_name,session)
         self.session_trial_exists=False
         for trial in TRIALS:
             for trial_type in DYNAMIC_TRIALS:
                 vicon_data_path = os.path.join(self.folder_path, self.subject_name + ' '+trial_type +' '+ trial + '.csv')
                 if os.path.exists(vicon_data_path):
                     print(vicon_data_path)
-                    self.vicon_data[trial]=wearable_toolkit.ViconCsvReader(vicon_data_path, trial=trial, static_trial=vicon_calibrate_data_path, subject_info=subject_info)
-                    self.session_trial_exists=(self.session_trial_exists or True)
+                    self.vicon_data[trial] = wearable_toolkit.ViconCsvReader(vicon_data_path, trial=trial, static_trial=vicon_calibrate_data_path, subject_info=subject_info)
+                    self.session_trial_exists = (self.session_trial_exists or True)
                 else:
                     self.session_trial_exists=(self.session_trial_exists or False)
             
         
     def get_data_to_h5(self):
-        
         # remove the exist h5 file
         h5format_dataset=os.path.join(self.folder_path,'labels_rawdataset.hdf5')
         if os.path.exists(h5format_dataset):
@@ -182,13 +181,13 @@ def transfer_rawdata_to_h5():
             subject_info = subject_infos.loc[subject, :]
 
             #- read vicon data
-            vicon=ViconReader(subject_info,session)
+            vicon = ViconReader(subject_info,session)
 
             #- read v3d data
-            v3d=V3DReader(subject_info, re.sub('vicon','v3d',session))
+            v3d = V3DReader(subject_info, re.sub('vicon','v3d',session))
 
             #- process IMU data
-            xsen=XsenReader(subject_info,re.sub('vicon','xsen',session))
+            xsen = XsenReader(subject_info,re.sub('vicon','xsen',session))
 
             #-- 1) Assign v3d and xsen data by crop v3d and xsen data. 
             #-- 2) Extract drop landing data of v3d, vicon and xsen. Because their effective periods
@@ -248,13 +247,15 @@ def transfer_allsubject_to_a_h5():
                                     if(trial not in WRONG_TRIALS[subject]): #give up the trials with wrong data collect
                                         # - combine features and labels along with columns
                                         if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):# features and labels should have same row nummber
-                                            features_labels=pd.concat([pd.DataFrame(ff[subject][trial]),pd.DataFrame(fl[subject][trial])],axis=1)
+                                            features_labels = pd.concat([pd.DataFrame(ff[subject][trial]), pd.DataFrame(fl[subject][trial])],axis=1)
+                                            # Add Time as a column
+                                            features_labels = pd.concat([features_labels,pd.DataFrame(data=np.linspace(0,features_labels.shape[0]/SAMPLE_FREQUENCY,features_labels.shape[0]))],axis=1)
                                             sub.create_dataset(trial,data=features_labels)
                                         else:
                                             print(termcolor.colored("subject: {} in trial:{} features anad lables have different rows".format(subject,trial),"red"))
                                             pdb.set_trace()
                                 # set columns as attributes of the hdf5 file dataset
-                                sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns'])
+                                sub.attrs['columns']=list(ff.attrs['columns'])+list(fl.attrs['columns']) +list(['TIME'])
                     except Exception as e: 
                         print(e)
                         print(termcolor.colored("Subject: {} h5 file path in session: {} is wrong".format(subject,session),'red'))

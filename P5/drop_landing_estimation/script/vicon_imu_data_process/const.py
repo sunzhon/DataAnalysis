@@ -18,7 +18,7 @@ SESSIONS=['20210930_vicon','20211015_vicon','20211022_vicon','20211025_vicon','2
 
 SUBJECTS = [
             #'P_05_shuicheng',
-            'P_06_tianyi',
+            #'P_06_tianyi',
             'P_08_zhangboyuan',
             'P_09_libang',
             'P_10_dongxuan',
@@ -215,6 +215,7 @@ SYN_DROPLANDING_PERIOD=60 # synchronize imus and GRFs by shift and crop them int
 #MEDIA_NAME = "/media/sun/My Passport/"
 MEDIA_NAME = "/media/sun/DATA/"
 #MEDIA_NAME = "/mnt/sun/My Passport/"
+
 DATA_PATH= MEDIA_NAME + "Drop_landing_workspace/suntao/D drop landing"
 
 #SELECTED_IMU_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
@@ -242,6 +243,11 @@ FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 #LABELS_FIELDS= ['L_KNEE_MOMENT_X','L_KNEE_MOMENT_Y','L_KNEE_MOMENT_Z']
 #LABELS_FIELDS= ['L_GRF_X','L_GRF_Y', 'L_GRF_Z']
 LABELS_FIELDS= ['L_GRF_Z']
+
+
+# The value professional name and its abbreviation name
+estimated_variable_dirct = {'GRF': 'GRF_Z', 'KFM': 'KNEE_MOMENT_X', 'KAM':'KNEE_MOMENT_Y'}
+inverse_estimated_variable_dict = dict([val,key] for key,val in estimated_variable_dirct.items())
 
 # subjects with wrong trial data
 WRONG_TRIALS={subject:[] for subject in SUBJECTS}

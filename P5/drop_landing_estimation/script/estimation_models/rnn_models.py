@@ -54,6 +54,7 @@ def model_v1(hyperparams):
     return model
 
 
+
 def my_callbacks(training_folder):
     # online checkpoint callback
     checkpoint_path = training_folder + "/online_checkpoint/cp.ckpt"

@@ -1,0 +1,1 @@
+Sensor configurations	LSTM units	syn_features_labels	landing_manners	estimated_variables	training_testing_folders

@@ -15,7 +15,6 @@ import os
 import h5py
 import re
 
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import r2_score
@@ -81,7 +80,7 @@ def read_subject_trials(subject_id_name: str, trials: int, data_fields: list, ra
 
         #iii) check the specified subject name
         if(subject_id_name not in subject_ids_names):
-            print("This subject:{} is not in datasets, see line 91 in process_rawdata.py".format(subject_name))
+            print("This subject:{} is not in datasets, see line 91 in process_rawdata.py".format(subject_id_name))
             exit()
 
         #iv) get each trial data with specified columns (data fields) of a subject (subject_id_name)
@@ -94,7 +93,7 @@ def read_subject_trials(subject_id_name: str, trials: int, data_fields: list, ra
                 #b) retrive specified columns by parameter: data_fields
                 trials_data[trial] = temp_pd_data[data_fields].values
             except Exception as e:
-                print(e," Error in line 101 of process_raw_data.py, no trial in : {}".format(trial))
+                print(e," Error in process_raw_data.py, no trial in : {}".format(trial))
 
     return trials_data # a dictory with trials' data in form of numpy array
 
@@ -312,7 +311,10 @@ def create_training_files(model_object=None, hyperparams={'lr':0}, base_folder=o
     '''
 
     # create top folder based on date
-    date_base_folder = base_folder + str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
+    if 'investigation_results_folder' in hyperparams.keys():
+        date_base_folder = hyperparams['investigation_results_folder']
+    else:
+        date_base_folder = base_folder + str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
     if(os.path.exists(date_base_folder)==False):
         os.makedirs(date_base_folder)
 
@@ -396,15 +398,11 @@ def save_training_process(training_folder, loss):
 
 
 
-def create_testing_files(training_folder, base_folder=os.path.join(RESULTS_PATH,'training_testing/')):
-
-    # create top folder based on date
-    date_base_folder=base_folder+str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime()))
-    if(os.path.exists(date_base_folder)==False):
-        os.makedirs(date_base_folder)
+def create_testing_files(training_folder):
 
     # create testing sub folder
-    training_id = re.search(r"\d+$",training_folder).group()
+    date_base_folder = os.path.dirname(training_folder)
+    training_id = re.search(r"\d+$",os.path.basename(training_folder)).group()
     testing_folder = date_base_folder+"/test_" + training_id
     if(os.path.exists(testing_folder)==False):
         os.makedirs(testing_folder)
@@ -1068,7 +1066,6 @@ def plot_statistic_value_under_fpa(data: list, col_names:list, displayed_variabl
     cormat=abs(cormat)# 取绝对值
     def draw_heatmap(*args,**kwargs):
         data=kwargs.pop('data')
-        #pdb.set_trace()
         dd=data.set_index('level_1').drop('subjects',axis=1)
         mask=np.zeros_like(dd)
         mask[np.triu_indices_from(mask)] = True
@@ -1127,7 +1124,7 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
 
     if (landing_manner=='double_legs'):
         if(subject_ids==None):
-            subject_ids=['P_08', 'P_10', 'P_11', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_24']
+            subject_ids=['P_14', 'P_24', 'P_10', 'P_11', 'P_13', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_08']
          
         # get subject_ids_names based on subject_ids
         subject_ids_names = get_subject_ids_names(subject_ids)
@@ -1146,6 +1143,10 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
             if('P_09' in subject_ids) or ('P_09_libang' in subject_ids):
                 valid_subjects_trials['P_09_libang']=['01','02','03','04','06']
 
+
+            if('P_10' in subject_ids) or ('P_10_dongxuan' in subject_ids):
+                valid_subjects_trials['P_10_dongxuan'].remove('01')
+
             if('P_11' in subject_ids) or ('P_11_liuchunyu' in subject_ids):
                 valid_subjects_trials['P_11_liuchunyu'].remove('18')
                 valid_subjects_trials['P_11_liuchunyu'].remove('20')
@@ -1154,6 +1155,8 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
                 valid_subjects_trials['P_12_fuzijun'].remove('04')
 
             if('P_14' in subject_ids) or ('P_14_hunan' in subject_ids):
+                valid_subjects_trials['P_14_hunan'].remove('01')
+                valid_subjects_trials['P_14_hunan'].remove('02')
                 valid_subjects_trials['P_14_hunan'].remove('05')
                 valid_subjects_trials['P_14_hunan'].remove('06') # CHEST, Accel_Y
                 valid_subjects_trials['P_14_hunan'].remove('27') # CHESK, Accel_Y
@@ -1165,7 +1168,6 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
                 valid_subjects_trials['P_19_xiongyihui'].remove('01') # L_FOOT_Z Accel Z is wrong
                 valid_subjects_trials['P_19_xiongyihui'].remove('12') # L_FOOT_Z Accel Z is wrong
                 valid_subjects_trials['P_19_xiongyihui'].remove('22') # L_FOOT_Z Accel Z is wrong, CHEST Accel_Y
-
 
     elif (landing_manner=='single_leg_R'):
         if(subject_ids==None):
@@ -1193,6 +1195,7 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
 
     return valid_subjects_trials
 
+
 '''
         subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0)
         subject_ids_names =[ss for ss in subject_infos.index]
@@ -1215,6 +1218,9 @@ Normalize all subject data for model training
 
 
 def load_normalize_data(hyperparams, scaler='standard', **kwargs):
+
+    # checking repeat data fields 
+    assert(len(hyperparams['columns_names'])==len(set(hyperparams['columns_names'])))
 
     subjects_trials = hyperparams['subjects_trials']
     
@@ -1242,11 +1248,19 @@ def load_normalize_data(hyperparams, scaler='standard', **kwargs):
                 pdb.set_trace()
 
     #1) synchronize (scaled) features and labels based on the event: touch index
-    if('syn_features_labels' in kwargs.keys()):   
-        if(kwargs['syn_features_labels']==True):
-            syn_subjects_trials_data = syn_features_lables_events(subjects_trials_data, hyperparams)
+    '''
+    if('syn_features_labels' in hyperparams):   
+        if(hyperparams['syn_features_labels']==True):
+            syn_subjects_trials_data = syn_features_labels_events(subjects_trials_data, hyperparams)
             subjects_trials_data = copy.deepcopy(syn_subjects_trials_data)
+            print("synchronize features and labels")
+        else:
+            print("DO NOT synchronize features and labels: {}".format(hyperparams['syn_features_labels']))
+    else:
+        print("DO NOT synchronize features and labels: {}".format(hyperparams['syn_features_labels']))
+    '''
 
+            
     #2) concate them into a numpy for scale
     np_subjects_trials_data = np.concatenate([subjects_trials_data[subject_id_name][trial] for subject_id_name in subject_ids_names for trial in subjects_trials[subject_id_name] ],axis=0)
     
@@ -1282,7 +1296,7 @@ def load_normalize_data(hyperparams, scaler='standard', **kwargs):
 
 
 '''
-synchronize features and lables data using their own touch moment event
+synchronize features and labels data using their own touch moment event
 
 The touch moment event of IMU can be recongnized by its maximum Acc value of left foot
 
@@ -1290,7 +1304,7 @@ The touch moment event of Force plate is 1/4* DROPLANDING_PERIOD
 
 '''
 
-def syn_features_lables_events(subjects_trials_data, hyperparams):
+def syn_features_labels_events(subjects_trials_data, hyperparams):
     
     assert(SYN_DROPLANDING_PERIOD < DROPLANDING_PERIOD)
 
@@ -1319,17 +1333,17 @@ def syn_features_lables_events(subjects_trials_data, hyperparams):
                 target_leg = hyperparams['target_leg']# left(L), right(R) or double
                 landing_manner = hyperparams['landing_manner'] # single or double legs
                 if target_leg + '_FOOT_Accel_Z' in pd_features_data.columns:
-                    sensor_accel_fields = ['L_FOOT' + '_Accel_Z']
+                    sensor_accel_fields = [target_leg+'_FOOT_Accel_Z']
                 elif target_leg + '_SHANK' in imu_sensor_list:
-                    sensor_accel_fields = ['L_SHANK' + '_Accel_Y']
+                    sensor_accel_fields = [target_leg+ '_SHANK_Accel_Y']
                 elif target_leg + '_THIGH' in imu_sensor_list:
-                    sensor_accel_fields = ['L_THIGH' + '_Accel_Y']
+                    sensor_accel_fields = [target_leg + '_THIGH_Accel_Y']
                 elif 'WAIST' in imu_sensor_list:
-                    sensor_accel_fields = ['WAIST' + '_Accel_Y']
+                    sensor_accel_fields = ['WAIST_Accel_Y']
                 elif 'CHEST' in imu_sensor_list:
-                    sensor_accel_fields = ['CHEST' + '_Accel_Y']
+                    sensor_accel_fields = ['CHEST_Accel_Y']
                 else:
-                    sensor_accel_fields = [sensor+'_Accel_X', sensor+'_Accel_Y', sensor+'_Accel_Z']
+                    sensor_accel_fields = [sensor + '_Accel_X', sensor + '_Accel_Y', sensor + '_Accel_Z']
 
 
                 # imu fields of a sensor
@@ -1339,7 +1353,11 @@ def syn_features_lables_events(subjects_trials_data, hyperparams):
                     sensor_fields = [sensor+ "_" + imu_field for imu_field in ACC_GYRO_FIELDS]
 
                 # norm of accelemeter fields
-                sensor_norm = np.linalg.norm(pd_features_data[sensor_accel_fields].values, axis=1)
+                try:
+                    sensor_norm = np.linalg.norm(pd_features_data[sensor_accel_fields].values, axis=1)
+                except Exception as e:
+                    print(e)
+                    pdb.set_trace()
 
                 # index of the peak norm 
                 #peak_accelvalue_index = np.argmax(sensor_norm, axis=0)
@@ -1409,7 +1427,6 @@ def get_subject_ids_names(selected_subject_ids):
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
     subject_ids_names = [ss for ss in subject_infos.index]
 
-
     selected_subject_ids_names=[]
     for selected_subject_id in selected_subject_ids:
         #i) check whether the selected subject is in subject_infos.csv
@@ -1418,8 +1435,9 @@ def get_subject_ids_names(selected_subject_ids):
                 selected_subject_id_name = subject_id_name
                 break
 
-        print(selected_subject_id_name)
         selected_subject_ids_names.append(selected_subject_id_name)
+
+    print(selected_subject_ids_names)
 
     return selected_subject_ids_names
 
@@ -1440,36 +1458,38 @@ if __name__=='__main__':
     subject_infos = pd.read_csv(os.path.join(DATA_PATH, 'subject_info.csv'), index_col=0, header=0)
     subject_ids_names = [ss for ss in subject_infos.index]
 
-    # select subjects
+    # select subjects' dis and names
     selected_subject_ids_names = get_subject_ids_names(selected_subject_ids)
 
     #for selected_subject_id_name in selected_subject_ids_names:
     #i) define hyperparams values: subject, columns_names
-    hyperparams['subjects_trials'] = set_subjects_trials(selected=True, landing_manner='single_leg_R')
-    
+    hyperparams['landing_manner']='double_legs'
+    hyperparams['target_leg']='R'
+    hyperparams['subjects_trials'] = set_subjects_trials(selected=True, landing_manner='double_legs')
     #ii) set data fields in 'columns_names'
     labels_fields = ['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X','R_GRF_Y','R_GRF_Z']
+    #labels_fields = ['R_FOOT_Accel_Z','R_GRF_X','R_GRF_Y','R_GRF_Z']
     hyperparams['features_names'] = FEATURES_FIELDS
     hyperparams['labels_names'] = labels_fields
-    hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
+    hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names'] + ['TIME']
+    hyperparams['syn_features_labels'] = False
 
     #iii) load multiple subject data, the output subjects trials data columns with indicated sequences
-    subjects_trials_data, scaled_subjects_trials_data, scaler = load_normalize_data(hyperparams=hyperparams, scaler='standard', syn_features_labels=False)
+    subjects_trials_data, scaled_subjects_trials_data, scaler = load_normalize_data(hyperparams=hyperparams, scaler='standard')
 
     print(selected_subject_ids_names)
     #-- subject height
     subject_heights = [float(subject_infos['body height'][sub_name]) for sub_name in selected_subject_ids_names]
     #-- subject mass
     subject_masses = [float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
-
     #---------------------------------PLOT 1 ----------------------------#
-    #data=pd.DataFrame(data=subjects_trials_data['P_11_liuchunyu']['31'],columns=hyperparams['columns_names'])
-    #displayed_data=data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
+    data=pd.DataFrame(data=scaled_subjects_trials_data['P_11_liuchunyu']['01'],columns=hyperparams['columns_names'])
+    displayed_data=data[['TIME','R_FOOT_Accel_Y','R_FOOT_Accel_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
     #displayed_data=data[['L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z','L_GRF_X','L_GRF_Y','L_GRF_Z']]
     #displayed_data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
-    #plot_rawdataset_curves(displayed_data,figheight=6,figtitle='P_11 trial 01',show=True)
+    plot_rawdataset_curves(displayed_data,figheight=6,figtitle='P_11 trial 01',show=True)
 
-    #pdb.set_trace()
+    pdb.set_trace()
     #---------------------------------PLOT 2 ----------------------------#
     # checking dataset of each trials of each subjects
     for subject, trials in hyperparams['subjects_trials'].items():

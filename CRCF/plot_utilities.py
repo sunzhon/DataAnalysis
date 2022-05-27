@@ -29,10 +29,12 @@ import matplotlib.font_manager
 Save figures
 
 '''
-def save_figure(fig_data_folder,fig_name):
-    folder_fig = os.path.join(fig_data_folder,'data_visulization/')
+def save_figure(fig_data_folder, fig_name='results', fig_format='.svg'):
+    folder_fig = os.path.join(fig_data_folder,'data_visulization', str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
     if not os.path.exists(folder_fig):
         os.makedirs(folder_fig)
-    figPath= folder_fig + str(localtimepkg.strftime("%Y-%m-%d %H_%M_%S", localtimepkg.localtime())) + '_'+fig_name+'.svg'
+    figPath= os.path.join(folder_fig, str(localtimepkg.strftime("%H_%M_%S", localtimepkg.localtime()))+"_"+fig_name +'.' +fig_format)
     plt.savefig(figPath)
     plt.show()
+
+    return figPath

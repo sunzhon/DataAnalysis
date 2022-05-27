@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
 
 import sys
 sys.path.append("./../")
@@ -66,7 +64,7 @@ import re
 import json
 
 from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
-from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
+from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH, inverse_estimated_variable_dict
 from vicon_imu_data_process import const
 from vicon_imu_data_process.dataset import *
 
@@ -82,8 +80,6 @@ from sklearn.model_selection import KFold
 import time as localtimepkg
 
 
-# In[ ]:
-
 
 '''
 This function investigate the estimation metrics by 
@@ -91,7 +87,7 @@ testing different sensor configurations and model LSTM layer size
 
 '''
 
-def integrative_investigation(investigation_variables, prefix_name=''):
+def integrative_investigation(investigation_variables, prefix_name='', **kwargs):
 
     #1) paraser investigation variables
     sensor_configurations = investigation_variables['sensor_configurations']
@@ -103,56 +99,96 @@ def integrative_investigation(investigation_variables, prefix_name=''):
         syn_features_labels = [True] # default value is true, to synchorinize features and labels using event
 
     estimated_variables = investigation_variables['estimated_variables']
-
     landing_manners = investigation_variables['landing_manners']
+    target_leg = investigation_variables['target_leg']
 
+    # init hyper parameters
+    hyperparams = initParameters()
+    # create forlder to store this investigation
+    investigation_results_folder = os.path.join(RESULTS_PATH, "training_testing", 
+                                     str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())), 
+                                     str(localtimepkg.strftime("%H_%M", localtimepkg.localtime())),
+                                    )
 
-
+    if(os.path.exists(investigation_results_folder)==False):
+        os.makedirs(investigation_results_folder)   
+    hyperparams['investigation_results_folder'] = investigation_results_folder
+    
     #2) train and test model
     combination_investigation_info = []
-    
-    #i) sensor configurations
-    for sensor_configuration_name, sensor_list in sensor_configurations.items():
-        # features fields based on sensors
-        features_fields = const.extract_imu_fields(sensor_list, const.ACC_GYRO_FIELDS)
-        
-        #ii) init hyper params with different labels
-        for labels_fields in estimated_variables:
-            hyperparams = initParameters(labels_names=labels_fields, features_names=features_fields)
-        
-            #iii) model size configuations
-            for lstm_unit in lstm_units:
-                hyperparams['lstm_units'] = lstm_unit
-                hyperparams['sensor_configurations'] = sensor_configuration_name
-            
-                #iv) synchronization state
-                for syn_state in syn_features_labels:
+
+    # default parameters
+    if 'fold_number' in kwargs.keys():
+        fold_number = kwargs['fold_number']
+    else:
+        fold_number = 1 # default
+
+    if 'test_multil_trials' in kwargs.keys():
+        test_multil_trials = kwargs['test_multil_trials']
+    else:
+        test_multil_trials = False # defualt
+
+    #i) drop landing manners, landing manners: single-leg or double-leg drop landing
+    for landing_manner in landing_manners:
+        hyperparams['landing_manner'] = landing_manner # single or double legs
+        hyperparams['target_leg'] = target_leg
+        if landing_manner not in ['double_legs','single_leg']:
+            print('landing manner is wrong')
+            exit()
+
+        #ii) synchronization state
+        for syn_state in syn_features_labels:
+            hyperparams['syn_features_labels'] = syn_state
+                     
+            #iii) init hyper params with different labels
+            for estimated_variable in estimated_variables:
+                labels_fields = [hyperparams['target_leg'] + '_' + x for x in estimated_variable]
+                hyperparams['labels_names'] = labels_fields
+                hyperparams['labels_num'] = len(hyperparams['labels_names'])
+                hyperparams['abbrev_estimated_variables'] = [inverse_estimated_variable_dict[x] for x in estimated_variable]
+
+                #iv) sensor configurations
+                for sensor_configuration_name, sensor_list in sensor_configurations.items():
+                    hyperparams['sensor_configurations'] = sensor_configuration_name
+                    # features fields based on sensors
+                    features_fields = const.extract_imu_fields(sensor_list, const.ACC_GYRO_FIELDS)
+                    if(syn_state):
+                        hyperparams['features_names'] = ['TIME'] + [hyperparams['target_leg']+'_'+x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
+                    else:
+                        hyperparams['features_names'] = [hyperparams['target_leg']+'_'+x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
+
+                    hyperparams['features_num'] = len(hyperparams['features_names'])
+                    hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
+
+                    # set subjects and trials
+                    hyperparams['subjects_trials'] = pro_rd.set_subjects_trials(landing_manner=landing_manner)
+
+                    #v) model size configuations
+                    for lstm_unit in lstm_units:
+                        hyperparams['lstm_units'] = lstm_unit
                     
-                    #i) landing manners: single-leg or double-leg drop landing
-                    for landing_manner in landing_manners:
-                        if landing_manner == 'single_leg_R':
-                            hyperparams['target_leg']='R'
-                        else:
-                            hyperparams['target_leg'] = 'L'# left(L), right(R) or double
-                        hyperparams['landing_manner'] = landing_manner # single or double legs
-            
+                        # configuration list name
+                        a_single_config_columns = '\t'.join(['Sensor configurations',
+                                                        'LSTM units',
+                                                        'syn_features_labels',
+                                                        'landing_manners',
+                                                        'estimated_variables',
+                                                        'training_testing_folders']) + '\n'
+
                         # train and test model
                         print("#**************************************************************************#")
-                        print("Sensor configuration: {}; LSTM size: {}".format(sensor_configuration_name, lstm_unit))
-            
-                        # do training and testing
+                        print("Investigation configs: {}".format(a_single_config_columns))
+                        print("Investigation configs: {}".format([sensor_configuration_name, str(lstm_unit), str(syn_state), landing_manner, estimated_variable]))
+                    
+                        # DO TRAINING AND TESTING
                         training_testing_folders, xy_test, scaler =  train_test_loops(
-                            hyperparams, fold_number=1, test_multil_trials=False, 
-                            syn_features_labels=syn_state, landing_manner=landing_manner)# model traning
-            
+                                hyperparams, 
+                                fold_number=fold_number, 
+                                test_multil_trials=test_multil_trials
+                            )# model traning
+                    
                         # list testing folders 
-                        a_single_config = [sensor_configuration_name, str(lstm_unit), str(syn_state), landing_manner, labels_fields, training_testing_folders]
-                        a_single_config_columns = '\t'.join(['Sensor configurations',
-                                                    'LSTM units',
-                                                    'syn_features_labels',
-                                                    'landing_manners',
-                                                    'estimated_variables',
-                                                    'training_testing_folders']) + '\n'
+                        a_single_config = [sensor_configuration_name, str(lstm_unit), str(syn_state), landing_manner, hyperparams['abbrev_estimated_variables'], training_testing_folders]
                         combination_investigation_info.append(a_single_config)
 
     #3) create folders to save testing folders
@@ -185,72 +221,72 @@ def integrative_investigation(investigation_variables, prefix_name=''):
 # ## Perform investigation by training model
 
 
-
 #1) The variables that are needed to be investigate
 investigation_variables={
     "sensor_configurations":
                             {
-                               'F': ['L_FOOT'],
-                               'S': ['L_SHANK'],
-                               'T': ['L_THIGH'],
-                               'W': ['WAIST'],
-                               'C': ['CHEST'],
+                                'F': ['FOOT'],
+                                'S': ['SHANK'],
+                                'T': ['THIGH'],
+                                'W': ['WAIST'],
+                                'C': ['CHEST'],
                                 
-                               'FS': ['L_FOOT','L_SHANK'],
-                               'FT': ['L_FOOT','L_THIGH'],
-                               'FW': ['L_FOOT','WAIST'],
-                               'FC': ['L_FOOT','CHEST'],
-                               'ST': ['L_SHANK','L_THIGH'],
-                               'SW': ['L_SHANK','WAIST'],
-                               'SC': ['L_SHANK','CHEST'],
-                               'TW': ['L_THIGH','WAIST'], 
-                               'TC': ['L_THIGH', 'CHEST'],
+                               'FS': ['FOOT','SHANK'],
+                               'FT': ['FOOT','THIGH'],
+                               'FW': ['FOOT','WAIST'],
+                               'FC': ['FOOT','CHEST'],
+                               'ST': ['SHANK','THIGH'],
+                               'SW': ['SHANK','WAIST'],
+                               'SC': ['SHANK','CHEST'],
+                               'TW': ['THIGH','WAIST'], 
+                               'TC': ['THIGH', 'CHEST'],
                                'WC': ['WAIST', 'CHEST'],
                                
                                 
-                               'FST': ['L_FOOT','L_SHANK','L_THIGH'], 
-                               'FSW': ['L_FOOT','L_SHANK','WAIST'],
-                               'FSC': ['L_FOOT','L_SHANK','CHEST'],
+                               'FST': ['FOOT','SHANK','THIGH'], 
+                               'FSW': ['FOOT','SHANK','WAIST'],
+                               'FSC': ['FOOT','SHANK','CHEST'],
                                 
-                               'FTW': ['L_FOOT','L_THIGH','WAIST'],
-                               'FTC': ['L_FOOT','L_THIGH','CHEST'],
+                               'FTW': ['FOOT','THIGH','WAIST'],
+                               'FTC': ['FOOT','THIGH','CHEST'],
                                
-                               'FWC': ['L_FOOT','WAIST', 'CHEST'],
+                               'FWC': ['FOOT','WAIST', 'CHEST'],
                                 
-                               'STW': ['L_SHANK','L_THIGH','WAIST' ],
-                               'STC': ['L_SHANK','L_THIGH','CHEST' ],
-                               'SWC': ['L_SHANK','WAIST','CHEST' ],
-                               'TWC': ['L_THIGH','WAIST', 'CHEST'],
+                               'STW': ['SHANK','THIGH','WAIST' ],
+                               'STC': ['SHANK','THIGH','CHEST' ],
+                               'SWC': ['SHANK','WAIST','CHEST' ],
+                               'TWC': ['THIGH','WAIST', 'CHEST'],
                                 
-                               'FSTW': ['L_FOOT','L_SHANK','L_THIGH','WAIST'], 
-                               'FSTC': ['L_FOOT','L_SHANK','L_THIGH','CHEST'], 
-                               'FSWC': ['L_FOOT','L_SHANK','WAIST', 'CHEST'],
-                               'FTWC': ['L_FOOT','L_THIGH','WAIST', 'CHEST'],
-                               'STWC': ['L_SHANK','L_THIGH','WAIST', 'CHEST'],
+                               'FSTW': ['FOOT','SHANK','THIGH','WAIST'], 
+                               'FSTC': ['FOOT','SHANK','THIGH','CHEST'], 
+                               'FSWC': ['FOOT','SHANK','WAIST', 'CHEST'],
+                               'FTWC': ['FOOT','THIGH','WAIST', 'CHEST'],
+                               'STWC': ['SHANK','THIGH','WAIST', 'CHEST'],
                                 
-                               'FSTWC': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']
+                               'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']
                               },
     
-    "sensor_configurations": {'FSTWC': ['L_FOOT','L_SHANK','L_THIGH','WAIST', 'CHEST']},
-    "syn_features_labels": [False],
-    #'estimated_variables': [['L_KAM_X'], ['L_GRF_Z']],
-    "estimated_variables": [['L_KNEE_MOMENT_X']],
-    #"landing_manners": ['single_leg_R', 'double_legs']
-    "landing_manners": ['single_leg_R'],
-
-    #"lstm_units": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
+    "sensor_configurations": {'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']},
+    #"syn_features_labels": [True, False],
+    "syn_features_labels": [True],
+    #'estimated_variables': [['KNEE_MOMENT_X'], ['GRF_Z']],  # KFM, KAM, GRF
+    'estimated_variables': [['GRF_Z']],
+    #"landing_manners": [ 'double_legs', 'single_leg'],
+    "landing_manners": ['double_legs'],
+    
+    #"lstm_units": [1, 5, 10, 50, 100, 200, 300, 400],
     #"lstm_units": [15, 20, 25, 30, 35]
     #"lstm_units": [5, 10]
-    "lstm_units": [35]
-
-
+    "lstm_units": [35],
+    'target_leg': 'R'
 }
 
 
-# investigate model
-combination_investigation_results = integrative_investigation(investigation_variables,'off_on_synchronization')
+if __name__ == "__main__":
+    #2) investigate model
+    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF',fold_number=5)
 
-print(combination_investigation_results)
+    print(combination_investigation_results)
 
 
 # ## exit machine and save environment
