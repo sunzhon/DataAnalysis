@@ -298,11 +298,11 @@ def test_model_on_unseen_subject(training_folder, subject_id_name=None, trials=N
 '''
 Model evaluation:
 
-    test multiple models listed in combination_investigation_results on a unseen subject's all trials
+    test multiple models listed in combination_investigation_results on its unseen subject's all trials or specified trials
 
 '''
 
-def evaluate_models_on_unseen_subjects(combination_investigation_results):
+def evaluate_models_on_unseen_subjects(combination_investigation_results, trials=None):
 
     # open testing folder
     assessment = []
@@ -336,18 +336,18 @@ def evaluate_models_on_unseen_subjects(combination_investigation_results):
         print("training folder:", training_folder)
 
         #2) testing the model by using all trials of the testing subject (specidied in hyperparams)
-        testing_results, testing_ingredients = test_model_on_unseen_subject(training_folder)
+        testing_results, testing_ingredients = test_model_on_unseen_subject(training_folder,trials=trials)
         
         #3) estimation results
         try:
-            for trial_id, testing_folder in enumerate(testing_ingredients['testing_folder']):
+            for idx, testing_folder in enumerate(testing_ingredients['testing_folder']):
                 #i) collect metric results
                 metrics = pd.read_csv(os.path.join(testing_folder,"test_metrics.csv")) # get_evaluation_metrics(pd_labels, pd_predictions)
                 metrics['Sensor configurations'] = a_single_investigation_config_results[columns.index('Sensor configurations')]
                 metrics['LSTM units'] = a_single_investigation_config_results[columns.index('LSTM units')]
                 metrics['Test ID'] =  re.search("test_([0-9])+", testing_folder).group(0)
-                metrics['Subjects'] = testing_ingredients['subjects'][trial_id]
-                metrics['Trials'] = testing_ingredients['trials'][trial_id]
+                metrics['Subjects'] = testing_ingredients['subjects'][idx]
+                metrics['Trials'] = testing_ingredients['trials'][idx]
                 assessment.append(metrics)
         except Exception as e:
             print(e)
@@ -401,15 +401,16 @@ def get_a_model_test_results(training_testing_folders,**kwargs):
         training_folder = training_testing_folders
         # testing model in training folder 
         testing_results, testing_ingredients = test_model_on_unseen_subject(training_folder)
+
      # get test results by searh an exist test folder which contain multiple tests of a trained model
     if(re.search(r'testing_result_folders', os.path.basename(training_testing_folders))): # testing folders
         dir_testing_folder =  get_investigation_training_testing_folders(training_testing_folders, kwargs['test_id'])
-        #print(dir_testing_folder)
+        assert(isinstance(dir_testing_folder, str))
         dir_testing_folders = next(os.walk(dir_testing_folder))
         testing_results={'labels': [], 'predictions': []}
-        
-        for basename_testing_folder in dir_testing_folders[1]:
-            testing_folder = os.path.join(dir_testing_folders[0],basename_testing_folder)
+
+        for test_id in dir_testing_folders[1]:
+            testing_folder = os.path.join(dir_testing_folders[0],test_id)
             #print(testing_folder)
             [pd_labels, pd_predictions] = get_testing_results(testing_folder)
             testing_results['labels'].append(pd_labels)
@@ -490,11 +491,11 @@ def get_investigation_assessment(combination_investigation_results):
 
         #ii) collect metric results
         try:
-            metrics = get_evaluation_metrics(pd_labels, pd_predictions)
-            for idx in range(len(a_single_investigation_config_results)-1):
+            metrics = get_evaluation_metrics(pd_labels, pd_predictions) # get scores
+            for idx in range(len(a_single_investigation_config_results)-1): # get investigation configurations
                 metrics[columns[idx]] = a_single_investigation_config_results[idx]
-            metrics['Test ID'] = test_id
-            
+            metrics['Test ID'] = test_id # get test id
+
             # read hyperparams 
             hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
             if os.path.isfile(hyperparams_file):
@@ -505,9 +506,16 @@ def get_investigation_assessment(combination_investigation_results):
                 print("Not Found hyper params file at {}".format(hyperparams_file))
                 sys.exit()
 
-            metrics['Subjects'] = hyperparams['test_subject_ids_names'][0]
+            if(isinstance(hyperparams['test_subject_ids_names'],list)):
+                metrics['Subjects'] = hyperparams['test_subject_ids_names'][0] # few subjects in a list
+            else:
+                metrics['Subjects'] = hyperparams['test_subject_ids_names'] # only a subject 
+
             if 'test_trial' in hyperparams.keys():
-                metrics['Trials'] = hyperparams['test_trial'][0]
+                if(isinstance(hyperparams['test_trial'],list)):
+                    metrics['Trials'] = hyperparams['test_trial'][0]
+                else:
+                    metrics['Trials'] = hyperparams['test_trial']
             else:
                 metrics['Trials'] = 0 # not sure which trials, so set it to 0
 
@@ -522,6 +530,10 @@ def get_investigation_assessment(combination_investigation_results):
         print('results folders are enough')
         exit()
     pd_assessment = pd.concat(assessment, axis=0)
+
+    # data type 
+    pd_assessment['syn_features_labels'] = pd_assessment['syn_features_labels'].astype(str).apply(lambda x: True if x=='true' else False)
+    pd_assessment['use_frame_index'] = pd_assessment['use_frame_index'].astype(str).apply(lambda x: True if x=='true' else False)
 
     #3) save pandas DataFrame
     combination_investigation_folder = os.path.dirname(combination_investigation_results)
@@ -556,6 +568,10 @@ def get_investigation_metrics(combination_investigation_results, metric_fields=[
     # reset index
     #r2_metrics.index = np.arange(0,r2_metrics.shape[0])
 
+    #2) add column: IMU number
+    metrics['IMU number']=metrics.loc[:,'Sensor configurations'].apply(lambda x: len(x))
+
+
     #3) save pandas DataFrame
     combination_investigation_folder = os.path.dirname(combination_investigation_results)
     metrics.to_csv(os.path.join(combination_investigation_folder, "r2_metrics.csv"),index=False)
@@ -568,35 +584,53 @@ def get_investigation_metrics(combination_investigation_results, metric_fields=[
 
 '''
 
-Get investiagation configuration and theirs results
+Get investiagation configuration and their results
 
 
 '''
-def get_investigation_training_testing_folders(combination_investigation_results, test_train_id=None):
+def get_investigation_training_testing_folders(combination_investigation_results, train_test_id=None):
+
+    # load training and testing results
     investigation_config_results = pd.read_csv(combination_investigation_results,delimiter='\t',header=0)
 
-    training_folders = []
-    for testing_folder in investigation_config_results['training_testing_folders']:
-        base_testing_folder = os.path.dirname(testing_folder)
-        training_folders.append(os.path.join(os.path.dirname(base_testing_folder),"training"+re.search(r'_(\d){6}', base_testing_folder).group(0)))
+    # get training and testing folders
+    if(re.search('training_(\d){6}', investigation_config_results['training_testing_folders'][0])):
+        training_folders = investigation_config_results['training_testing_folders']
+        testing_folders = []
+        for training_folder in training_folders:
+            testing_folders.append(os.path.join(os.path.dirname(training_folder),"testing"+re.search(r'_(\d){6}', training_folder).group(0)))
+    elif(re.search('testing_(\d){6}', os.path.basename(investigation_config_results['training_testing_folders'][0]))):
+        testing_folders = investigation_config_results['training_testing_folders']
+        training_folders = []
+        for testing_folder in testing_folders:
+            training_folders.append(os.path.join(os.path.dirname(testing_folder),"training"+re.search(r'_(\d){6}', testing_folder).group(0)))
+    elif(re.search('test_', os.path.basename(investigation_config_results['training_testing_folders'][0]))):
+        testing_folders = investigation_config_results['training_testing_folders']
+        training_folders = []
+        for testing_folder in testing_folders:
+            dir_testing_folder = os.path.dirname(testing_folder)
+            training_folders.append(os.path.join(os.path.dirname(dir_testing_folder),"training"+re.search(r'_(\d){6}', dir_testing_folder).group(0)))
     
     investigation_config_results['training_folders'] = training_folders
-    investigation_config_results.rename(columns={'training_testing_folders': 'testing_folders'}, inplace=True)
+    investigation_config_results['testing_folders'] = testing_folders
 
-    if(test_train_id!=None):
-        if(re.search('test',test_train_id)):
+    if(train_test_id!=None):
+        if(re.search('test',train_test_id)):
             for testing_folder in investigation_config_results['testing_folders']:
-                if(re.search(test_train_id, testing_folder)):
+                if(re.search(train_test_id, testing_folder)):
                     return os.path.dirname(testing_folder)
-            print('NO match test_id')
-
-        if(re.search('training',test_train_id)):
+            print('NO MATCH test_id')
+        elif(re.search('training',train_test_id)):
             for training_folder in investigation_config_results['training_folders']:
-                if(re.search(test_train_id, training_folder)):
+                if(re.search(train_test_id, training_folder)):
                     return training_folder
-            print('NO match training_id')
+            print('No match training_id')
+        else:
+            print("Specified test or training id is not right")
+
 
     return investigation_config_results
+
 
 
 if __name__=='__main__':
@@ -612,7 +646,14 @@ if __name__=='__main__':
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/new_alignment/testing_result_folders.txt"
 
 
-    pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results)
+    combination_investigation_metrics = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/investigation/valid_results/metrics.csv"
+
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
+
+    #get_investigation_training_testing_folders(combination_investigation_results)
+
+    pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results, trials=['08','09','21'])
+
     pdb.set_trace()
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/r2_metrics.csv"
     r2_metrics = get_investigation_metrics(combination_investigation_results)

@@ -40,8 +40,8 @@ SUBJECTS = [
 
 
 # trials performed in drop landing experiments
-TRIAL_NUM=40
-TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
+TRIAL_NUM = 40
+TRIALS = [str(idx) if idx > 9 else '0' + str(idx) for idx in range(1,TRIAL_NUM+1,1)]  #trial number
 
 # trial types in dynamic movements
 DYNAMIC_TRIALS = ['baseline', 'fpa_01', 'fpa_02','fpa_03','fpa_04','fpa_05','single']
@@ -50,7 +50,7 @@ STATIC_TRIALS = ['static']
 
 # TRIALS used for training deep neural network model
 TRAIN_USED_TRIAL_NUM=30
-TRAIN_USED_TRIALS = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRAIN_USED_TRIAL_NUM+1,1)]  #trial number
+TRAIN_USED_TRIALS_DOUBLE_LEG = [str(idx) if idx>9 else '0'+str(idx) for idx in range(1,TRAIN_USED_TRIAL_NUM+1,1)]  #trial number
 TRAIN_USED_TRIALS_SINGLE_LEG = [str(idx) for idx in range(31,41,1)]  #trial number
 
 STEP_TYPES = STANCE, STANCE_SWING = range(2)
@@ -208,15 +208,22 @@ V3D_DATA_FIELDS=['LON','RON'] + ['LEFT_'+ temp for temp in BASIC_V3D_DATA_FIELDS
 
 DROPLANDING_PERIOD=80 # 落地后的0.5秒内， 这是研究每次落地实验的时间范围
 SYN_DROPLANDING_PERIOD=60 # synchronize imus and GRFs by shift and crop them into this period
+
+DROPLANDING_PERIOD_SATRT = DROPLANDING_PERIOD/4
+DROPLANDING_PERIOD_END = DROPLANDING_PERIOD/4*3-1
+
+
 """
 这三个变量的设置 需要一致
 """
 
-#MEDIA_NAME = "/media/sun/My Passport/"
-MEDIA_NAME = "/media/sun/DATA/"
-#MEDIA_NAME = "/mnt/sun/My Passport/"
+MEDIA_NAME=os.environ.get("MEDIA_NAME")
+if(MEDIA_NAME==''):
+    #MEDIA_NAME = "/media/sun/My Passport/"
+    MEDIA_NAME = "/media/sun/DATA/"
+    #MEDIA_NAME = "/mnt/sun/My Passport/"
 
-DATA_PATH= MEDIA_NAME + "Drop_landing_workspace/suntao/D drop landing"
+DATA_PATH = os.path.join(MEDIA_NAME,"Drop_landing_workspace/suntao/D drop landing")
 
 #SELECTED_IMU_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
 IMU_FEATURES_FIELDS = extract_imu_fields(IMU_SENSOR_LIST, IMU_RAW_FIELDS)
@@ -234,7 +241,7 @@ V3D_LABELS_FIELDS = ['LON','RON']+['L_'+ temp + dire for temp in BIOMECHANICS_VA
 
 
 # experimental results are stored at this path
-RESULTS_PATH = MEDIA_NAME + "Drop_landing_workspace/suntao/Results/Experiment_results"
+RESULTS_PATH = os.path.join(MEDIA_NAME,"Drop_landing_workspace/suntao/Results/Experiment_results")
 
 DATA_VISULIZATION_PATH = os.path.join(RESULTS_PATH,'datasets_files','dataset_visulization')
 
@@ -252,6 +259,15 @@ inverse_estimated_variable_dict = dict([val,key] for key,val in estimated_variab
 # subjects with wrong trial data
 WRONG_TRIALS={subject:[] for subject in SUBJECTS}
 WRONG_TRIALS['P_09_libang']=['09']
+
+# subjects_trials for load into datastes from raw experiment data files
+LOAD_SUBJECTS_TRIALS={subject:[] for subject in SUBJECTS}
+for subject in SUBJECTS:
+    LOAD_SUBJECTS_TRIALS[subject] = TRIALS
+#LOAD_SUBJECTS_TRIALS['P_08_zhangboyuan'].remove('24')
+#LOAD_SUBJECTS_TRIALS['P_09_libang'].remove('17')
+#LOAD_SUBJECTS_TRIALS['P_12_fuzijun'].remove('35')
+#LOAD_SUBJECTS_TRIALS['P_12_fuzijun'].remove('40')
 
 
 ESTIMATION_SENSOR_CONFIGURATIONS = {

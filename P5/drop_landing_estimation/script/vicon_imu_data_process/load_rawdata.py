@@ -30,13 +30,13 @@ if __name__ == "__main__":
     import wearable_math as wearable_math
     from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS, WRONG_TRIALS, SAMPLE_FREQUENCY
+            KNEE_DATA_FIELDS, LOAD_SUBJECTS_TRIALS, WRONG_TRIALS, SAMPLE_FREQUENCY
 else:
     import vicon_imu_data_process.wearable_toolkit as wearable_toolkit
     import vicon_imu_data_process.wearable_math as wearable_math
     from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, DYNAMIC_TRIALS,TRIALS, SESSIONS, DATA_PATH, \
             SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS,\
-            KNEE_DATA_FIELDS, WRONG_TRIALS, SAMPLE_FREQUENCY
+            KNEE_DATA_FIELDS, LOAD_SUBJECTS_TRIALS, WRONG_TRIALS, SAMPLE_FREQUENCY
 
 
  
@@ -46,7 +46,7 @@ class XsenReader():
         self.xsen_data={}
         self.folder_path=os.path.join(DATA_PATH,self.subject_name,session)
         self.session_trial_exists=False
-        for trial in TRIALS:
+        for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
             ## Xsen file has no trial_type varaible, just trial_number
             #for trial_type in DYNAMIC_TRIALS:
             xsen_data_path = os.path.join(self.folder_path)
@@ -71,7 +71,7 @@ class XsenReader():
         with h5py.File(h5format_dataset, "w") as f:
             f.attrs['columns'] = list(self.xsen_data['01'].data_frame.columns)
             subject_h5dataset = f.create_group(self.subject_name)
-            for trial in TRIALS:
+            for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
                 subject_h5dataset.create_dataset(trial,data=self.xsen_data[trial].data_frame)
 
 
@@ -93,7 +93,7 @@ class V3DReader():
         self.subject_name = subject_info.name
         self.folder_path = os.path.join(DATA_PATH,self.subject_name,session)
         self.session_trial_exists = False
-        for trial in TRIALS:
+        for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
             for trial_type in DYNAMIC_TRIALS:
                 v3d_data_path = os.path.join(self.folder_path, self.subject_name + ' ' + trial_type +' '+ trial + '.csv')
                 if os.path.exists(v3d_data_path):
@@ -118,7 +118,7 @@ class V3DReader():
         with h5py.File(h5format_dataset, "w") as f:
             f.attrs['columns']=list(self.v3d_data['01'].data_frame.columns)
             sub=f.create_group(self.subject_name)
-            for trial in TRIALS:
+            for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
                 sub.create_dataset(trial,data=self.v3d_data[trial].data_frame)
                 #print(self.vicon_data[trial].data_frame.head())
 
@@ -131,14 +131,13 @@ class ViconReader():
     Date: 2021/09/25
 
     '''
-    def __init__(self,subject_info,session):
-        self.subject_name=subject_info.name
+    def __init__(self, subject_info, session):
+        self.subject_name = subject_info.name
         vicon_calibrate_data_path = os.path.join(DATA_PATH, self.subject_name, session, self.subject_name+'static' + '.csv')
         self.vicon_data={}
-        self.subject_name = subject_info.name
         self.folder_path = os.path.join(DATA_PATH,self.subject_name,session)
         self.session_trial_exists=False
-        for trial in TRIALS:
+        for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
             for trial_type in DYNAMIC_TRIALS:
                 vicon_data_path = os.path.join(self.folder_path, self.subject_name + ' '+trial_type +' '+ trial + '.csv')
                 if os.path.exists(vicon_data_path):
@@ -162,7 +161,7 @@ class ViconReader():
         with h5py.File(h5format_dataset, "w") as f:
             f.attrs['columns']=list(self.vicon_data['01'].data_frame.columns)
             sub=f.create_group(self.subject_name)
-            for trial in TRIALS:
+            for trial in LOAD_SUBJECTS_TRIALS[self.subject_name]:
                 sub.create_dataset(trial,data=self.vicon_data[trial].data_frame)
                 #print(self.vicon_data[trial].data_frame.head())
 
@@ -193,7 +192,7 @@ def transfer_rawdata_to_h5():
             #-- 2) Extract drop landing data of v3d, vicon and xsen. Because their effective periods
             #-- are not same, the vicon data waw croped when process it in Nexus. The v3d data and vicon data has same 
             #--  frame start and end
-            for trial in TRIALS:
+            for trial in LOAD_SUBJECTS_TRIALS[subject]:
                 if(vicon.session_trial_exists):
                     frame_start=vicon.vicon_data[trial].frame_start
                     frame_end=vicon.vicon_data[trial].frame_end
@@ -243,7 +242,7 @@ def transfer_allsubject_to_a_h5():
                     try:
                         with h5py.File(features_path,'r') as ff:
                             with h5py.File(labels_path,'r') as fl:
-                                for trial in TRIALS: # trial numbers
+                                for trial in LOAD_SUBJECTS_TRIALS[subject]: # trial numbers
                                     if(trial not in WRONG_TRIALS[subject]): #give up the trials with wrong data collect
                                         # - combine features and labels along with columns
                                         if(pd.DataFrame(ff[subject][trial]).shape[0]==pd.DataFrame(fl[subject][trial]).shape[0]):# features and labels should have same row nummber
@@ -282,4 +281,3 @@ subject 3: ['01','02',..]
 if __name__=="__main__":
     transfer_rawdata_to_h5()
     transfer_allsubject_to_a_h5()
-                

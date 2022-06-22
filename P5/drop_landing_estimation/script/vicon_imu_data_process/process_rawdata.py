@@ -45,9 +45,9 @@ from scipy import stats
 from statannotations.Annotator import Annotator
 
 if __name__=='__main__':
-    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, RESULTS_PATH,IMU_SENSOR_LIST, IMU_RAW_FIELDS, ACC_GYRO_FIELDS, SYN_DROPLANDING_PERIOD
+    from const import FEATURES_FIELDS, LABELS_FIELDS, V3D_LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS_DOUBLE_LEG, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD, RESULTS_PATH,IMU_SENSOR_LIST, IMU_RAW_FIELDS, ACC_GYRO_FIELDS, SYN_DROPLANDING_PERIOD, LOAD_SUBJECTS_TRIALS
 else:
-    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,RESULTS_PATH, IMU_SENSOR_LIST,IMU_RAW_FIELDS, ACC_GYRO_FIELDS,SYN_DROPLANDING_PERIOD
+    from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS_DOUBLE_LEG, TRAIN_USED_TRIALS_SINGLE_LEG, TRIALS, DATA_VISULIZATION_PATH, DROPLANDING_PERIOD,V3D_LABELS_FIELDS,RESULTS_PATH, IMU_SENSOR_LIST,IMU_RAW_FIELDS, ACC_GYRO_FIELDS,SYN_DROPLANDING_PERIOD, LOAD_SUBJECTS_TRIALS
 
 
 from sklearn.preprocessing import StandardScaler
@@ -490,7 +490,7 @@ def norm_datasets(datasets:np.ndarray,col_names:str,norm_type='mean_std')->np.nd
 
 
 
-def plot_rawdataset_curves(datasets, col_names=None, figwidth=9.5,figheight=3,figtitle="Figure",show=False,**args):
+def plot_rawdataset_curves(datasets, col_names=None, figwidth=9.5, figheight=3, figtitle="Figure", show=False, col_wrap=3,  **args):
     '''
     Params: datasets: a two dimension numpy: experiment trial
 
@@ -509,17 +509,17 @@ def plot_rawdataset_curves(datasets, col_names=None, figwidth=9.5,figheight=3,fi
 
     #2) plots
     # plot configuration
-    subplot_left=0.08; subplot_right=0.95; subplot_top=0.9;subplot_bottom=0.1; hspace=0.12; wspace=0.12
+    subplot_left=0.08; subplot_right=0.95; subplot_top=0.9;subplot_bottom=0.08; hspace=0.2; wspace=0.12
 
     # plot
-    g=sns.FacetGrid(pd_datasets,col='cols',col_wrap=3,height=2,sharey=False)
-    g.map_dataframe(sns.lineplot,'time','vals')
+    g=sns.FacetGrid(pd_datasets, col='cols', col_wrap=col_wrap, height=2, sharey=False)
+    g.map_dataframe(sns.lineplot, 'time', 'vals')
     g.fig.subplots_adjust(left=subplot_left,right=subplot_right,top=subplot_top,bottom=subplot_bottom,hspace=hspace,wspace=wspace)
     g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
     g.set_titles(col_template=figtitle+" {col_name}")
-    g.set(xticks=np.linspace(0,max_time_tick,int(max_time_tick*10+1)))# xticks
+    g.set(xticks=np.linspace(0, max_time_tick, int(max_time_tick*10+1)))# xticks
     # add grid on every axs
-    [ax.grid(which='both',axis='both',color='k',linestyle=':') for ax in g.axes]
+    [ax.grid(which='both', axis='both', color='k', linestyle=':') for ax in g.axes]
 
     # save file
     # create folder
@@ -1118,19 +1118,22 @@ Select valid subjects and their trials,
 inputs are subjects, can be subject ids e.g., [P_01], or subject_ids_names, e.g. [P_01_suntao]
 
 '''
-def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_legs'):
+def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_legs', target_leg='R'):
     
     valid_subjects_trials = {}
 
     if (landing_manner=='double_legs'):
         if(subject_ids==None):
-            subject_ids=['P_14', 'P_24', 'P_10', 'P_11', 'P_13', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23', 'P_08']
+            subject_ids=['P_19','P_20','P_21','P_15','P_16','P_17','P_18','P_22','P_23', 'P_08', 'P_14', 'P_24', 'P_10', 'P_11', 'P_13']
          
         # get subject_ids_names based on subject_ids
         subject_ids_names = get_subject_ids_names(subject_ids)
         # set trials of subjects'
         for subject_id_name in subject_ids_names:
-            valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS) # TRIALS is "01", "02", ... '30'
+            valid_subjects_trials[subject_id_name] = []
+            for trial in TRAIN_USED_TRIALS_DOUBLE_LEG:
+                if(trial in LOAD_SUBJECTS_TRIALS[subject_id_name]):
+                    valid_subjects_trials[subject_id_name].append(trial)
 
 
         # load_rawdata.py did not load P_09_plibang 09
@@ -1169,7 +1172,7 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
                 valid_subjects_trials['P_19_xiongyihui'].remove('12') # L_FOOT_Z Accel Z is wrong
                 valid_subjects_trials['P_19_xiongyihui'].remove('22') # L_FOOT_Z Accel Z is wrong, CHEST Accel_Y
 
-    elif (landing_manner=='single_leg_R'):
+    elif (landing_manner + '_' + target_leg == 'single_leg_R'):
         if(subject_ids==None):
             subject_ids=['P_08', 'P_10', 'P_13', 'P_15','P_16','P_19','P_20','P_21','P_22', 'P_24']
 
@@ -1179,7 +1182,7 @@ def set_subjects_trials(subject_ids=None, selected=True, landing_manner='double_
         for subject_id_name in subject_ids_names:
             valid_subjects_trials[subject_id_name] = copy.deepcopy(TRAIN_USED_TRIALS_SINGLE_LEG) # TRIALS is "31", "32", ... '40'
 
-    elif (landing_manner=='single_leg_L'):
+    elif (landing_manner + '_' + target_leg == 'single_leg_L'):
         if(subject_ids==None):
             subject_ids=['P_09', 'P_11', 'P_12', 'P_14','P_17','P_18','P_23']
 
@@ -1248,7 +1251,6 @@ def load_normalize_data(hyperparams, scaler='standard', **kwargs):
                 pdb.set_trace()
 
     #1) synchronize (scaled) features and labels based on the event: touch index
-    '''
     if('syn_features_labels' in hyperparams):   
         if(hyperparams['syn_features_labels']==True):
             syn_subjects_trials_data = syn_features_labels_events(subjects_trials_data, hyperparams)
@@ -1258,7 +1260,6 @@ def load_normalize_data(hyperparams, scaler='standard', **kwargs):
             print("DO NOT synchronize features and labels: {}".format(hyperparams['syn_features_labels']))
     else:
         print("DO NOT synchronize features and labels: {}".format(hyperparams['syn_features_labels']))
-    '''
 
             
     #2) concate them into a numpy for scale
@@ -1483,13 +1484,39 @@ if __name__=='__main__':
     #-- subject mass
     subject_masses = [float(subject_infos['body weight'][sub_name]) for sub_name in selected_subject_ids_names]
     #---------------------------------PLOT 1 ----------------------------#
-    data=pd.DataFrame(data=scaled_subjects_trials_data['P_11_liuchunyu']['01'],columns=hyperparams['columns_names'])
-    displayed_data=data[['TIME','R_FOOT_Accel_Y','R_FOOT_Accel_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
-    #displayed_data=data[['L_FOOT_Accel_X','L_FOOT_Accel_Y','L_FOOT_Accel_Z','L_GRF_X','L_GRF_Y','L_GRF_Z']]
-    #displayed_data=data[['L_GRF_X','L_GRF_Y','L_GRF_Z','R_GRF_X', 'R_GRF_Y', 'R_GRF_Z']]
-    plot_rawdataset_curves(displayed_data,figheight=6,figtitle='P_11 trial 01',show=True)
 
+    data=pd.DataFrame(data=subjects_trials_data['P_11_liuchunyu']['12'], columns=hyperparams['columns_names'])
+
+    displayed_data = data[['R_GRF_X','R_GRF_Y','R_GRF_Z']]
+    displayed_data['grf_mag'] = data.apply(lambda x: np.sqrt(x['R_GRF_X']**2 + x['R_GRF_Y']**2 + x['R_GRF_Z']**2),axis=1)
+
+    displayed_data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z']] = data[['R_FOOT_Accel_X','R_FOOT_Accel_Y','R_FOOT_Accel_Z']]
+    displayed_data['foot_mag'] = data.apply(lambda x: np.sqrt(x['R_FOOT_Accel_X']**2 + x['R_FOOT_Accel_Y']**2 + x['R_FOOT_Accel_Z']**2),axis=1)
+
+
+    displayed_data[['R_FOOT_Gyro_X','R_FOOT_Gyro_Y','R_FOOT_Gyro_Z']] = data[['R_FOOT_Gyro_X','R_FOOT_Gyro_Y','R_FOOT_Gyro_Z']]
+    displayed_data['foot_gyro_mag'] = data.apply(lambda x: np.sqrt(x['R_FOOT_Gyro_X']**2 + x['R_FOOT_Gyro_Y']**2 + x['R_FOOT_Gyro_Z']**2),axis=1)
+
+    '''
+    displayed_data[['R_SHANK_Accel_X','R_SHANK_Accel_Y','R_SHANK_Accel_Z']]   = data[['R_SHANK_Accel_X','R_SHANK_Accel_Y','R_SHANK_Accel_Z']]
+    displayed_data['shank_mag'] = data.apply(lambda x: np.sqrt(x['R_SHANK_Accel_X']**2 + x['R_SHANK_Accel_Y']**2 + x['R_SHANK_Accel_Z']**2),axis=1)
+
+    displayed_data[['R_THIGH_Accel_X','R_THIGH_Accel_Y','R_THIGH_Accel_Z']]   = data[['R_THIGH_Accel_X','R_THIGH_Accel_Y','R_THIGH_Accel_Z']]
+    displayed_data['thigh_mag'] = data.apply(lambda x: np.sqrt(x['R_THIGH_Accel_X']**2 + x['R_THIGH_Accel_Y']**2 + x['R_THIGH_Accel_Z']**2),axis=1)
+
+    displayed_data[['WAIST_Accel_X','WAIST_Accel_Y','WAIST_Accel_Z']]   = data[['WAIST_Accel_X','WAIST_Accel_Y','WAIST_Accel_Z']]
+    displayed_data['waist_mag'] = data.apply(lambda x: np.sqrt(x['WAIST_Accel_X']**2 + x['WAIST_Accel_Y']**2 + x['WAIST_Accel_Z']**2),axis=1)
+
+    displayed_data[['CHEST_Accel_X','CHEST_Accel_Y','CHEST_Accel_Z']]   = data[['CHEST_Accel_X','CHEST_Accel_Y','CHEST_Accel_Z']]
+    displayed_data['chest_mag'] = data.apply(lambda x: np.sqrt(x['CHEST_Accel_X']**2 + x['CHEST_Accel_Y']**2 + x['CHEST_Accel_Z']**2),axis=1)
+    '''
+
+
+    plot_rawdataset_curves(displayed_data,figheight=10,figtitle='P_11 trial 01',show=True,col_wrap=4)
+
+    exit()
     pdb.set_trace()
+
     #---------------------------------PLOT 2 ----------------------------#
     # checking dataset of each trials of each subjects
     for subject, trials in hyperparams['subjects_trials'].items():
@@ -1522,4 +1549,3 @@ if __name__=='__main__':
     #plot_statistic_value_under_fpa(multi_subject_data, hyperparams['columns_names'], display_bio_variables, selected_subject_ids, trial_categories)
 
     
-

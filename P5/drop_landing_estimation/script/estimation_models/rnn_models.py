@@ -17,7 +17,7 @@ import copy
 import re
 import json
 
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
@@ -28,7 +28,10 @@ from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import KFold
 import time as localtimepkg
 
-
+# NARX
+from sklearn.linear_model import LinearRegression
+#from fireTS.models import NARX
+import matplotlib.pyplot as plt
 
 
 '''
@@ -106,14 +109,16 @@ def train_model(model, hyperparams, train_set, valid_set, training_mode='Integra
         # compile model
         model.compile(loss=tf.keras.losses.Huber(),
                       optimizer=optimizer,
-                      metrics=["mae"])
+                      metrics=["mae"]
+                     )
 
 
         # fit model
         history = model.fit(train_set, 
                             epochs=hyperparams['epochs'],
                             validation_data = valid_set,
-                            callbacks = callbacks)
+                            callbacks = callbacks
+                           )
         #model.summary()
     """ Specified mode   """
     if training_mode=='Manual_way':
@@ -136,7 +141,7 @@ def train_model(model, hyperparams, train_set, valid_set, training_mode='Integra
     
     
     # Save trained model, its parameters, and training history 
-    save_trained_model(model,history,training_folder)
+    save_trained_model(model, history, training_folder)
     return model, history, training_folder
 
 
@@ -204,7 +209,7 @@ def model_forecast(model, series, hyperparams):
 
 
     if(series.shape[1]==(labels_num + features_num)):
-        # transfer numpy data into tensors
+        # transfer numpy data into tensors from features
         ds = tf.data.Dataset.from_tensor_slices(series[:,:-labels_num]) # features
     else:
         ds = tf.data.Dataset.from_tensor_slices(series) # features
@@ -228,4 +233,40 @@ def model_forecast(model, series, hyperparams):
 
     # The model prediction shape is (frames of the raw data, labels_num)
     return model_prediction
+
+
+
+'''
+
+def model_narx(hyperparams):
+    exog_order = hyperparams['features_num'] * [5]
+    auto_order = 5
+    mdl = NARX(LinearRegression(), auto_order = auto_order, exog_order = exog_order)
+    return mdl
+'''
+
+
+def train_model_narx(model, hyperparams, train_set, valid_set, training_mode='Integrative_way'):
+    
+    # crerate train results folder
+    training_folder = pro_rd.create_training_files(hyperparams=hyperparams)
+    
+    for idx, data in enumerate(train_set):
+        x = data[:,:int(hyperparams['features_num'])]
+        y = data[:,int(hyperparams['features_num']):]
+        y = y.reshape(-1)
+        model.fit(x,y)
+
+    x_valid = valid_set[0][:,:int(hyperparams['features_num'])]
+    y_valid = valid_set[0][:,int(hyperparams['features_num']):]
+    steps = DROPLANDING_PERIOD
+    y_predict = model.forecast(x,y,steps,x_valid[:-1,:])
+    pdb.set_trace()
+    r2, rmse, mae, r_rmse = calculate_scores(y_valid[:-1,:],y_predict)
+
+    return r2
+    
+    # Save trained model, its parameters, and training history 
+    #save_trained_model(model, history, training_folder)
+    #return model, history, training_folder
 

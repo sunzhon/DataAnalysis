@@ -21,7 +21,7 @@ import copy
 import re
 import json
 
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
@@ -88,7 +88,7 @@ Main rountine for developing ANN model for biomechanic variable estimations
 
 '''
 
-def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False):
+def train_test_loops(hyperparams=None, fold_number=1, test_multi_trials=False):
     #1) set hyper parameters
     if(hyperparams==None):
         hyperparams = initParameters()
@@ -134,16 +134,21 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False):
         fold_number = len(subject_ids_names)
 
     for train_subject_indices, test_subject_indices in loo.split(subject_ids_names):
-        #ii) split dataset
-        train_set, valid_set, xy_test = split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, multi_test_trials=test_multil_trials)
+        #0) select model
+        model_type='tf_keras'
 
-        #iii) declare model
+        #i) declare model
         model = model_v1(hyperparams)
+        #model = model_narx(hyperparams)
 
-        #iv) train model
-        trained_model, history_dict, training_folder = train_model(model,hyperparams,train_set,valid_set)
+        #ii) split dataset
+        train_set, valid_set, xy_test = split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, model_type=model_type, test_multi_trials=test_multi_trials)
+
+        #iii) train model
+        trained_model, history_dict, training_folder = train_model(model, hyperparams, train_set, valid_set)
+        #trained_model, history_dict, training_folder = train_model_narx(model, hyperparams, train_set, valid_set)
         
-        #v) test model
+        #iv) test model
         if(isinstance(xy_test, list)): # multi trials as test dataset
             for trial_idx, a_trial_xy_test in enumerate(xy_test):
                 features, labels, predictions, testing_folder = es_as.test_model(training_folder, a_trial_xy_test, scaler)
@@ -176,7 +181,6 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False):
 
 
 
-
 if __name__=='__main__':
     pass
-    #train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False)
+    train_test_loops(hyperparams=None, fold_number=1, test_multi_trials=False)

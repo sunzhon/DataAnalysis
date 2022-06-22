@@ -57,10 +57,10 @@ Packing data into windows
 '''
 
 def windowed_dataset(series, hyperparams,shuffle_buffer=1000):
-    window_size=hyperparams['window_size']
-    batch_size=hyperparams['batch_size']
-    shift_step=hyperparams['shift_step']
-    labels_num=hyperparams['labels_num']
+    window_size = hyperparams['window_size']
+    batch_size = hyperparams['batch_size']
+    shift_step = hyperparams['shift_step']
+    labels_num = hyperparams['labels_num']
     
     #series = tf.expand_dims(series, axis=-1)
     ds = tf.data.Dataset.from_tensor_slices(series)
@@ -82,7 +82,7 @@ Split datasets of subjects_trials_data into train, valid and test set
 
 '''
 
-def split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, **kwargs):
+def split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, model_type='tf_keras', test_multi_trials=False):
     subjects_trials = hyperparams['subjects_trials']
     subject_ids_names = list(subjects_trials.keys())
 
@@ -98,25 +98,32 @@ def split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject
     #iii) data from train and test subjects and their trials
     xy_train = [norm_subjects_trials_data[subject_id_name][trial] for subject_id_name in train_subject_ids_names for trial in subjects_trials[subject_id_name]]
     xy_valid = [norm_subjects_trials_data[subject_id_name][trial] for subject_id_name in test_subject_ids_names for trial in subjects_trials[subject_id_name]]
-    if 'multi_test_trials' in kwargs.keys():
-        if kwargs['multi_test_trials']: # return all trials of the test subject
-            xy_test = xy_valid
-        else:
-            xy_test = xy_valid[0]
+
+    #iV) test dataset
+    if(test_multi_trials):
+        xy_test = xy_valid
     else:
         xy_test = xy_valid[0]
-    
-    #iv) concate data of several trials into a numpy arrary
-    xy_train = np.concatenate(xy_train, axis=0)
-    xy_valid = np.concatenate(xy_valid, axis=0)
-    print("Train set shape", xy_train.shape)
-    print("Valid set shape", xy_valid.shape)
-    
-    #v) window train and test dataset
-    train_set = windowed_dataset(xy_train, hyperparams)
-    valid_set = windowed_dataset(xy_valid, hyperparams)
+        
+    if(model_type=='tf_keras'):
+        #iv) concate data of several trials into a numpy arrary
+        xy_train = np.concatenate(xy_train, axis=0)
+        xy_valid = np.concatenate(xy_valid, axis=0)
+        print("Train set shape", xy_train.shape)
+        print("Valid set shape", xy_valid.shape)
+        
+        #v) window train and test dataset
+        train_set = windowed_dataset(xy_train, hyperparams)
+        valid_set = windowed_dataset(xy_valid, hyperparams)
 
-    return train_set, valid_set, xy_test
+        return train_set, valid_set, xy_test
+
+    elif(model_type=='sklearn'):
+        return xy_train, xy_valid, xy_test
+
+    else:
+        print("MODEL TYPE IS WRONG")
+        exit()
         
 
 

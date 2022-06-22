@@ -29,15 +29,14 @@ if __package__=='':
     EVENT_COLUMN,  V3D_DATA_FIELDS, V3D_LABELS_FIELDS,IMU_FEATURES_FIELDS, IMU_DATA_FIELDS
     from const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE, FORCE_DATA_FIELDS, DROPLANDING_PERIOD
     from const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, \
-SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS
+SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS, DROPLANDING_PERIOD_SATRT, DROPLANDING_PERIOD_END
     import wearable_math as wearable_math
 else:
     from vicon_imu_data_process.const import IMU_SENSOR_LIST, IMU_FIELDS,EXT_KNEE_MOMENT, TARGETS_LIST, SUBJECT_HEIGHT, \
     EVENT_COLUMN,  V3D_DATA_FIELDS, V3D_LABELS_FIELDS,IMU_FEATURES_FIELDS, IMU_DATA_FIELDS
     from vicon_imu_data_process.const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE,FORCE_DATA_FIELDS, DROPLANDING_PERIOD
-    from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS
+    from vicon_imu_data_process.const import SEGMENT_DEFINITIONS, SUBJECTS, STATIC_TRIALS, TRIALS, SESSIONS, DATA_PATH, SUBJECT_HEIGHT, SUBJECT_WEIGHT, SUBJECT_ID, TRIAL_ID, XSEN_IMU_ID, IMU_DATA_FIELDS, FORCE_DATA_FIELDS, NEEDED_FORCE_PLATED_DATA_FIELDS, DROPLANDING_PERIOD_SATRT, DROPLANDING_PERIOD_END
     import vicon_imu_data_process.wearable_math as wearable_math
-
 
 
 class Visual3dCsvReader:
@@ -142,8 +141,8 @@ class Visual3dCsvReader:
         print('v3d touch moment: {}'.format(self.combined_touch_moment))
 
         #-- determine start_index and end_index, the drop landing
-        start_index = self.combined_touch_moment-DROPLANDING_PERIOD/4
-        end_index = self.combined_touch_moment+DROPLANDING_PERIOD/4*3-1
+        start_index = self.combined_touch_moment-DROPLANDING_PERIOD_SATRT
+        end_index = self.combined_touch_moment+DROPLANDING_PERIOD_END
 
 
         #-- check row_range is in start_index and end_index
@@ -345,8 +344,8 @@ class XsenTxtReader():
         print('xsen touch moment: {}'.format(combined_touch_moment))
 
         #-- determine start_index and end_index, the drop landing
-        start_index = combined_touch_moment - DROPLANDING_PERIOD/4 
-        end_index = combined_touch_moment + DROPLANDING_PERIOD/4*3 - 1
+        start_index = combined_touch_moment - DROPLANDING_PERIOD_SATRT
+        end_index = combined_touch_moment + DROPLANDING_PERIOD_END
 
         #-- check row_range is in start_index and end_index
         row_length=self.data_frame.shape[0]

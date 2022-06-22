@@ -17,7 +17,7 @@ list_hyper_files=($(find $testing_folders -name hyperparams.yaml))
 data_file="$testing_folders/testing_result_folders.txt"
 touch $data_file
 #echo "" > $data_file
-echo "Sensor configurations\tLSTM units\tsyn_features_labels\tlanding_manners\testimated_variables\ttraining_testing_folders" > $data_file
+echo "Sensor configurations\tLSTM units\tsyn_features_labels\tuse_frame_index\tlanding_manners\testimated_variables\ttraining_testing_folders" > $data_file
 echo "START TO COLLECT TEST DATA"
 
 all_sensor_configs=( 'T' 'S' 'F' 'W' 'C'  'FS' 'FT' 'FW' 'FC' 'ST' 'SW' 'SC' 'TW' 'TC' 'WC' 'FST' 'FSW' 'FSC' 'FTW' 'FTC' 'FWC' 'STW' 'STC' 'SWC' 'TWC' 'FSTW' 'FSTC' 'FSWC' 'FTWC' 'STWC' 'FSTWC')
@@ -35,6 +35,7 @@ for hyper_file in ${list_hyper_files}; do
         lstm=$(awk -F"[ :-]+" '$1~/lstm_units/{print $2}' $hyper_file | grep -o -E "\w+")
         sensors_fields=$(awk -F"[ :-]+" '$2~/Accel_X/{array[$2]++}END{for(i in array)print i}' $hyper_file)
         syn_features_labels=$(awk -F"[ :-]+" '$1~/syn_features_labels/{print $2}' $hyper_file)
+        use_frame_index=$(awk -F"[ :-]+" '$1~/use_frame_index/{print $2}' $hyper_file)
         landing_manners=$(awk -F"[ :-]+" '$1~/landing_manner/{print $2}' $hyper_file)
         #estimated_variables=$(awk -F"[ :-]+" '$2~/KNEE_MOMENT|GRF/{array[$2]++}END{for( i in array) if i==print "["i"]"}' $hyper_file)
         estimated_variables=$(awk -F"[ :-]+" '$2~/KNEE_MOMENT_X|GRF_Z/{array[$2]++}END{for(i in array){if(i~/KNEE_MOMENT_X/){print "[KFM]"}else if(i~/KNEE_MOMENT_Y/){print "[KAM]"}else if(i~/GRF_Z/){print "[GRF]"}}}' $hyper_file)
@@ -58,7 +59,7 @@ for hyper_file in ${list_hyper_files}; do
                 echo "combined sensor config name: $combined_sensor_config_name"
                 echo "real sensor config:" $real_sensor_config_name
                 #echo "${real_sensor_config_name}\t${lstm}\t${folder_path}" >> $data_file
-                echo "${real_sensor_config_name}\t${lstm}\t${syn_features_labels}\t${landing_manners}\t${estimated_variables}\t${folder_path}" >> $data_file
+                echo "${real_sensor_config_name}\t${lstm}\t${syn_features_labels}\t${use_frame_index}\t${landing_manners}\t${estimated_variables}\t${folder_path}" >> $data_file
             fi
         done
     fi
