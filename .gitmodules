@@ -1,0 +1,3 @@
+[submodule "P5/drop_landing_estimation/script/vicon_imu_data_process"]
+	path = P5/drop_landing_estimation/script/vicon_imu_data_process
+	url = git@gitlab.com:sunzhon/vicon_imu_data_process.git
