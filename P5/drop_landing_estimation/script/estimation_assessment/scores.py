@@ -372,11 +372,16 @@ The output are pd_labels, and pd_predictions.
 def get_testing_results(testing_folder):
 
         testing_results = os.path.join(testing_folder, 'test_results.h5')
-        with h5py.File(testing_results,'r') as fd:
-            features=fd['features'][:,:]
-            predictions=fd['predictions'][:,:]
-            labels=fd['labels'][:,:]
-            labels_names=fd['labels'].attrs['labels_names']
+        try:
+            with h5py.File(testing_results,'r') as fd:
+                features=fd['features'][:,:]
+                predictions=fd['predictions'][:,:]
+                labels=fd['labels'][:,:]
+                labels_names=fd['labels'].attrs['labels_names']
+        except Exception as e:
+            print(e)
+            print(testing_results)
+            pdb.set_trace()
 
         #2) estimation results
         #i) plot curves
@@ -390,27 +395,27 @@ def get_testing_results(testing_folder):
 
 Get estimation values of many trials,
 
-Inputs: training_folder of a trained model or test_folder contains many tests of the trained model
-
+Inputs: training_testing_folders:  a txt file (training_result_folders.txt) contains many training or testing configurations and their results.
+Return: a pandas dataframe, which containing the actual and estimated values of the tests in training_testing_folder and filtered by selections
 '''
     
-def get_a_model_test_results(training_testing_folders,**kwargs):
+def get_a_model_test_results(training_testing_folders, selection,**kwargs):
      
-    # get test results by re-test trials based this trained model in the training folder
+    # get test results by re-test trials based this trained model in the training folder: training_***
     if(re.search(r'training_[0-9]{6}', os.path.basename(training_testing_folders))): # training_folder
         training_folder = training_testing_folders
         # testing model in training folder 
         testing_results, testing_ingredients = test_model_on_unseen_subject(training_folder)
 
-     # get test results by searh an exist test folder which contain multiple tests of a trained model
+     # get test results by searh an exist test folder: testing_result_folders.txt, which contain multiple tests of a trained model
     if(re.search(r'testing_result_folders', os.path.basename(training_testing_folders))): # testing folders
-        dir_testing_folder =  get_investigation_training_testing_folders(training_testing_folders, kwargs['test_id'])
-        assert(isinstance(dir_testing_folder, str))
-        dir_testing_folders = next(os.walk(dir_testing_folder))
+        config_training_testing_folders =  get_investigation_training_testing_folders(training_testing_folders)
+        
+        # select the necessary testing results using "selection" dictory
+        needed_config_training_testing_folders = parase_training_testing_folders(config_training_testing_folders,**selection)
+        # get testing results: prediction values in numpy array
         testing_results={'labels': [], 'predictions': []}
-
-        for test_id in dir_testing_folders[1]:
-            testing_folder = os.path.join(dir_testing_folders[0],test_id)
+        for testing_folder in needed_config_training_testing_folders['testing_folders']:
             #print(testing_folder)
             [pd_labels, pd_predictions] = get_testing_results(testing_folder)
             testing_results['labels'].append(pd_labels)
@@ -432,22 +437,25 @@ def get_a_model_test_results(training_testing_folders,**kwargs):
     pd_actual_prediction_values = pd.concat([pd_actual_values,pd_prediction_values],axis=1)
     pd_actual_prediction_values.index = pd_actual_prediction_values.index/SAMPLE_FREQUENCY
 
+    #iv) save the values
+    pd_actual_prediction_values.to_csv(os.path.dirname(training_testing_folders)+"/actual_prediction_values.csv")
+
     return pd_actual_prediction_values
 
 '''
 Inputs: 
-    1. training_testing_folders is a dir testing folder contains many parent test folders, e.g., test_0123467, test_0124568,..
-    2. test_ids is a list containing [test_123456, test_1231214,....] which are in training_testng_folders
+    1. list_training_testing_folders: a list containes several training_result_folders.txt
+    2. list_selection: a list of filter parameters to be used to select needed data
 Returns:
     a list of dataframe which contains many pd_labels and pd_predictions
 
 '''
 
-def get_multi_models_test_results(training_testing_folders, test_ids, **kwargs):
+def get_multi_models_test_results(list_training_testing_folders, list_selection, **kwargs):
     multi_models_test_results = []
-    for test_id in test_ids:
-        multi_models_test_results.append(get_a_model_test_results(training_testing_folders,test_id=test_id))
-        
+    for training_testing_folders, selection in zip(list_training_testing_folders, list_selection):
+        multi_models_test_results.append(get_a_model_test_results(training_testing_folders,selection))
+
     return multi_models_test_results
 
 
@@ -584,7 +592,14 @@ def get_investigation_metrics(combination_investigation_results, metric_fields=[
 
 '''
 
-Get investiagation configuration and their results
+Get investiagation configurations with training_folders and testing_folders:
+
+    Sensor configurations, IMU number, .... training_folders, testing_folders,
+     F, 1, .... ...
+
+THe return, investigation_config_results has two items: 'training_folders' and 'testing_folders'
+
+Each item is pd dataframe contains "traing_testing_folder.txt"  with training_folders or tesing_folders
 
 
 '''
@@ -611,25 +626,87 @@ def get_investigation_training_testing_folders(combination_investigation_results
             dir_testing_folder = os.path.dirname(testing_folder)
             training_folders.append(os.path.join(os.path.dirname(dir_testing_folder),"training"+re.search(r'_(\d){6}', dir_testing_folder).group(0)))
     
+    # investigation_config_results is a pandas Dataframe
     investigation_config_results['training_folders'] = training_folders
     investigation_config_results['testing_folders'] = testing_folders
 
-    if(train_test_id!=None):
-        if(re.search('test',train_test_id)):
-            for testing_folder in investigation_config_results['testing_folders']:
-                if(re.search(train_test_id, testing_folder)):
-                    return os.path.dirname(testing_folder)
-            print('NO MATCH test_id')
-        elif(re.search('training',train_test_id)):
-            for training_folder in investigation_config_results['training_folders']:
-                if(re.search(train_test_id, training_folder)):
-                    return training_folder
-            print('No match training_id')
-        else:
-            print("Specified test or training id is not right")
+    return investigation_config_results
 
+
+
+def parase_training_testing_folders(investigation_config_results, landing_manner='all', estimated_variable='all', syn_features_label='both', use_frame_index='both', LSTM_unit='all', IMU_number='all', sensor_configurations='all'):
+    
+    #2) pick necessary testing or training folders
+    if 'landing_manners' in investigation_config_results.columns: # has this investigation
+        if landing_manner in set(investigation_config_results['landing_manners']):
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['landing_manners']==landing_manner]
+        elif(landing_manner=='all'):
+            print('ALl landing manners are used')
+        else:
+            print('specified landing manner is wrong')
+            sys.exit()
+
+    if 'estimated_variables' in investigation_config_results.columns: # has this investigation variables
+        if estimated_variable in set(investigation_config_results['estimated_variables']): # has this option
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['estimated_variables']==estimated_variable]
+        elif(estimated_variable=='all'):
+            print('ALl estimated variables are used')
+        else:
+            print('specified estimated variable is not right, it should be: {}'.format(set(investigation_config_results['estimated_variables'])))
+            sys.exit()
+
+    if 'syn_features_labels' in investigation_config_results.columns: # has this investigation
+        if syn_features_label in set(investigation_config_results['syn_features_labels']):# has this value
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['syn_features_labels']==syn_features_label]
+            hue=None
+        elif(syn_features_label=='both'):
+            hue='syn_features_labels'
+        else:
+            print('syn_features_lable is not right, it should be {}'.format(set(investigation_config_results['syn_features_labels'])))
+            sys.exit()
+
+    if 'use_frame_index' in investigation_config_results.columns: # has this investigation variables
+        if  use_frame_index in set(investigation_config_results['use_frame_index']): # has right investigation value
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['use_frame_index']==use_frame_index]
+            hue=None
+        elif(use_frame_index=='both'):
+            hue='use_frame_index'
+        else:
+            print('use_frame_index is not right, it should be {}'.format(set(investigation_config_results['use_frame_index'])))
+            sys.exit()
+
+    if 'LSTM units' in investigation_config_results.columns: # has this investigation
+        if set(LSTM_unit) <= set(investigation_config_results['LSTM units']): # a value of the LSTM unit
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['LSTM units'].isin(LSTM_unit)]
+        elif(LSTM_unit=='all'):
+            print('All LSTM units are used')
+        else:
+            print('LSTM units is not right, it should be {}'.format(set(investigation_config_results['LSTM units'])))
+            sys.exit()
+
+    if 'IMU number' in investigation_config_results.columns: # has this investigation
+        if set(IMU_number) <= set(investigation_config_results['IMU number']): # a value of the IMU number
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['IMU number'].isin(IMU_number)]
+        elif(IMU_number=='all'):
+            print('All IMU number are used')
+        else:
+            print('IMU number is not right, it should be {}'.format(set(investigation_config_results['IMU number'])))
+            sys.exit()
+    
+    if 'Sensor configurations' in investigation_config_results.columns: # has this investigation
+        if set(sensor_configurations) <= set(investigation_config_results['Sensor configurations']): # a value of the IMU number
+            investigation_config_results = investigation_config_results.loc[investigation_config_results['Sensor configurations'].isin(sensor_configurations)]
+        elif(sensor_configurations=='all'):
+            print('All sensor configurations are used')
+        else:
+            print('sensor configurations is not right, it should be {}'.format(set(investigation_config_results['Sensor configurations'])))
+            sys.exit()
 
     return investigation_config_results
+
+
+
+
 
 
 
@@ -646,24 +723,28 @@ if __name__=='__main__':
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/new_alignment/testing_result_folders.txt"
 
 
-    combination_investigation_metrics = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/investigation/valid_results/metrics.csv"
+    #combination_investigation_metrics = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/investigation/valid_results/metrics.csv"
 
-    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2_collected_full_cv/2_imu_full_cv_all_trials/testing_result_folders.txt"
+    #pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results)
+    #pdb.set_trace()
 
-    #get_investigation_training_testing_folders(combination_investigation_results)
 
-    pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results, trials=['08','09','21'])
 
-    pdb.set_trace()
-    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/r2_metrics.csv"
-    r2_metrics = get_investigation_metrics(combination_investigation_results)
-    pdb.set_trace()
+
+
+    ##get_investigation_training_testing_folders(combination_investigation_results)
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/r2_metrics.csv"
+    #r2_metrics = get_investigation_metrics(combination_investigation_results)
+
 
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/001/testing_result_folders.txt"
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/001/metrics.csv"
-    testing_folder =  get_investigation_training_testing_folders(combination_investigation_results,'test_235635')
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/testing_result_folders.txt"
+    r2_metrics = get_investigation_metrics(combination_investigation_results)
 
-    #r2_metrics = get_investigation_metrics(combination_investigation_results)
 
     pdb.set_trace()
 

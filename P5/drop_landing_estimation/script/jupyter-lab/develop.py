@@ -92,12 +92,14 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
     #1) paraser investigation variables
     sensor_configurations = investigation_variables['sensor_configurations']
     lstm_units  = investigation_variables['lstm_units']
+    window_sizes = investigation_variables['window_size']
+    shift_step = investigation_variables['shift_step']
+    additional_IMUs = investigation_variables['additional_IMUs']
 
     if('syn_features_labels' in investigation_variables.keys()):
         syn_features_labels = investigation_variables['syn_features_labels']
     else:
         syn_features_labels = [False] # default value is false, to synchorinize features and labels using event
-
 
 
     if('use_frame_index' in investigation_variables.keys()):
@@ -162,48 +164,76 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
                         features_fields = const.extract_imu_fields(sensor_list, const.ACC_GYRO_FIELDS)
 
                         if(use_frame_index_state):
-                            hyperparams['features_names'] = ['TIME'] + [hyperparams['target_leg']+'_'+x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
+                            hyperparams['features_names'] = ['TIME'] + [hyperparams['target_leg'] + '_' + x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
                         else:
                             hyperparams['features_names'] = [hyperparams['target_leg']+'_'+x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
 
-                        hyperparams['features_num'] = len(hyperparams['features_names'])
-                        hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
+                        for additional_IMU_config, add_imus in additional_IMUs.items():
+                            if(add_imus!=[]): # additional IMUs
+                                hyperparams['features_names'] += const.extract_imu_fields(add_imus, const.ACC_GYRO_FIELDS)
 
-                        # set subjects and trials
-                        hyperparams['subjects_trials'] = pro_rd.set_subjects_trials(landing_manner=landing_manner, target_leg=target_leg)
+                            hyperparams['features_num'] = len(hyperparams['features_names'])
+                            hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
 
-                        #v) model size configuations
-                        for lstm_unit in lstm_units:
-                            hyperparams['lstm_units'] = lstm_unit
-                        
-                            # configuration list name
-                            a_single_config_columns = '\t'.join(['Sensor configurations',
-                                                            'LSTM units',
-                                                            'syn_features_labels',
-                                                            'use_frame_index',
-                                                            'landing_manners',
-                                                            'estimated_variables',
-                                                            'training_testing_folders']) + '\n'
+                            # set subjects and trials
+                            hyperparams['subjects_trials'] = pro_rd.set_subjects_trials(landing_manner=landing_manner, target_leg=target_leg)
 
-                            # train and test model
-                            print("#**************************************************************************#")
-                            print("Investigation configs: {}".format(a_single_config_columns))
-                            print("Investigation configs: {}".format([sensor_configuration_name, str(lstm_unit), str(syn_state), str(use_frame_index_state), landing_manner, estimated_variable]))
-                        
-                            # DO TRAINING AND TESTING
-                            training_testing_folders, xy_test, scaler =  train_test_loops(
-                                    hyperparams, 
-                                    fold_number=fold_number, 
-                                    test_multi_trials=test_multi_trials
-                                )# model traning
-                        
-                            # list testing folders 
-                            a_single_config = [sensor_configuration_name, str(lstm_unit), str(syn_state), str(use_frame_index_state), landing_manner, hyperparams['abbrev_estimated_variables'], training_testing_folders]
-                            combination_investigation_info.append(a_single_config)
+                            #v) model size configuations
+                            for lstm_unit in lstm_units:
+                                hyperparams['lstm_units'] = lstm_unit
+
+                                for window_size in window_sizes:
+                                    hyperparams['window_size'] = window_size
+                                    hyperparams['shift_step'] = shift_step
+
+                                    # configuration list name
+                                    a_single_config_columns = '\t'.join(['Sensor configurations',
+                                                                         'LSTM units',
+                                                                         'syn_features_labels',
+                                                                         'use_frame_index',
+                                                                         'landing_manners',
+                                                                         'window_size',
+                                                                         'estimated_variables',
+                                                                         'additional_IMUs',
+                                                                         'training_testing_folders',
+                                                                        ]) + '\n'
+
+                                    # train and test model
+                                    print("#**************************************************************************#")
+                                    print("Investigation configs: {}".format(a_single_config_columns))
+                                    print("Investigation configs: {}".format([sensor_configuration_name, 
+                                                                              str(lstm_unit), 
+                                                                              str(syn_state), 
+                                                                              str(use_frame_index_state), 
+                                                                              landing_manner, 
+                                                                              window_size,
+                                                                              additional_IMU_config,
+                                                                              estimated_variable
+                                                                             ]))
+
+                                    # ******DO TRAINING AND TESTING****** #
+                                    training_testing_folders, xy_test, scaler =  train_test_loops(
+                                        hyperparams, 
+                                        fold_number=fold_number, 
+                                        test_multi_trials=test_multi_trials
+                                    )# model traning
+
+                                    # list testing folders 
+                                    a_single_config = [sensor_configuration_name, 
+                                                       str(lstm_unit), 
+                                                       str(syn_state), 
+                                                       str(use_frame_index_state), 
+                                                       landing_manner, 
+                                                       window_size,
+                                                       hyperparams['abbrev_estimated_variables'], 
+                                                       additional_IMU_config,
+                                                       training_testing_folders
+                                                      ]
+                                    combination_investigation_info.append(a_single_config)
 
     #3) create folders to save testing folders
     combination_investigation_testing_folders = os.path.join(RESULTS_PATH,"investigation",
-                                         str(localtimepkg.strftime("%Y-%m-%d",localtimepkg.localtime())),
+                                         st_Xr(localtimepkg.strftime("%Y-%m-%d",localtimepkg.localtime())),
                                          str(localtimepkg.strftime("%H%M%S", localtimepkg.localtime())))
     if(not os.path.exists(combination_investigation_testing_folders)):
         os.makedirs(combination_investigation_testing_folders)
@@ -218,7 +248,6 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
                 for idx, testing_folder in enumerate(train_test_results["testing_folder"]): # in a loops which has many train and test loop
                     # a single investigation config info and its results
                     single_investigation_info_results = single_investigation_info[:-1] + [testing_folder]
-                    #print('single investigation info and results:', single_investigation_info_results)
                     # transfer into strings with '\t' seperator
                     str_single_investigation_info_results = '\t'.join([str(i) for i in single_investigation_info_results])
                     # save config and its results
@@ -235,11 +264,11 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
 investigation_variables={
     "sensor_configurations":
                             {
-                                #  'F': ['FOOT'],
-                                #  'S': ['SHANK'],
-                                #  'T': ['THIGH'],
-                                #  'W': ['WAIST'],
-                                #  'C': ['CHEST']
+                             #    'F': ['FOOT'],
+                             #    'S': ['SHANK'],
+                             #    'T': ['THIGH'],
+                             #    'W': ['WAIST'],
+                             #    'C': ['CHEST']
 
                              #   'FS': ['FOOT','SHANK'],
                              #   'FT': ['FOOT','THIGH'],
@@ -276,11 +305,14 @@ investigation_variables={
     "sensor_configurations": {'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']},
     #"syn_features_labels": [True, False],
     "syn_features_labels": [False],
+    #"use_frame_index": [True, False],
     "use_frame_index": [True],
     #'estimated_variables': [['KNEE_MOMENT_X'], ['GRF_Z']],  # KFM, KAM, GRF
-    'estimated_variables': [['GRF_Z']],
+    'estimated_variables': [['KNEE_MOMENT_Y']],
     #"landing_manners": [ 'double_legs', 'single_leg'],
     "landing_manners": ['double_legs'],
+    "window_size" :[4],
+    "shift_step" : 1,
     
     #"lstm_units": [1, 5, 10, 20, 30, 50,  150, 170, 180, 200],
     #"lstm_units": [ 50, 75 ,100, 120, 130, 150, 170, 180, 200],
@@ -290,14 +322,31 @@ investigation_variables={
     #"lstm_units": [55,60,65,70,75,80],
     #"lstm_units": [85,90,95,100,105,110,115,120,125,130],
     #"lstm_units": [135,140,145,150,155,160,165,170,175,180,185,190,195,200],
-    "lstm_units": [300],
-    'target_leg': 'R'
+    "lstm_units": [130],
+    'target_leg': 'R',
+   # 'additional_IMUs': {
+   #     'F': ['L_FOOT'],
+   #     'S': ['L_SHANK'],
+   #     'T': ['L_THIGH'],
+   #     'FS': ['L_FOOT','L_SHANK'],
+   #     'ST': ['L_SHANK','L_THIGH'],
+   #     'FT': ['L_FOOT','L_THIGH'],
+   #     'FST':['L_FOOT','L_SHANK','L_THIGH']
+   # }
+
+    'additional_IMUs': {
+        'None':[]
+    }
 }
 
 
+##*******************###
+
+# GRF_X has 0.11 R2 accuracy, it is not good
+
 if __name__ == "__main__":
     #2) investigate model
-    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF',fold_number=17, test_multi_trials=True)
+    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF_X',fold_number=17, test_multi_trials=True)
 
     print(combination_investigation_results)
 

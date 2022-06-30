@@ -415,7 +415,7 @@ def setup_plot(g, **kwargs):
 '''
 
 
-def parase_plot_data(combination_investigation_results, landing_manner='double_legs', estimated_variable='GRF', syn_features_label='both', use_frame_index='both', LSTM_unit='all', IMU_number='all', drop_value=None, metric_fields=['r2'],sort_variable=None):
+def parase_plot_data(combination_investigation_results, landing_manner='all', estimated_variable='all', syn_features_label='both', use_frame_index='both', LSTM_unit='all', sensor_config='all',IMU_number='all', drop_value=None, metric_fields=['r2'],sort_variable=None):
 
     #1) load assessment metrics
     metrics = get_investigation_metrics(combination_investigation_results,metric_fields=metric_fields)
@@ -429,8 +429,8 @@ def parase_plot_data(combination_investigation_results, landing_manner='double_l
     if 'landing_manners' in metrics.columns: # has this investigation
         if landing_manner in set(metrics['landing_manners']):
             metrics = metrics.loc[metrics['landing_manners']==landing_manner]
-        elif(landing_manner=='both'):
-            pass;
+        elif(landing_manner=='all'):
+            print('ALl landing manners are used')
         else:
             print('specified landing manner is wrong')
             sys.exit()
@@ -438,8 +438,8 @@ def parase_plot_data(combination_investigation_results, landing_manner='double_l
     if 'estimated_variables' in metrics.columns: # has this investigation variables
         if estimated_variable in set(metrics['estimated_variables']): # has this option
             metrics = metrics.loc[metrics['estimated_variables']==estimated_variable]
-        elif(estimated_variable=='both'):
-            pass
+        elif(estimated_variable=='all'):
+            print('ALl estimated variables are used')
         else:
             print('specified estimated variable is not right, it should be: {}'.format(set(metrics['estimated_variables'])))
             sys.exit()
@@ -471,6 +471,15 @@ def parase_plot_data(combination_investigation_results, landing_manner='double_l
             print('All LSTM units are used')
         else:
             print('LSTM units is not right, it should be {}'.format(set(metrics['LSTM units'])))
+            sys.exit()
+
+    if 'Sensor configurations' in metrics.columns: # has this investigation
+        if set(sensor_config) <= set(metrics['Sensor configurations']): # a value of the IMU number
+            metrics = metrics.loc[metrics['Sensor configurations'].isin(sensor_config)]
+        elif(sensor_config=='all'):
+            print('All sensor configurations are used')
+        else:
+            print('sensor configurations is not right, it should be {}'.format(set(metrics['Sensor configurations'])))
             sys.exit()
 
     if 'IMU number' in metrics.columns: # has this investigation
@@ -553,10 +562,9 @@ def plot_sensorconfig_modelsize_investigation_results(combination_investigation_
         #pdb.set_trace()
         g = sns.lineplot(ax=axs[idx], **hue_plot_params, sort=True)
         axs[idx].set_xlabel('LSTM units')
-        axs[idx].set_ylabel('R2')
+        axs[idx].set_ylabel('$R^2$')
         axs[idx].grid(visible=True, axis='both', which='major')
-        #axs[idx].set_xticks([5,10,15,20,25,30,35,40,45,50,55,60])
-        axs[idx].set_xticks([0,5,50,100,200,300,400])
+        axs[idx].set_xticks([0, 50, 100, 150, 200])
         axs[idx].legend(ncol= 5+0*len(axs[idx].legend().get_texts()),title='Sensor configurations',loc='best')
     # set title
     fig.suptitle(re.search('[A-Z]+',estimated_variable).group(0) + title)
@@ -643,8 +651,10 @@ def plot_overall_sensorconfig_modelsize_investigation_results(combination_invest
     ax_handle.set_xlabel('LSTM units')
     ax_handle.set_ylabel('$R^2$')
     #ax_handle.set_ylim(0.75,0.95)
-    #ax_handle.set_xlim(0,200)
-    ax_handle.set_yticks([0.75, 0.8, 0.85, 0.9, 0.95])
+    ax_handle.set_xlim(0,200)
+    ax_handle.set_xticks([0, 50, 100, 150, 200])
+    ax_handle.set_ylim(0.7, 0.85)
+    ax_handle.set_yticks([0.7, 0.75, 0.8, 0.85])
     ax_handle.grid(visible=True, axis='both',which='major')
     if hue!=None:
         ax_handle.legend(ncol=5,title='IMU number',loc='lower right')
@@ -739,32 +749,30 @@ def plot_sensorconfig_investigation_results(combination_investigation_results, l
 
 
 '''
-plot ensemble curves
+plot ensemble curves of the actual and estimattion
 
 '''
 
-
-def plot_statistic_actual_estimation_curves(training_testing_folders, title = 'statistic',testing_folder=None, **kwargs):
+def plot_statistic_actual_estimation_curves(list_training_testing_folders, list_selections, **kwargs):
 
     # 1) loading test data 
-    display_configs = kwargs['display_configs']
-
-    multi_test_results = get_multi_models_test_results(training_testing_folders,test_ids = display_configs['test_ids'])
+    multi_test_results = get_multi_models_test_results(list_training_testing_folders, list_selections)
 
     # i) plot configurations
-    figsize=(8,6)
+    figsize=(7,7)
+    sns.set(font_scale=1.15,style='whitegrid')
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1 = gridspec.GridSpec(2,4)#13
-    gs1.update(hspace=0.35,wspace=0.34,top=0.93,bottom=0.12,left=0.06,right=0.95)
+    gs1.update(hspace=0.25,wspace=0.34,top=0.93,bottom=0.12,left=0.06,right=0.95)
     axs = []
     axs.append(fig.add_subplot(gs1[0, 0:2]))
     axs.append(fig.add_subplot(gs1[0, 2:4]))
     axs.append(fig.add_subplot(gs1[1, 0:2]))
     axs.append(fig.add_subplot(gs1[1, 2:4]))
 
-    hue=None
+    hue = None
     if hue != None:
-        palette =  sns.color_palette("Paired")
+        palette = sns.color_palette("Paired")
     else:
         palette = None
     colors = sns.color_palette("YlGnBu")
@@ -781,17 +789,35 @@ def plot_statistic_actual_estimation_curves(training_testing_folders, title = 's
             }
         g = sns.lineplot(ax=axs[idx], **hue_plot_params)
         g.set_xlabel('Time [s]')
+        g.set_xlim(0, 0.8)
+        g.set_xticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+        if idx == 0:
+            g.set_ylim(-0.1, 2)
+            g.set_yticks([0, 1, 2])
+        elif idx==1:
+            g.set_ylim(-0.21, 4)
+            g.set_yticks([0, 1, 2, 3, 4])
+        elif idx ==2:
+            g.set_ylim(-0.2, 4)
+            g.set_yticks([0, 1, 2, 3, 4])
+        else:
+            g.set_ylim(-0.25, 5)
+            g.set_yticks([0, 1, 2, 3, 4, 5])
+            
+        '''
         if('legends' in display_configs):
             g.legend(ncol=1,title=None,loc='upper right',labels=display_configs['legends'][idx])
         if('ylabel' in display_configs):
             g.set_ylabel(display_configs['ylabel'][idx])
-        #g.set_ylim(0.6,3.0)
-        #g.set_yticks([0.0, 1.0, 2.0, 3.0])
         if('subplot_titles' in display_configs):
             g.set_title(label=display_configs['subplot_titles'][idx])
+        '''
         g.grid(visible=True, axis='both',which='major')
+        
+    
+    
+    return save_figure(os.path.dirname(list_training_testing_folders[0]),fig_format='svg'), multi_test_results
 
-    return save_figure(os.path.dirname(training_testing_folders),fig_name=title,fig_format='svg'), multi_test_results
 
 '''
 plot overall figures
@@ -872,24 +898,46 @@ if __name__ == '__main__':
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units_KFM/testing_result_folders.txt"
     
 
-    display_configs = {'test_ids': ['test_142805'] }
 
+
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/testing_result_folders.txt"
+    #combination_investigation_metrics = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/investigation/valid_results/metrics.csv"
+    list_combination_investigation_results = [
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2_collected_full_cv/4_imu/testing_result_folders.txt",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/20_doubleKFM_collected_full_cv/5_imu/testing_result_folders.txt",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/21_singleGRF_collected_full_cv/5_imu/testing_result_folders.txt",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/22_singleKFM_collected_full_cv/5_imu/testing_result_folders.txt"
+    ]
+
+    list_selections = [
+        {'sensor_configurations': ['STWC']},
+        {'estimated_variable': 'KFM'},
+        {'estimated_variable': 'GRF'},
+        {'estimated_variable': 'KFM' }
+    ]
+
+    #fig_path, metrics = plot_statistic_actual_estimation_curves(list_combination_investigation_results,
+    #                                                            list_selections)
+
+
+
+    #pdb.set_trace()
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units_single_leg/5_imu_GRF_single_leg/testing_result_folders.txt"
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/testing_result_folders.txt"
 
-    #plot_statistic_actual_estimation_curves(combination_investigation_results, title = 'statistic',testing_folder=None, display_configs = display_configs)
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/1_imu_125/testing_result_folders.txt"
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/r2_metrics.csv"
-
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/r2_metrics.csv"
 
     # sensor config, lstm units
     landing_manner = 'double_legs'
     fig_path, metrics = plot_overall_sensorconfig_modelsize_investigation_results(combination_investigation_results,
-                                                                            estimated_variable = 'GRF',
+                                                                                  estimated_variable = 'GRF',
+
                                                                             landing_manner=landing_manner,
                                                                             syn_features_label = False,
                                                                             title = ' estimation in double-leg drop landing',
-                                                                            drop_value = 0.1,
+                                                                            drop_value = 0.0,
                                                                             hue = 'IMU number',
                                                                         )
 

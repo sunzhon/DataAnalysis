@@ -39,15 +39,15 @@ Model_V1 definition
 '''
 def model_v1(hyperparams):
     model = tf.keras.models.Sequential([
-      #tf.keras.layers.Conv1D(filters=10, kernel_size=6, strides=1, padding="causal", activation="relu", input_shape=[None, hyperparams['features_num']]),
+      #tf.keras.layers.Conv1D(filters=10, kernel_size=4, strides=1, padding="causal", activation="relu", input_shape=[None, hyperparams['features_num']]),
       #tf.keras.layers.Dense(units=60, input_shape=[None, int(hyperparams['features_num'])],activation='relu'),
       # consider using bidirection LSTM, since we use return_sequences, so the previous state should be also update by considering advanced info.
       tf.keras.layers.Bidirectional(
       tf.keras.layers.LSTM(int(hyperparams['lstm_units']), 
                            return_sequences=True, 
                            activation='tanh',
-                           input_shape=[None,int(hyperparams['features_num'])])
-      ),
+                           input_shape=[None,int(hyperparams['features_num'])]
+                          )),
       tf.keras.layers.Dropout(0.2),
       tf.keras.layers.Dense(60,activation='relu'), # linear without activation func
       tf.keras.layers.Dropout(0.2),
