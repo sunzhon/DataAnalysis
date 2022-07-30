@@ -123,7 +123,7 @@ def test_model(training_folder, xy_test, scaler, **kwargs):
     trained_model = load_trained_model(training_folder)
     
     #4) test data
-    model_output = model_forecast(trained_model, xy_test, hyperparams)
+    model_output, execution_time = model_forecast(trained_model, xy_test, hyperparams)
     model_prediction = model_output.reshape(-1,int(hyperparams['labels_num']))
     
     #5) reshape and inverse normalization
@@ -139,6 +139,8 @@ def test_model(training_folder, xy_test, scaler, **kwargs):
     if('test_trial' in kwargs.keys()):
         hyperparams['test_trial'] = kwargs['test_trial']
 
+    hyperparams['execution_time'] = execution_time
+
     hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
     with open(hyperparams_file,'w') as fd:
         yaml.dump(hyperparams, fd)
@@ -152,7 +154,7 @@ def test_model(training_folder, xy_test, scaler, **kwargs):
     #8) save testing results
     save_test_result(pd_features, pd_labels, pd_predictions, testing_folder)
 
-    return features, labels, predictions, testing_folder
+    return features, labels, predictions, testing_folder, execution_time
 
 
 
@@ -504,6 +506,7 @@ def get_investigation_assessment(combination_investigation_results):
                 metrics[columns[idx]] = a_single_investigation_config_results[idx]
             metrics['Test ID'] = test_id # get test id
 
+
             # read hyperparams 
             hyperparams_file = os.path.join(testing_folder,"hyperparams.yaml")
             if os.path.isfile(hyperparams_file):
@@ -526,6 +529,19 @@ def get_investigation_assessment(combination_investigation_results):
                     metrics['Trials'] = hyperparams['test_trial']
             else:
                 metrics['Trials'] = 0 # not sure which trials, so set it to 0
+
+            # running time calculation
+            if('execution_time' in hyperparams.keys()):
+                metrics['execution_time'] = hyperparams['execution_time']
+            else:
+                metrics['execution_time'] = -100 # Did not define the execution time
+
+            # additional IMUs
+            if('additional_imus' in hyperparams.keys()):
+                metrics['additional_imus'] = hyperparams['additional_imus']
+            else:
+                metrics['additional_imus'] = None # Did not define the execution time
+
 
         except Exception as e:
             print(e)
@@ -577,7 +593,7 @@ def get_investigation_metrics(combination_investigation_results, metric_fields=[
     #r2_metrics.index = np.arange(0,r2_metrics.shape[0])
 
     #2) add column: IMU number
-    metrics['IMU number']=metrics.loc[:,'Sensor configurations'].apply(lambda x: len(x))
+    metrics.loc[:,'IMU number']=metrics.loc[:,'Sensor configurations'].apply(lambda x: len(x))
 
 
     #3) save pandas DataFrame
@@ -728,8 +744,9 @@ if __name__=='__main__':
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/1_collected_data/study_lstm_units_GRF/3_imu_all_units/testing_result_folders.txt"
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2_collected_full_cv/2_imu_full_cv_all_trials/testing_result_folders.txt"
-    #pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results)
-    #pdb.set_trace()
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/3_imu/3_imu_25_lstm_units/testing_result_folders.txt"
+    pd_assessment = evaluate_models_on_unseen_subjects(combination_investigation_results)
+    pdb.set_trace()
 
 
 

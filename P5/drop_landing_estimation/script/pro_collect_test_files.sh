@@ -20,7 +20,9 @@ touch $data_file
 echo "Sensor configurations\tLSTM units\tsyn_features_labels\tuse_frame_index\tlanding_manners\testimated_variables\ttraining_testing_folders" > $data_file
 echo "START TO COLLECT TEST DATA"
 
-all_sensor_configs=( 'T' 'S' 'F' 'W' 'C'  'FS' 'FT' 'FW' 'FC' 'ST' 'SW' 'SC' 'TW' 'TC' 'WC' 'FST' 'FSW' 'FSC' 'FTW' 'FTC' 'FWC' 'STW' 'STC' 'SWC' 'TWC' 'FSTW' 'FSTC' 'FSWC' 'FTWC' 'STWC' 'FSTWC')
+#all_sensor_configs=( 'T' 'S' 'F' 'W' 'C'  'FS' 'FT' 'FW' 'FC' 'ST' 'SW' 'SC' 'TW' 'TC' 'WC' 'FST' 'FSW' 'FSC' 'FTW' 'FTC' 'FWC' 'STW' 'STC' 'SWC' 'TWC' 'FSTW' 'FSTC' 'FSWC' 'FTWC' 'STWC' 'FSTWC')
+#all_sensor_configs=('FSTWCF' 'FSTWCS' 'FSTWCT' 'FSTWCFS' 'FSTWCFT' 'FSTWCST' 'FSTWCFST')
+all_sensor_configs=( 'T' 'S' 'F' 'W' 'C'  'FS' 'FT' 'FW' 'FC' 'ST' 'SW' 'SC' 'TW' 'TC' 'WC' 'FST' 'FSW' 'FSC' 'FTW' 'FTC' 'FWC' 'STW' 'STC' 'SWC' 'TWC' 'FSTW' 'FSTC' 'FSWC' 'FTWC' 'STWC' 'FSTWC' 'FSTWCF' 'FSTWCS' 'FSTWCT' 'FSTWCFS' 'FSTWCFT' 'FSTWCST' 'FSTWCFST')
 
 for hyper_file in ${list_hyper_files}; do 
     str=${hyper_file%/*}
@@ -42,12 +44,12 @@ for hyper_file in ${list_hyper_files}; do
 
 
 
-        echo ${lstm} 
-        echo ${sensors_fields}
+        echo "lstm units: ${lstm}" 
+        #echo "sensor fields:\n${sensors_fields}"
         sensor_configs=$(echo $sensors_fields | grep -o -E "[A-Z]{2,10}")
-        echo $sensor_configs
+        echo "sensor configs:\n$sensor_configs"
         combined_sensor_config_name=$(echo $sensor_configs | grep -o -E "^[A-Z]|(\s[A-Z])+" | grep -o -E "[A-Z]+" | tr -d '\n')
-        echo $combined_sensor_config_name
+        echo "combined sensor configuration name: $combined_sensor_config_name"
         for a_sensor_config in ${all_sensor_configs[@]}; do
             n_a_sensor_config=$(echo $a_sensor_config | wc -m)
             n_a_sensor_config=$[$n_a_sensor_config-1]

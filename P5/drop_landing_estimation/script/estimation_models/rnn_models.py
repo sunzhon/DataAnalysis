@@ -26,7 +26,7 @@ from vicon_imu_data_process.dataset import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import KFold
-import time as localtimepkg
+import time
 
 # NARX
 from sklearn.linear_model import LinearRegression
@@ -196,10 +196,7 @@ def save_trained_model(trained_model,history,training_folder,**kwargs):
         json.dump(history.history, fd)
 
 
-
-
-
-# model prediction
+# Model prediction
 def model_forecast(model, series, hyperparams):
     window_size = int(hyperparams['window_size'])
     batch_size = int(hyperparams['batch_size'])
@@ -227,12 +224,15 @@ def model_forecast(model, series, hyperparams):
 
     # The model input has shape (batch_num, window_batch_num, window_size, festures_num)
     '''
+    st = time.time() # start time
     model_output = model.predict(ds)
+    et = time.time() # end time
+    dt = round((et-st)/DROPLANDING_PERIOD*1000,1)  # duration time of each frame, unit is ms
 
     model_prediction=np.row_stack([model_output[0,:,:],model_output[1:,-1,:]])
 
     # The model prediction shape is (frames of the raw data, labels_num)
-    return model_prediction
+    return model_prediction,  dt
 
 
 

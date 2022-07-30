@@ -13,6 +13,8 @@ import h5py
 import seaborn as sns
 import copy
 import re
+from statannotations.Annotator import Annotator
+
 
 
 
@@ -471,7 +473,7 @@ def parase_plot_data(combination_investigation_results, landing_manner='all', es
             print('All LSTM units are used')
         else:
             print('LSTM units is not right, it should be {}'.format(set(metrics['LSTM units'])))
-            sys.exit()
+            #sys.exit()
 
     if 'Sensor configurations' in metrics.columns: # has this investigation
         if set(sensor_config) <= set(metrics['Sensor configurations']): # a value of the IMU number
@@ -480,7 +482,7 @@ def parase_plot_data(combination_investigation_results, landing_manner='all', es
             print('All sensor configurations are used')
         else:
             print('sensor configurations is not right, it should be {}'.format(set(metrics['Sensor configurations'])))
-            sys.exit()
+            #sys.exit()
 
     if 'IMU number' in metrics.columns: # has this investigation
         if set(IMU_number) <= set(metrics['IMU number']): # a value of the IMU number
@@ -489,8 +491,7 @@ def parase_plot_data(combination_investigation_results, landing_manner='all', es
             print('All IMU number are used')
         else:
             print('IMU number is not right, it should be {}'.format(set(metrics['IMU number'])))
-            sys.exit()
-
+            #sys.exit()
 
     #3) add average scores of each sensor configurations
     metrics['average scores'] = 0.0
@@ -502,6 +503,7 @@ def parase_plot_data(combination_investigation_results, landing_manner='all', es
     if(sort_variable!=None):
         metrics[sort_variable] = metrics[sort_variable].astype('float64')
         metrics.sort_values(by=[sort_variable], ascending=True, inplace=True)
+        metrics[sort_variable] = metrics[sort_variable].astype('int')
     
 
     return metrics
@@ -581,34 +583,42 @@ def plot_sensorconfig_modelsize_investigation_results(combination_investigation_
 
 '''
 
-def plot_overall_sensorconfig_modelsize_investigation_results(combination_investigation_results, 
+def lineplot_IMU_number_LSTM_unit_accuracy(combination_investigation_results, 
                                                               landing_manner='double_legs', 
                                                               estimated_variable='[GRF]', 
                                                               syn_features_label='both', 
                                                               LSTM_unit='all', 
                                                               IMU_number='all',
                                                               title=None,
+                                                              y='scores',
                                                               hue=None,
                                                               drop_value=None, 
                                                               metric_fields=['r2']):
 
     #1) load assessment metrics
-    metrics = parase_plot_data(combination_investigation_results, 
-                                       landing_manner=landing_manner, 
-                                       estimated_variable=estimated_variable, 
-                                       syn_features_label=syn_features_label,
-                                        LSTM_unit=LSTM_unit,
-                                        IMU_number = IMU_number,
-                                        drop_value=drop_value,
-                                       metric_fields=metric_fields,
-                                       sort_variable='LSTM units'    
-                                    )
+    if(not isinstance(combination_investigation_results,list)):
+        combination_investigation_results = [combination_investigation_results]
+
+    list_metrics=[]
+    for combination_investigation_result in combination_investigation_results:
+        print(combination_investigation_result)
+        list_metrics.append(parase_plot_data(combination_investigation_result, 
+                                             landing_manner=landing_manner, 
+                                             estimated_variable=estimated_variable, 
+                                             syn_features_label=syn_features_label,
+                                             LSTM_unit=LSTM_unit,
+                                             IMU_number = IMU_number,
+                                             drop_value=drop_value,
+                                             metric_fields=metric_fields,
+                                             sort_variable='LSTM units'    
+                                            ))
+        metrics=pd.concat(list_metrics,axis=0)
 
     #2) plot
     # i) plot configurations
     figwidth =5; figheight=4
     hspace = 0.25; wspace=0.34; top=0.93; bottom=0.12; left=0.14; right=0.95
-    
+
     '''
     figsize=(figwidth,figheight)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
@@ -628,7 +638,7 @@ def plot_overall_sensorconfig_modelsize_investigation_results(combination_invest
 
     #iii) sensor configurations
     idx = 0
-    x = 'LSTM units'; y = 'scores'
+    x = 'LSTM units'
     #displayed_data = metrics.loc[metrics['Sensor configurations'].isin(imu_config)]
     hue_plot_params = {
         'data': metrics,
@@ -638,6 +648,7 @@ def plot_overall_sensorconfig_modelsize_investigation_results(combination_invest
         #"color": colors[idx]
         }
     #g = sns.lineplot(ax=axs[idx], **hue_plot_params)
+    #g = sns.boxplot(**hue_plot_params)
     g = sns.lmplot(**hue_plot_params,order=2,scatter=False)
     #g = sns.relplot(**hue_plot_params)
     if(isinstance(g,plt.Axes)):
@@ -647,22 +658,104 @@ def plot_overall_sensorconfig_modelsize_investigation_results(combination_invest
         g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
         g.fig.subplots_adjust(left=left, right=right, top=top, bottom=bottom, hspace=hspace, wspace=wspace)
         fig = g.fig
+        fig.suptitle(re.search('[A-Z]+', estimated_variable).group(0) + title)
 
     ax_handle.set_xlabel('LSTM units')
     ax_handle.set_ylabel('$R^2$')
     #ax_handle.set_ylim(0.75,0.95)
     ax_handle.set_xlim(0,200)
-    ax_handle.set_xticks([0, 50, 100, 150, 200])
+    #ax_handle.set_xticks([0, 50, 100, 150, 200])
     ax_handle.set_ylim(0.7, 0.85)
     ax_handle.set_yticks([0.7, 0.75, 0.8, 0.85])
     ax_handle.grid(visible=True, axis='both',which='major')
     if hue!=None:
-        ax_handle.legend(ncol=5,title='IMU number',loc='lower right')
+        ax_handle.legend(ncol=4,title='IMU number',loc='lower right')
         #g.get_legend().remove()
 
-    fig.suptitle(re.search('[A-Z]+', estimated_variable).group(0) + title)
 
-    return save_figure(os.path.dirname(combination_investigation_results),fig_name=title,fig_format='svg'), metrics
+    return save_figure(os.path.dirname(combination_investigation_results[0]),fig_name=title,fig_format='svg'), metrics
+
+
+'''
+ Plot the execution time of each frame related to LSTM units and sensor configurations
+
+'''
+
+def lineplot_IMU_number_LSTM_unit_execution_time(combination_investigation_results, 
+                                                              landing_manner='double_legs', 
+                                                              estimated_variable='[GRF]', 
+                                                              syn_features_label='both', 
+                                                              LSTM_unit='all', 
+                                                              IMU_number='all',
+                                                              title=None,
+                                                              y='scores',
+                                                              hue=None,
+                                                              drop_value=None, 
+                                                              metric_fields=['r2']):
+
+    #1) load assessment metrics
+    if(not isinstance(combination_investigation_results,list)):
+        combination_investigation_results = [combination_investigation_results]
+
+    list_metrics=[]
+    for combination_investigation_result in combination_investigation_results:
+        print(combination_investigation_result)
+        list_metrics.append(parase_plot_data(combination_investigation_result, 
+                                             landing_manner=landing_manner, 
+                                             estimated_variable=estimated_variable, 
+                                             syn_features_label=syn_features_label,
+                                             LSTM_unit=LSTM_unit,
+                                             IMU_number = IMU_number,
+                                             drop_value=drop_value,
+                                             metric_fields=metric_fields,
+                                             sort_variable='LSTM units'    
+                                            ))
+        metrics=pd.concat(list_metrics,axis=0)
+
+    #2) plot
+    # i) plot configurations
+    figwidth =5; figheight=4
+    hspace = 0.25; wspace=0.34; top=0.93; bottom=0.12; left=0.14; right=0.95
+
+    colors = sns.color_palette("YlGnBu")
+
+    #iii) sensor configurations
+    idx = 0
+    x = 'LSTM units'
+    #displayed_data = metrics.loc[metrics['Sensor configurations'].isin(imu_config)]
+    hue_plot_params = {
+        'data': metrics,
+        'x': x,
+        'y': y
+        #"color": colors[idx]
+        }
+    #g = sns.lineplot(ax=axs[idx], **hue_plot_params)
+    #g = sns.boxplot(**hue_plot_params)
+    g = sns.lmplot(**hue_plot_params,order=1,scatter=True)
+    #g = sns.relplot(**hue_plot_params)
+    if(isinstance(g,plt.Axes)):
+        ax_handle = g
+    if(isinstance(g,sns.axisgrid.FacetGrid)):
+        ax_handle=g.fig.axes[0]
+        g.fig.set_figwidth(figwidth); g.fig.set_figheight(figheight)
+        g.fig.subplots_adjust(left=left, right=right, top=top, bottom=bottom, hspace=hspace, wspace=wspace)
+        fig = g.fig
+        fig.suptitle(re.search('[A-Z]+', estimated_variable).group(0) + title)
+
+    ax_handle.set_xlabel('LSTM units')
+    ax_handle.set_ylabel('Execution time [ms]')
+    #ax_handle.set_ylim(0.75,0.95)
+    ax_handle.set_xlim(0,200)
+    #ax_handle.set_xticks([0, 50, 100, 150, 200])
+    #ax_handle.set_ylim(9.2, 10.2)
+    #ax_handle.set_yticks([9.2,9.4,9.6,9.8,10.0,10.2])
+    ax_handle.grid(visible=True, axis='both',which='major')
+    if hue!=None:
+        ax_handle.legend(ncol=4,title='IMU number',loc='lower right')
+        #g.get_legend().remove()
+
+
+    return save_figure(os.path.dirname(combination_investigation_results[0]),fig_name=title,fig_format='svg'), metrics
 
 
 
@@ -824,15 +917,26 @@ plot overall figures
 
 '''
 
-def plot_overall_sensorconfig_investigation_results(combination_investigation_results, landing_manner='both', estimated_variable='both', syn_features_label='both', use_frame_index='both',LSTM_unit='all', title=None, drop_value=None, metric_fields=['r2'], hue=None):
-    #1) parase data
-    metrics = parase_plot_data(combination_investigation_results,
-                                       landing_manner=landing_manner,
-                                       estimated_variable=estimated_variable,
-                                       syn_features_label=syn_features_label,
-                                       use_frame_index=use_frame_index,
-                                       drop_value=drop_value,
-                                       metric_fields=metric_fields)
+def boxplot_IMU_number_accuracy(combination_investigation_results, landing_manner='both', estimated_variable='both', syn_features_label='both', use_frame_index='both',LSTM_unit='all', IMU_number='all',title=None, drop_value=None, metric_fields=['r2'], hue=None):
+
+    #1) load assessment metrics
+    if(not isinstance(combination_investigation_results,list)):
+        combination_investigation_results = [combination_investigation_results]
+
+    list_metrics=[]
+    for combination_investigation_result in combination_investigation_results:
+        list_metrics.append(parase_plot_data(combination_investigation_result, 
+                                             landing_manner=landing_manner, 
+                                             estimated_variable=estimated_variable, 
+                                             syn_features_label=syn_features_label,
+                                             LSTM_unit=LSTM_unit,
+                                             IMU_number = IMU_number,
+                                             drop_value=drop_value,
+                                             metric_fields=metric_fields
+                                            ))
+
+    metrics=pd.concat(list_metrics,axis=0)
+    metrics['IMU number'] = metrics['IMU number'].astype(str)
 
 
     #2) plot
@@ -840,7 +944,7 @@ def plot_overall_sensorconfig_investigation_results(combination_investigation_re
     figsize=(5,4)
     fig = plt.figure(figsize=figsize,constrained_layout=False)
     gs1 = gridspec.GridSpec(2,2)#13
-    gs1.update(hspace=0.25,wspace=0.34,top=0.93,bottom=0.11,left=0.13,right=0.95)
+    gs1.update(hspace=0.25,wspace=0.34,top=0.95,bottom=0.11,left=0.13,right=0.95)
     axs = []
     axs.append(fig.add_subplot(gs1[0:2, 0:2]))
 
@@ -850,7 +954,9 @@ def plot_overall_sensorconfig_investigation_results(combination_investigation_re
     else:
         palette = None
 
-    colors = sns.color_palette("YlGnBu")
+    sns.set(font_scale=1.15,style='whitegrid')
+    states_palette = sns.color_palette("YlGnBu", n_colors=8)
+    colors = sns.color_palette("YlGnBu") 
     #iii) sensor configurations
     
     idx=0
@@ -862,27 +968,191 @@ def plot_overall_sensorconfig_investigation_results(combination_investigation_re
         'y': y,
         'hue': hue,
         "showfliers": False,
-        "palette": palette,
-        "color": colors[idx]
+        "showmeans": True,
+        "color": colors[idx],
+        "palette": states_palette
         }
+
+
     g = sns.boxplot(ax=axs[idx], **hue_plot_params)
     g.set_xlabel('Number of IMUs')
-    g.set_ylabel('R2')
-    #g.set_ylim(0.2,1.0)
-    #g.set_yticks([0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0])
+    g.set_ylabel('$R^2$')
+    g.set_ylim(0.4,1.0)
+    g.set_yticks([0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0])
     g.grid(visible=True, axis='both',which='major')
     if hue!=None:
         g.legend(ncol=3,title='Event-based alignment',loc='lower right')
         #g.get_legend().remove()
 
-    fig.suptitle(re.search('[A-Z]+',estimated_variable).group(0)+title)
+    #fig.suptitle(re.search('[A-Z]+',estimated_variable).group(0)+title)
 
-    return save_figure(os.path.dirname(combination_investigation_results),fig_name=title,fig_format='svg'), metrics
+
+    # statistical test
+    #test_method="Mann-Whitney"
+    test_method="t-test_ind"
+    pairs = (
+        [('1','2'),('2','3'),('3','4'),('4','5'),('5','6'),('6','7'),('7','8')]
+    )
+
+    annotator=Annotator(g,pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+
+    return save_figure(os.path.dirname(combination_investigation_results[0]),fig_name=title,fig_format='svg'), metrics
+
+def boxplot_single_imu_estimation_accuracy(combination_investigation_results):
+
+    landing_manner= "double_legs"
+    metrics = parase_plot_data(
+        combination_investigation_results[0],
+        landing_manner = landing_manner,
+        estimated_variable = 'GRF',
+        syn_features_label = False,
+        drop_value = 0.0,
+        IMU_number = [1]
+    )
+    
+    metrics['Sensor configurations'] = metrics['Sensor configurations'].replace(['F'],'R_F')
+    metrics['Sensor configurations'] = metrics['Sensor configurations'].replace(['S'],'R_S')
+    metrics['Sensor configurations'] = metrics['Sensor configurations'].replace(['T'],'R_T')
+    
+    landing_manner= "double_legs"
+    additional_metrics = parase_plot_data(
+        combination_investigation_results[1],
+        landing_manner = landing_manner,
+        estimated_variable = 'GRF',
+        syn_features_label = False,
+        drop_value = 0.0,
+        IMU_number = [1]
+    )
+    
+    additional_metrics['Sensor configurations'] = 'L_' + additional_metrics['Sensor configurations']
+    
+    all_metrics = pd.concat([metrics,additional_metrics],axis=0)
+    
+    
+    imu_config = ['R_T','R_S','R_F','W','C','L_F','L_S','L_T']
+    
+    displayed_data = all_metrics.loc[all_metrics['Sensor configurations'].isin(imu_config)]
+    sort_variable='average scores'
+    displayed_data[sort_variable] = displayed_data[sort_variable].astype('float64')
+    displayed_data.sort_values(by=[sort_variable], ascending=True, inplace=True)
+    
+    
+    sns.set(font_scale=1.15,style='whitegrid')
+    colors = sns.color_palette("YlGnBu") 
+    #colors = sns.cubehelix_palette(start=.5, rot=-.5) 
+    
+    states_palette = sns.color_palette("YlGnBu", n_colors=8)
+    x='Sensor configurations'
+    y='scores'
+    
+    
+    hue_plot_params = {
+    'data': displayed_data,
+    'x': x,
+    'y': y,
+    'showmeans': True,
+    "showfliers":False,
+    "palette": states_palette
+    }
+    
+    g = sns.boxplot( **hue_plot_params)
+    g.set_ylabel('$R^2$')
+    g.set_xlabel('IMU locations')
+    g.grid(visible=True, axis='both',which='major')
+    g.set_ylim([0.3,1.0])
+    g.set_yticks([0.6,0.7,0.8,0.9,1.0])
+    
+    # statistical test
+    #test_method="Mann-Whitney"
+    test_method="t-test_ind"
+    
+    pairs = (
+    [('L_S','R_F'),('R_F','W'),('W','L_F'),('L_F','L_T'),('L_T','R_T'),('R_T','R_S'),('R_S','C')]
+    )
+    
+    annotator = Annotator(g,pairs=pairs,**hue_plot_params)
+    annotator.configure(test=test_method, text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+    
+    
+    save_figure(os.path.dirname(combination_investigation_results[1]),'single_IMU',fig_format='svg')
 
 
 
 if __name__ == '__main__':
-    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2022-05-13/001/metrics.csv"
+
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/3_collected_modeling/additional_imu_all_imu_all_lstm_double_GRF/testing_result_folders.txt"
+    t1 = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/metrics.csv"
+    t2 = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/6_7_8_imu/6_7_8_imu_all_lstm/metrics.csv"
+    t3 = [
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/1_imu/1_imu_125_175/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/1_imu/1_imu_25_lstm/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/2_imu/2_imu_25_lstm/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/2_imu/2_imu_75/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/3_imu/3_imu_25_lstm_units/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/3_imu/3_imu_75/metrics.csv",
+          "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/3_imu/3_imu_125_175/metrics.csv",
+
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/4_imu/4_5_imu_125/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/4_imu/4_imu_25_lstm_units/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/4_imu/4_imu_75/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/4_imu/4_imu_175/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/5_imu/5_imu_25/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/5_imu/5_imu_75/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/5_imu/5_imu_125/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/5_imu/5_imu_175/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/6_7_8_imu/6_7_8_imu_25_lstm/metrics.csv",
+        "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/6_7_8_imu/75_125_175/metrics.csv"
+    ]
+
+    combination_investigation_results = [t1, t2] +t3
+#    fig_path,metrics = lineplot_IMU_number_LSTM_unit_accuracy(combination_investigation_results,
+#                                                                             estimated_variable = 'GRF',
+#                                                                             landing_manner='double_legs',
+#                                                                             syn_features_label = False,
+#                                                                             title = ' estimation in double-leg drop landing',
+#                                                                             drop_value = 0.0,
+#                                                                             hue = 'IMU number'
+#                                                                            )
+#
+#
+  #  pdb.set_trace()
+   # combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/execution_time/metrics.csv"
+   # combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/execution_time/testing_result_folders.txt"
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2022-07-29/16_34/testing_result_folders.txt"
+    fig_path,metrics = lineplot_IMU_number_LSTM_unit_execution_time(combination_investigation_results,
+                                                              estimated_variable = 'GRF',
+                                                              landing_manner='double_legs',
+                                                              syn_features_label = False,
+                                                              title = ' estimation in double-leg drop landing',
+                                                              drop_value = 0.0,
+                                                              y='execution_time'
+                                                              #hue = 'IMU number'
+                                                             )
+
+    pdb.set_trace()
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/3_collected_modeling/additional_imu_all_imu_all_lstm_double_GRF/8_imu_all_lstm_units/testing_result_folders.txt"
+    #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/3_collected_modeling/additional_imu_all_imu_all_lstm_double_GRF/metrics.csv"
+    fig_path, r2 = boxplot_IMU_number_accuracy(combination_investigation_results,
+                                                    landing_manner='double_legs', 
+                                                    estimated_variable='GRF',
+                                                    syn_features_label=False,
+                                                    title=' estimation in double-leg drop landing',
+                                                    LSTM_unit=[100], drop_value=0.0)
+
+
+    pdb.set_trace()
+
+
+
+    t_right = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2_collected_full_cv/r2_metrics.csv"
+    t_left = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/4_collected_sensor_lstm/additional_single_imu/metrics.csv"
+    combination_investigation_results = [t_right, t_left]
+    boxplot_single_imu_estimation_accuracy(combination_investigation_results)
+
+
 
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2022-05-13/001/metrics.csv"
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/latest_train/r2_metrics.csv"
@@ -897,6 +1167,26 @@ if __name__ == '__main__':
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units/125_all_imu/testing_result_folders.txt"
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units_KFM/testing_result_folders.txt"
     
+
+    combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/3_collected_modeling/additional_imus_double_GRF/testing_result_folders.txt"
+    landing_manner = 'double_legs'
+    estimated_variable = 'GRF'
+    syn_features_label = False
+    use_frame_index = True
+    drop_value = 0.0
+    metric_fields = ['r2','r_rmse','rmse']
+    metrics = parase_plot_data(combination_investigation_results,
+                               landing_manner=landing_manner,
+                               estimated_variable=estimated_variable,
+                               syn_features_label=syn_features_label,
+                               use_frame_index=use_frame_index,
+                               drop_value=drop_value,
+                               metric_fields=metric_fields
+                               #sort_variable='IMU number'
+                              )
+    metrics = metrics[['metrics', 'scores', 'IMU number', 'Sensor configurations']]
+    #metrics.loc[metrics['IMU number']==4].groupby(['metrics','Sensor configurations']).describe()
+
 
 
 
@@ -931,7 +1221,7 @@ if __name__ == '__main__':
 
     # sensor config, lstm units
     landing_manner = 'double_legs'
-    fig_path, metrics = plot_overall_sensorconfig_modelsize_investigation_results(combination_investigation_results,
+    fig_path, metrics = lineplot_IMU_number_LSTM_unit_accuracy(combination_investigation_results,
                                                                                   estimated_variable = 'GRF',
 
                                                                             landing_manner=landing_manner,
@@ -943,12 +1233,6 @@ if __name__ == '__main__':
 
     pdb.set_trace()
 
-    fig_path, r2 = plot_overall_sensorconfig_investigation_results(combination_investigation_results,
-                                                    landing_manner='double_legs', 
-                                                    estimated_variable='GRF',
-                                                    syn_features_label=False,
-                                                    title=' estimation in double-leg drop landing',
-                                                    LSTM_unit=125, drop_value=0.5)
 
 
     combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units/testing_result_folders_200.txt"
@@ -964,13 +1248,13 @@ if __name__ == '__main__':
 
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/study_lstm_units/study_lstm_4_imu/testing_result_folders.txt"
     landing_manner = 'single_leg'
-    fig_path, r2 = plot_overall_sensorconfig_modelsize_investigation_results(
-                                                                            combination_investigation_results,
-                                                                             estimated_variable = 'GRF',
-                                                                             landing_manner=landing_manner,
-                                                                             syn_features_label = 'false',
-                                                                             title = ' estimation in double-leg drop landing',
-                                                                             drop_value = 0.6,
-                                                                             hue = 'IMU number'
-                                                                            )
+    fig_path, r2 = lineplot_IMU_number_LSTM_unit_accuracy(
+        combination_investigation_results,
+        estimated_variable = 'GRF',
+        landing_manner=landing_manner,
+        syn_features_label = 'false',
+        title = ' estimation in double-leg drop landing',
+        drop_value = 0.6,
+        hue = 'IMU number'
+    )
     pdb.set_trace()

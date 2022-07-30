@@ -149,7 +149,6 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
             for use_frame_index_state in use_frame_index:
                 hyperparams['use_frame_index'] = use_frame_index_state
 
-                         
                 #iii) init hyper params with different labels
                 for estimated_variable in estimated_variables:
                     labels_fields = [hyperparams['target_leg'] + '_' + x for x in estimated_variable]
@@ -168,10 +167,14 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
                         else:
                             hyperparams['features_names'] = [hyperparams['target_leg']+'_'+x if(re.search('(FOOT)|(SHANK)|(THIGH)',x)) else x for x in features_fields]
 
+                        # temp feature names
+                        temp_feature_names = copy.deepcopy(hyperparams['features_names'])
                         for additional_IMU_config, add_imus in additional_IMUs.items():
+                            hyperparams['additional_imus'] = additional_IMU_config
                             if(add_imus!=[]): # additional IMUs
-                                hyperparams['features_names'] += const.extract_imu_fields(add_imus, const.ACC_GYRO_FIELDS)
-
+                                hyperparams['features_names'] = temp_feature_names + const.extract_imu_fields(add_imus, const.ACC_GYRO_FIELDS)
+                            
+                            # feature names and columns names
                             hyperparams['features_num'] = len(hyperparams['features_names'])
                             hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
 
@@ -233,7 +236,7 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
 
     #3) create folders to save testing folders
     combination_investigation_testing_folders = os.path.join(RESULTS_PATH,"investigation",
-                                         st_Xr(localtimepkg.strftime("%Y-%m-%d",localtimepkg.localtime())),
+                                         str(localtimepkg.strftime("%Y-%m-%d",localtimepkg.localtime())),
                                          str(localtimepkg.strftime("%H%M%S", localtimepkg.localtime())))
     if(not os.path.exists(combination_investigation_testing_folders)):
         os.makedirs(combination_investigation_testing_folders)
@@ -294,23 +297,23 @@ investigation_variables={
                              #   'TWC': ['THIGH','WAIST', 'CHEST']
 
                              #   'FSTW': ['FOOT','SHANK','THIGH','WAIST'], 
-                             #   'FSTC': ['FOOT','SHANK','THIGH','CHEST'], 
+                             #   'FSTC': ['FOOT','SHANK','THIGH','CHEST'] 
                              #   'FSWC': ['FOOT','SHANK','WAIST', 'CHEST'],
                              #   'FTWC': ['FOOT','THIGH','WAIST', 'CHEST'],
                              #   'STWC': ['SHANK','THIGH','WAIST', 'CHEST']
 
-                             #  'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']
+                               'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']
+                             #   'None':[]
                              },
     
-    "sensor_configurations": {'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']},
     #"syn_features_labels": [True, False],
     "syn_features_labels": [False],
     #"use_frame_index": [True, False],
     "use_frame_index": [True],
     #'estimated_variables': [['KNEE_MOMENT_X'], ['GRF_Z']],  # KFM, KAM, GRF
-    'estimated_variables': [['KNEE_MOMENT_Y']],
+    'estimated_variables': [['KNEE_MOMENT_X']],
     #"landing_manners": [ 'double_legs', 'single_leg'],
-    "landing_manners": ['double_legs'],
+    "landing_manners": ['single-leg'],
     "window_size" :[4],
     "shift_step" : 1,
     
@@ -322,31 +325,35 @@ investigation_variables={
     #"lstm_units": [55,60,65,70,75,80],
     #"lstm_units": [85,90,95,100,105,110,115,120,125,130],
     #"lstm_units": [135,140,145,150,155,160,165,170,175,180,185,190,195,200],
+    #"lstm_units": [1, 50, 100, 150, 200],
+    "lstm_units": [1, 50, 100, 150, 200],
+    "lstm_units": [25, 75, 125, 175],
+    "lstm_units": [1, 25, 50, 75, 100, 125, 150, 175, 200],
     "lstm_units": [130],
     'target_leg': 'R',
-   # 'additional_IMUs': {
-   #     'F': ['L_FOOT'],
-   #     'S': ['L_SHANK'],
-   #     'T': ['L_THIGH'],
-   #     'FS': ['L_FOOT','L_SHANK'],
-   #     'ST': ['L_SHANK','L_THIGH'],
-   #     'FT': ['L_FOOT','L_THIGH'],
-   #     'FST':['L_FOOT','L_SHANK','L_THIGH']
-   # }
-
     'additional_IMUs': {
-        'None':[]
+        'F': ['L_FOOT'],
+        'S': ['L_SHANK'],
+        'T': ['L_THIGH'],
+        'FS': ['L_FOOT','L_SHANK'],
+        'ST': ['L_SHANK','L_THIGH'],
+        'FT': ['L_FOOT','L_THIGH'],
+        'FST':['L_FOOT','L_SHANK','L_THIGH']
+     #   'None':[]
     }
+
 }
 
 
 ##*******************###
 
-# GRF_X has 0.11 R2 accuracy, it is not good
+# GRF_X estimation R2 is 0.11, it is not good
+# KNEE_ANGLE_X estimation with five IMUs R2 is 0.72, it is not good
+# KNEE_ANGLE_X estimation with shank and thigh R2 is 0.72, it is not good
 
 if __name__ == "__main__":
     #2) investigate model
-    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF_X',fold_number=17, test_multi_trials=True)
+    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF_X',fold_number=10, test_multi_trials=True)
 
     print(combination_investigation_results)
 

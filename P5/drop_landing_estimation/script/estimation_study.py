@@ -151,12 +151,12 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multi_trials=False):
         #iv) test model
         if(isinstance(xy_test, list)): # multi trials as test dataset
             for trial_idx, a_trial_xy_test in enumerate(xy_test):
-                features, labels, predictions, testing_folder = es_as.test_model(training_folder, a_trial_xy_test, scaler)
+                features, labels, predictions, testing_folder,execution_time = es_as.test_model(training_folder, a_trial_xy_test, scaler)
                 training_testing_results['training_folder'].append(training_folder)
                 training_testing_results['testing_folder'].append(testing_folder)
                 cross_val_scores.append([loop_times, trial_idx] + list(es_as.calculate_scores(labels, predictions)))
         else: # only a trial as test dataset
-            features, labels, predictions, testing_folder = es_as.test_model(training_folder, xy_test, scaler)
+            features, labels, predictions, testing_folder,execution_time = es_as.test_model(training_folder, xy_test, scaler)
             training_testing_results['training_folder'].append(training_folder)
             training_testing_results['testing_folder'].append(testing_folder)
             cross_val_scores.append([loop_times] + list(es_as.calculate_scores(labels, predictions)))
