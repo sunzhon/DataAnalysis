@@ -6,6 +6,7 @@ else
     dir_path=${HOME}
 fi
 
+#1) make folders of drop_landing workspace, dataset folder and result folder
 result_folder="$dir_path/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing"
 dataset_folder="$dir_path/Drop_landing_workspace/suntao/"
 
@@ -17,12 +18,12 @@ if [[ ! -d $dataset_folder ]]; then
     mkdir -p $dataset_folder
 fi
 
-
-remote_rawdataset_folder="/mnt/sun/My Passport/Drop_landing_workspace/suntao/D drop landing/"
+#2) copy dataset to drop landing workspace dataset folder
+remote_rawdataset_folder="/mnt/Drop_landing_workspace/suntao/D drop landing/"
 local_1_rawdataset_folder="/media/sun/My Passport/Drop_landing_workspace/suntao/D drop landing/"
 
 if [[ -d $remote_rawdataset_folder ]]; then
-    cp -r "/mnt/sun/My Passport/Drop_landing_workspace/suntao/D drop landing/" $dataset_folder
+    cp -r "/mnt/Drop_landing_workspace/suntao/D drop landing/" $dataset_folder
 elif [[ -d $local_1_rawdataset_folder ]]; then
     cp -r "/media/sun/My Passport/Drop_landing_workspace/suntao/D drop landing/" $dataset_folder
 else

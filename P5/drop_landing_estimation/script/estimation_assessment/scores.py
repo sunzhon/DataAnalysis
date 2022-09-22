@@ -13,6 +13,7 @@ import re
 
 if __name__=='__main__':
     sys.path.append('./../')
+    sys.path.append('./')
 
 from vicon_imu_data_process.dataset import *
 from vicon_imu_data_process import process_rawdata as pro_rd
@@ -57,6 +58,11 @@ def get_evaluation_metrics(pd_labels, pd_predictions,verbose=0):
     return metrics
 
 
+'''
+
+Calculate the execution time of a model estimation according to the input series 
+
+'''
 def calculate_model_time_complexity(model, series, hyperparams):
 
     window_size = int(hyperparams['window_size'])
@@ -505,6 +511,8 @@ def get_investigation_assessment(combination_investigation_results):
             for idx in range(len(a_single_investigation_config_results)-1): # get investigation configurations
                 metrics[columns[idx]] = a_single_investigation_config_results[idx]
             metrics['Test ID'] = test_id # get test id
+            # identify the metrics from which trials
+            metrics['Metrics ID'] = test_id+'_'+str(re.search("[0-9]+",os.path.basename(testing_folder)).group(0))# get test id
 
 
             # read hyperparams 
@@ -727,6 +735,9 @@ def parase_training_testing_folders(investigation_config_results, landing_manner
 
 
 if __name__=='__main__':
+
+
+
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/investigation/2022-05-13/094012/double_KFM_R_syn_5sensor_35testing_result_folders.txt"
     #combination_investigation_results = "/media/sun/DATA/Drop_landing_workspace/suntao/Results/Experiment_results/training_testing/2022-05-13/001/testing_result_folders.txt"
 

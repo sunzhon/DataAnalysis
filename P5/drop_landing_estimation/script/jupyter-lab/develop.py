@@ -67,6 +67,7 @@ from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PA
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH, inverse_estimated_variable_dict
 from vicon_imu_data_process import const
 from vicon_imu_data_process.dataset import *
+from vicon_imu_data_process.process_rawdata import *
 
 
 from estimation_models.rnn_models import *
@@ -179,7 +180,9 @@ def integrative_investigation(investigation_variables, prefix_name='', test_mult
                             hyperparams['columns_names'] = hyperparams['features_names'] + hyperparams['labels_names']
 
                             # set subjects and trials
-                            hyperparams['subjects_trials'] = pro_rd.set_subjects_trials(landing_manner=landing_manner, target_leg=target_leg)
+                            #hyperparams['raw_dataset_path'] = os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
+                            hyperparams['raw_dataset_path'] = os.path.join(DATA_PATH,'4_augment_features_labels_rawdatasets.hdf5')
+                            hyperparams['subjects_trials'] = pro_rd.get_subjects_trials(hyperparams['raw_dataset_path'])
 
                             #v) model size configuations
                             for lstm_unit in lstm_units:
@@ -297,12 +300,12 @@ investigation_variables={
                              #   'TWC': ['THIGH','WAIST', 'CHEST']
 
                              #   'FSTW': ['FOOT','SHANK','THIGH','WAIST'], 
-                             #   'FSTC': ['FOOT','SHANK','THIGH','CHEST'] 
+                                'FSTC': ['FOOT','SHANK','THIGH','CHEST'] # optimal config for vGRF during double-leg drop landing
                              #   'FSWC': ['FOOT','SHANK','WAIST', 'CHEST'],
                              #   'FTWC': ['FOOT','THIGH','WAIST', 'CHEST'],
                              #   'STWC': ['SHANK','THIGH','WAIST', 'CHEST']
 
-                               'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']
+                             #  'FSTWC': ['FOOT','SHANK','THIGH','WAIST', 'CHEST']
                              #   'None':[]
                              },
     
@@ -311,9 +314,9 @@ investigation_variables={
     #"use_frame_index": [True, False],
     "use_frame_index": [True],
     #'estimated_variables': [['KNEE_MOMENT_X'], ['GRF_Z']],  # KFM, KAM, GRF
-    'estimated_variables': [['KNEE_MOMENT_X']],
+    'estimated_variables': [['GRF_Z']],
     #"landing_manners": [ 'double_legs', 'single_leg'],
-    "landing_manners": ['single-leg'],
+    "landing_manners": ['double_legs'],
     "window_size" :[4],
     "shift_step" : 1,
     
@@ -332,31 +335,21 @@ investigation_variables={
     "lstm_units": [130],
     'target_leg': 'R',
     'additional_IMUs': {
-        'F': ['L_FOOT'],
-        'S': ['L_SHANK'],
-        'T': ['L_THIGH'],
-        'FS': ['L_FOOT','L_SHANK'],
-        'ST': ['L_SHANK','L_THIGH'],
-        'FT': ['L_FOOT','L_THIGH'],
-        'FST':['L_FOOT','L_SHANK','L_THIGH']
-     #   'None':[]
+     #   'F': ['L_FOOT'],
+     #   'S': ['L_SHANK'],
+     #   'T': ['L_THIGH'],
+     #   'FS': ['L_FOOT','L_SHANK'],
+     #   'ST': ['L_SHANK','L_THIGH'],
+     #   'FT': ['L_FOOT','L_THIGH'],
+     #   'FST':['L_FOOT','L_SHANK','L_THIGH']
+        'None':[]
     }
 
 }
 
 
-##*******************###
-
-# GRF_X estimation R2 is 0.11, it is not good
-# KNEE_ANGLE_X estimation with five IMUs R2 is 0.72, it is not good
-# KNEE_ANGLE_X estimation with shank and thigh R2 is 0.72, it is not good
-
 if __name__ == "__main__":
     #2) investigate model
-    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF_X',fold_number=10, test_multi_trials=True)
+    combination_investigation_results = integrative_investigation(investigation_variables,prefix_name='GRF_X',fold_number=2, test_multi_trials=True)
 
     print(combination_investigation_results)
-
-# ## exit machine and save environment
-#os.system("export $(cat /proc/1/environ |tr '\\0' '\\n' | grep MATCLOUD_CANCELTOKEN)&&/public/script/matncli node cancel -url https://matpool.com/api/public/node -save -name suntao_env")
-
