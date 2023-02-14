@@ -16,3 +16,6 @@
 [submodule "P6/transferlearning"]
 	path = P6/transferlearning
 	url = https://github.com/sunzhon/transferlearning.git
+[submodule "P6/transfer_learning_for_droplanding"]
+	path = P6/transfer_learning_for_droplanding
+	url = git@gitlab.com:sunzhon/transfer_learning_for_droplanding.git

@@ -29,7 +29,7 @@ import matplotlib.font_manager
 Save figures
 
 '''
-def save_figure(fig_data_folder, fig_name='results', fig_path=None, fig_format='.svg'):
+def save_figure(fig_data_folder="./", fig_name='results', fig_path=None, fig_format='.svg'):
 
     if(fig_path==None):
         folder_fig = os.path.join(fig_data_folder,'data_visulization', str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())))
