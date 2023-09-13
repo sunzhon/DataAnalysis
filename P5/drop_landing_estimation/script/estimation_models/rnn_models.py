@@ -17,7 +17,7 @@ import copy
 import re
 import json
 
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
@@ -26,9 +26,13 @@ from vicon_imu_data_process.dataset import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import KFold
-import time as localtimepkg
+import time
 
-
+# NARX
+from sklearn.linear_model import LinearRegression
+#from fireTS.models import NARX
+import matplotlib.pyplot as plt
+>>>>>>> origin/develop_sun
 
 
 '''
@@ -36,15 +40,15 @@ Model_V1 definition
 '''
 def model_v1(hyperparams):
     model = tf.keras.models.Sequential([
-      #tf.keras.layers.Conv1D(filters=10, kernel_size=6, strides=1, padding="causal", activation="relu", input_shape=[None, hyperparams['features_num']]),
+      #tf.keras.layers.Conv1D(filters=10, kernel_size=4, strides=1, padding="causal", activation="relu", input_shape=[None, hyperparams['features_num']]),
       #tf.keras.layers.Dense(units=60, input_shape=[None, int(hyperparams['features_num'])],activation='relu'),
       # consider using bidirection LSTM, since we use return_sequences, so the previous state should be also update by considering advanced info.
       tf.keras.layers.Bidirectional(
       tf.keras.layers.LSTM(int(hyperparams['lstm_units']), 
                            return_sequences=True, 
                            activation='tanh',
-                           input_shape=[None,int(hyperparams['features_num'])])
-      ),
+                           input_shape=[None,int(hyperparams['features_num'])]
+                          )),
       tf.keras.layers.Dropout(0.2),
       tf.keras.layers.Dense(60,activation='relu'), # linear without activation func
       tf.keras.layers.Dropout(0.2),
@@ -105,14 +109,15 @@ def train_model(model, hyperparams, train_set, valid_set, training_mode='Integra
         # compile model
         model.compile(loss=tf.keras.losses.Huber(),
                       optimizer=optimizer,
-                      metrics=["mae"])
-
+                      metrics=["mae"]
+                     )
 
         # fit model
         history = model.fit(train_set, 
                             epochs=hyperparams['epochs'],
                             validation_data = valid_set,
-                            callbacks = callbacks)
+                            callbacks = callbacks
+                           )
         #model.summary()
     """ Specified mode   """
     if training_mode=='Manual_way':
@@ -135,7 +140,7 @@ def train_model(model, hyperparams, train_set, valid_set, training_mode='Integra
     
     
     # Save trained model, its parameters, and training history 
-    save_trained_model(model,history,training_folder)
+    save_trained_model(model, history, training_folder)
     return model, history, training_folder
 
 
@@ -190,10 +195,7 @@ def save_trained_model(trained_model,history,training_folder,**kwargs):
         json.dump(history.history, fd)
 
 
-
-
-
-# model prediction
+# Model prediction
 def model_forecast(model, series, hyperparams):
     window_size = int(hyperparams['window_size'])
     batch_size = int(hyperparams['batch_size'])
@@ -203,7 +205,7 @@ def model_forecast(model, series, hyperparams):
 
 
     if(series.shape[1]==(labels_num + features_num)):
-        # transfer numpy data into tensors
+        # transfer numpy data into tensors from features
         ds = tf.data.Dataset.from_tensor_slices(series[:,:-labels_num]) # features
     else:
         ds = tf.data.Dataset.from_tensor_slices(series) # features
@@ -221,10 +223,49 @@ def model_forecast(model, series, hyperparams):
 
     # The model input has shape (batch_num, window_batch_num, window_size, festures_num)
     '''
+    st = time.time() # start time
     model_output = model.predict(ds)
+    et = time.time() # end time
+    dt = round((et-st)/DROPLANDING_PERIOD*1000,1)  # duration time of each frame, unit is ms
 
     model_prediction=np.row_stack([model_output[0,:,:],model_output[1:,-1,:]])
 
     # The model prediction shape is (frames of the raw data, labels_num)
-    return model_prediction
+    return model_prediction,  dt
+
+
+
+'''
+
+def model_narx(hyperparams):
+    exog_order = hyperparams['features_num'] * [5]
+    auto_order = 5
+    mdl = NARX(LinearRegression(), auto_order = auto_order, exog_order = exog_order)
+    return mdl
+'''
+
+
+def train_model_narx(model, hyperparams, train_set, valid_set, training_mode='Integrative_way'):
+    
+    # crerate train results folder
+    training_folder = pro_rd.create_training_files(hyperparams=hyperparams)
+    
+    for idx, data in enumerate(train_set):
+        x = data[:,:int(hyperparams['features_num'])]
+        y = data[:,int(hyperparams['features_num']):]
+        y = y.reshape(-1)
+        model.fit(x,y)
+
+    x_valid = valid_set[0][:,:int(hyperparams['features_num'])]
+    y_valid = valid_set[0][:,int(hyperparams['features_num']):]
+    steps = DROPLANDING_PERIOD
+    y_predict = model.forecast(x,y,steps,x_valid[:-1,:])
+    pdb.set_trace()
+    r2, rmse, mae, r_rmse = calculate_scores(y_valid[:-1,:],y_predict)
+
+    return r2
+    
+    # Save trained model, its parameters, and training history 
+    #save_trained_model(model, history, training_folder)
+    #return model, history, training_folder
 

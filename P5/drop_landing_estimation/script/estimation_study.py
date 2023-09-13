@@ -21,7 +21,7 @@ import copy
 import re
 import json
 
-from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH, TRAIN_USED_TRIALS
+from vicon_imu_data_process.const import FEATURES_FIELDS, LABELS_FIELDS, DATA_PATH
 from vicon_imu_data_process.const import DROPLANDING_PERIOD, RESULTS_PATH
 from vicon_imu_data_process import const
 
@@ -47,7 +47,7 @@ Set hyper parameters
 
 '''
 
-def initParameters(labels_names=None,features_names=None,subject_ids=None):
+def initParameters(labels_names=None,features_names=None):
     # hyper parameters
     hyperparams={}
 
@@ -62,23 +62,20 @@ def initParameters(labels_names=None,features_names=None,subject_ids=None):
     else:
         features_names=features_names
 
-    if(subject_ids==None):
-        subject_ids=['P_08','P_10', 'P_13', 'P_14', 'P_15','P_16','P_17','P_18','P_19','P_20','P_21','P_22','P_23'].append('P_24')
-
     # specify other paramters
     columns_names = features_names + labels_names
+
     hyperparams['features_num'] = len(features_names)
     hyperparams['labels_num'] = len(labels_names)
     hyperparams['features_names'] = features_names
     hyperparams['labels_names'] = labels_names
+    hyperparams['columns_names'] = columns_names
     hyperparams['learning_rate'] = 15e-2
     hyperparams['batch_size'] = 40
     hyperparams['window_size'] = 4
     hyperparams['shift_step'] = 1
     hyperparams['epochs'] = 100
-    hyperparams['columns_names'] = columns_names
     hyperparams['raw_dataset_path'] = os.path.join(DATA_PATH,'features_labels_rawdatasets.hdf5')
-    hyperparams['subjects_trials'] = pro_rd.set_subjects_trials(subject_ids)
     hyperparams['target_leg'] = 'L'
     hyperparams['landing_manner'] = 'double_legs'
 
@@ -91,7 +88,7 @@ Main rountine for developing ANN model for biomechanic variable estimations
 
 '''
 
-def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, syn_features_labels=True, landing_manner='double_leg'):
+def train_test_loops(hyperparams=None, fold_number=1, test_multi_trials=False):
     #1) set hyper parameters
     if(hyperparams==None):
         hyperparams = initParameters()
@@ -100,21 +97,22 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, 
 
     
     #2) create a list of training and testing files
-    train_test_folder = os.path.join(RESULTS_PATH, "training_testing", 
+    train_test_loop_folder = os.path.join(RESULTS_PATH, "training_testing", 
                                      str(localtimepkg.strftime("%Y-%m-%d", localtimepkg.localtime())), 
                                      'train_test_loops', # many train and test loop based on cross validation
-                                     str(localtimepkg.strftime("%H_%M_%S", localtimepkg.localtime())), 
+                                     str(localtimepkg.strftime("%H_%M_%S", localtimepkg.localtime()))
                                     )
-    if(os.path.exists(train_test_folder)==False):
-        os.makedirs(train_test_folder)   
+    if(os.path.exists(train_test_loop_folder)==False):
+        os.makedirs(train_test_loop_folder)   
 
-    # file for storing train and test folders
-    train_test_folders_log = os.path.join(train_test_folder, "train_test_folders.log")
-    if(os.path.exists(train_test_folders_log)):
-        os.remove(train_test_folders_log)
+
+    # create file for storing train and test folders
+    train_test_loop_folders_log = os.path.join(train_test_loop_folder, "train_test_loop_folders.log")
+    if(os.path.exists(train_test_loop_folders_log)):
+        os.remove(train_test_loop_folders_log)
         
-    # file for storing scores
-    cross_val_score_file = os.path.join(train_test_folder, "cross_validation_scores.csv")
+    # create file for storing scores
+    cross_val_score_file = os.path.join(train_test_loop_folder, "cross_validation_scores.csv")
     if(os.path.exists(cross_val_score_file)):
         os.remove(cross_val_score_file)
     
@@ -123,7 +121,7 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, 
     cross_val_scores = []
     
     #3) Load and normalize datasets for training and testing
-    subjects_trials_data, norm_subjects_trials_data, scaler = load_normalize_data(hyperparams,syn_features_labels=syn_features_labels)
+    subjects_trials_data, norm_subjects_trials_data, scaler = load_normalize_data(hyperparams)
 
     #4) leave-one-out cross-validation
     loo = LeaveOneOut()
@@ -136,24 +134,29 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, 
         fold_number = len(subject_ids_names)
 
     for train_subject_indices, test_subject_indices in loo.split(subject_ids_names):
-        #ii) split dataset
-        train_set, valid_set, xy_test = split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, multi_test_trials=test_multil_trials)
+        #0) select model
+        model_type='tf_keras'
 
-        #iii) declare model
+        #i) declare model
         model = model_v1(hyperparams)
+        #model = model_narx(hyperparams)
 
-        #iv) train model
-        trained_model, history_dict, training_folder = train_model(model,hyperparams,train_set,valid_set)
+        #ii) split dataset
+        train_set, valid_set, xy_test = split_dataset(norm_subjects_trials_data, train_subject_indices, test_subject_indices, hyperparams, model_type=model_type, test_multi_trials=test_multi_trials)
+
+        #iii) train model
+        trained_model, history_dict, training_folder = train_model(model, hyperparams, train_set, valid_set)
+        #trained_model, history_dict, training_folder = train_model_narx(model, hyperparams, train_set, valid_set)
         
-        #v) test model
+        #iv) test model
         if(isinstance(xy_test, list)): # multi trials as test dataset
             for trial_idx, a_trial_xy_test in enumerate(xy_test):
-                features, labels, predictions, testing_folder = es_as.test_model(training_folder, a_trial_xy_test, scaler)
+                features, labels, predictions, testing_folder,execution_time = es_as.test_model(training_folder, a_trial_xy_test, scaler)
                 training_testing_results['training_folder'].append(training_folder)
                 training_testing_results['testing_folder'].append(testing_folder)
                 cross_val_scores.append([loop_times, trial_idx] + list(es_as.calculate_scores(labels, predictions)))
         else: # only a trial as test dataset
-            features, labels, predictions, testing_folder = es_as.test_model(training_folder, xy_test, scaler)
+            features, labels, predictions, testing_folder,execution_time = es_as.test_model(training_folder, xy_test, scaler)
             training_testing_results['training_folder'].append(training_folder)
             training_testing_results['testing_folder'].append(testing_folder)
             cross_val_scores.append([loop_times] + list(es_as.calculate_scores(labels, predictions)))
@@ -170,7 +173,7 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, 
     print('Cross validation mean r2 scores: {} on fold: {} cross validation on all test trials'.format(pd_cross_scores['r2'].mean(axis=0), fold_number))
 
     #6) save train and test folder path
-    with open(train_test_folders_log, 'w') as fd:
+    with open(train_test_loop_folders_log, 'w') as fd:
         yaml.dump(training_testing_results, fd)
 
     #training_testing_results['cross_val_scores'] = cross_scores
@@ -178,10 +181,6 @@ def train_test_loops(hyperparams=None, fold_number=1, test_multil_trials=False, 
 
 
 
-
-
-
-
-
 if __name__=='__main__':
     pass
+    train_test_loops(hyperparams=None, fold_number=1, test_multi_trials=False)

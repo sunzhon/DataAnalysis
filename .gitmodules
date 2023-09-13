@@ -1,0 +1,18 @@
+[submodule "P5/drop_landing_estimation/script/scikit-kinematics"]
+	path = P5/drop_landing_estimation/script/scikit-kinematics
+	url = git@github.com:sunzhon/scikit-kinematics.git
+[submodule "P5/drop_landing_estimation/realtime_drop_landing_estimation"]
+	path = P5/drop_landing_estimation/realtime_drop_landing_estimation
+	url = https://gitlab.com/sunzhon/realtime_drop_landing_estimation.git
+[submodule "P6/transfer_learning_for_droplanding/vicon_imu_data_process"]
+	path = P6/transfer_learning_for_droplanding/vicon_imu_data_process
+	url = git@gitlab.com:sunzhon/vicon_imu_data_process.git
+[submodule "P6/transfer_learing_for_droplanding"]
+	path = P6/transfer_learing_for_droplanding
+	url = git@gitlab.com:sunzhon/transfer_learning_for_droplanding.git
+[submodule "P6/transferlearning"]
+	path = P6/transferlearning
+	url = https://github.com/sunzhon/transferlearning.git
+[submodule "P6/transfer_learning_for_droplanding"]
+	path = P6/transfer_learning_for_droplanding
+	url = git@gitlab.com:sunzhon/transfer_learning_for_droplanding.git

@@ -1,0 +1,8 @@
+# install machine learning packages
+# refer to: pytorch.org./get-started/locally/
+pip install torch torchvision
+pip install numpy pandas matplotlib termcolor pyyaml scikit-learn scipy statannotations
+pip install configargparse
+pip install h5py
+
+
